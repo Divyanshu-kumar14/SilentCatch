@@ -1,0 +1,28 @@
+# Local planning docs (ignored per request — everything inside specs/)
+specs/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+next-env.d.ts
+
+# Secrets & env
+.env
+.env.*
+!.env.example
+
+# Misc
+.DS_Store
+*.log
+dist/
+build/

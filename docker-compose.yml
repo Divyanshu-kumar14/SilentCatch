@@ -1,0 +1,26 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      NEBIUS_API_KEY: ${NEBIUS_API_KEY:-}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+    # NEBIUS_API_KEY/TAVILY_API_KEY. Unset keys = offline replay mode (safe).
+    env_file:
+      - path: ./.env
+        required: false
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    environment:
+      # Browser-side base URL for SSE/audit calls (consumed in Phase 3)
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
