@@ -109,36 +109,6 @@ The interface operates as a synchronized dark cockpit (`#0A0E13`) engineered to 
 
 ---
 
-## ⏱️ 60-Second Judge Demo Walkthrough
-
-Judges can verify the entire workflow in under 60 seconds with **zero API keys required** (offline deterministic replay traces ship with the repo):
-
-1. **Launch the stack:**
-   ```bash
-   make judge-demo
-   ```
-   *Opens the dark console at `http://localhost:3000`.*
-2. **Routine Clean Discharge (ED-101):**
-   - Observe ED-101 (ankle sprain) automatically audits on boot and clears with `SILENT_PASS` in **< 1.2s** (0 modals, 0 clicks required).
-3. **Trauma Case Interception (ED-104):**
-   - Click `ED-104` in the top header encounter switcher.
-   - Watch the 4-stage telemetry bar progress (Super VL $\rightarrow$ Nano $\rightarrow$ Tavily $\rightarrow$ Ultra + Rig).
-   - Observe the **CRITICAL INTERCEPT** card fire:
-     - Catches dropped 7.2 mm RUL nodule (CPT 71250 missing, links to RSNA Fleischner guideline).
-     - Catches kinetic AKI (+87% creatinine velocity) colliding with Ketorolac.
-     - Animated SVG red-line connects the report highlight to the orders pane.
-4. **Close the Loop (1-Click Patch):**
-   - Click **"Apply Safe Patch & Re-Verify"** on both cards.
-   - The packet mutates in place, immediately re-runs the safety interlock, and clears with `VERIFIED SAFE` banner in **< 10ms**.
-5. **Interactive Judge Sandbox (Break-It-Yourself):**
-   - Select `ED-101`. In the center pane, click the Creatinine `T+0` input and type `abc` $\rightarrow$ rejected client-side with validation error `rejected — bound 0.1–25.0 mg/dL`.
-   - Now type `2.40` $\rightarrow$ watch the sparkline vector instantly break out above the reference band (+208% delta) and trigger acute velocity alarms.
-6. **Model Benchmarks Tab:**
-   - Click **"MODEL BENCHMARKS"** in the top header.
-   - Review the 36-run comparative evaluation table, KPI cards, and per-encounter validation ledger.
-
----
-
 ## 🚀 Quick Start & Installation
 
 ### Option 1: One-Command Docker Setup (Recommended)
