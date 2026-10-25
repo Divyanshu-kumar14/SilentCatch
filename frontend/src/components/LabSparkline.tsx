@@ -67,7 +67,7 @@ const SparkCanvas = React.memo(function SparkCanvas({
   }, [points]);
 
   const flagged = slope.flags.length > 0;
-  const stroke = flagged ? "#f43f5e" : "#38bdf8";
+  const stroke = flagged ? "#FF5A5F" : "#3DE0D0";
   const first = points[0];
   const band = points.find((p) => p.ref_min != null && p.ref_max != null);
 
@@ -109,8 +109,8 @@ const SparkCanvas = React.memo(function SparkCanvas({
     >
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={flagged ? "#f43f5e" : "#38bdf8"} stopOpacity={0.28} />
-          <stop offset="100%" stopColor={flagged ? "#f43f5e" : "#38bdf8"} stopOpacity={0.0} />
+          <stop offset="0%" stopColor={flagged ? "#FF5A5F" : "#3DE0D0"} stopOpacity={0.28} />
+          <stop offset="100%" stopColor={flagged ? "#FF5A5F" : "#3DE0D0"} stopOpacity={0.0} />
         </linearGradient>
       </defs>
 
@@ -122,7 +122,7 @@ const SparkCanvas = React.memo(function SparkCanvas({
             y={geom.sy(band.ref_max)}
             width={W - PAD_L - PAD_R}
             height={Math.max(2, geom.sy(band.ref_min) - geom.sy(band.ref_max))}
-            fill="#10b981"
+            fill="#3DE0D0"
             opacity={0.12}
             rx={2}
           />
@@ -131,7 +131,7 @@ const SparkCanvas = React.memo(function SparkCanvas({
             x2={W - PAD_R}
             y1={geom.sy(band.ref_max)}
             y2={geom.sy(band.ref_max)}
-            stroke="#10b981"
+            stroke="#3DE0D0"
             strokeDasharray="3 3"
             strokeWidth={0.8}
             opacity={0.6}
@@ -141,15 +141,15 @@ const SparkCanvas = React.memo(function SparkCanvas({
             x2={W - PAD_R}
             y1={geom.sy(band.ref_min)}
             y2={geom.sy(band.ref_min)}
-            stroke="#10b981"
+            stroke="#3DE0D0"
             strokeDasharray="3 3"
             strokeWidth={0.8}
             opacity={0.6}
           />
-          <text x={W - PAD_R + 4} y={geom.sy(band.ref_max) + 3} fontSize={7.5} fill="#10b981" fontFamily="var(--font-geist-mono)">
+          <text x={W - PAD_R + 4} y={geom.sy(band.ref_max) + 3} fontSize={7.5} fill="#3DE0D0" fontFamily="var(--font-geist-mono)">
             {band.ref_max}
           </text>
-          <text x={W - PAD_R + 4} y={geom.sy(band.ref_min) + 3} fontSize={7.5} fill="#10b981" fontFamily="var(--font-geist-mono)">
+          <text x={W - PAD_R + 4} y={geom.sy(band.ref_min) + 3} fontSize={7.5} fill="#3DE0D0" fontFamily="var(--font-geist-mono)">
             {band.ref_min}
           </text>
         </g>
@@ -178,7 +178,7 @@ const SparkCanvas = React.memo(function SparkCanvas({
                 cx={geom.sx(p.timestamp_hr)}
                 cy={geom.sy(p.value)}
                 r={5}
-                fill={flagged ? "#f43f5e" : "#38bdf8"}
+                fill={flagged ? "#FF5A5F" : "#3DE0D0"}
                 opacity={0.3}
                 className="animate-ping"
               />
@@ -187,8 +187,8 @@ const SparkCanvas = React.memo(function SparkCanvas({
               cx={geom.sx(p.timestamp_hr)}
               cy={geom.sy(p.value)}
               r={isLast ? 3.2 : 2.4}
-              fill={flagged ? "#f43f5e" : "#38bdf8"}
-              stroke="#070a0f"
+              fill={flagged ? "#FF5A5F" : "#3DE0D0"}
+              stroke="#06070C"
               strokeWidth={1.2}
             />
           </g>
@@ -203,11 +203,11 @@ const SparkCanvas = React.memo(function SparkCanvas({
             y1={arrowTail.y}
             x2={tipX}
             y2={tipY}
-            stroke={flagged ? "#f43f5e" : "#64748b"}
+            stroke={flagged ? "#FF5A5F" : "#8A93A6"}
             strokeWidth={flagged ? 1.5 : 1}
             strokeDasharray={flagged ? "none" : "3 2"}
           />
-          <polygon points={arrow} fill={flagged ? "#f43f5e" : "#64748b"} />
+          <polygon points={arrow} fill={flagged ? "#FF5A5F" : "#8A93A6"} />
         </>
       )}
 
@@ -219,7 +219,7 @@ const SparkCanvas = React.memo(function SparkCanvas({
           y={H - 5}
           fontSize={7.5}
           textAnchor="middle"
-          fill="#64748b"
+          fill="#8A93A6"
           fontFamily="var(--font-geist-mono)"
         >
           T{p.timestamp_hr >= 0 ? "+" : "−"}
@@ -263,16 +263,16 @@ const AnalyteCard = React.memo(function AnalyteCard({
 
   return (
     <article
-      className={`rounded-lg border p-2.5 transition-all ${
+      className={`rounded-xl border p-3 transition-all duration-200 ${
         flagged
-          ? "border-rose-500/60 bg-gradient-to-b from-rose-950/30 to-slate-900/60 shadow-[0_0_15px_rgba(244,63,94,0.15)]"
-          : "border-white/10 bg-slate-900/40 hover:border-white/20"
+          ? "border-[#FF5A5F]/70 bg-gradient-to-b from-[#FF5A5F]/20 via-[#0A0D16]/90 to-[#06070C]/90 shadow-[0_0_20px_rgba(255,90,95,0.25)]"
+          : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]"
       }`}
     >
       <div className="flex items-baseline justify-between px-1">
-        <h3 className="font-mono text-[11px] font-bold tracking-wider text-slate-200">
+        <h3 className="font-mono text-[11px] font-bold tracking-wider text-[#F4F6FA]">
           {ANALYTE_LABELS[analyte]}
-          <span className="ml-1.5 text-[9px] font-normal text-slate-400">
+          <span className="ml-1.5 text-[9px] font-normal text-[#8A93A6]">
             {ANALYTE_UNIT[analyte]}
           </span>
         </h3>
@@ -281,17 +281,17 @@ const AnalyteCard = React.memo(function AnalyteCard({
             <span
               className={`font-mono text-[10.5px] font-bold ${
                 slope.pct_delta_from_baseline > 15
-                  ? "text-rose-400"
+                  ? "text-[#FF5A5F]"
                   : slope.pct_delta_from_baseline < -15
-                    ? "text-amber-400"
-                    : "text-slate-400"
+                    ? "text-[#FFB84D]"
+                    : "text-[#8A93A6]"
               }`}
             >
               Δ{slope.pct_delta_from_baseline > 0 ? "+" : ""}
               {slope.pct_delta_from_baseline.toFixed(0)}%
             </span>
           )}
-          <span className="font-mono text-[9px] text-slate-400">
+          <span className="font-mono text-[9px] text-[#8A93A6]">
             {slope?.slope_per_hour != null
               ? `slope ${slope.slope_per_hour >= 0 ? "+" : ""}${(slope.slope_per_hour * 24).toFixed(3)}/d`
               : "no slope"}
@@ -302,11 +302,11 @@ const AnalyteCard = React.memo(function AnalyteCard({
       {slope && <SparkCanvas points={points} slope={slope} />}
 
       {flagged && slope && (
-        <div className="mx-1 mt-1 mb-1.5 flex flex-wrap gap-1">
+        <div className="mx-1 mt-1.5 mb-2 flex flex-wrap gap-1">
           {slope.flags.map((f) => (
             <span
               key={f}
-              className="rounded border border-rose-500/50 bg-rose-500/15 px-2 py-0.5 font-mono text-[9px] font-bold tracking-wide text-rose-300"
+              className="rounded-full border border-[#FF5A5F]/60 bg-[#FF5A5F]/15 px-2.5 py-0.5 font-mono text-[9px] font-bold tracking-wide text-[#FF5A5F] shadow-[0_0_8px_rgba(255,90,95,0.3)]"
             >
               {LEGEND[f] ?? f}
             </span>
@@ -321,8 +321,8 @@ const AnalyteCard = React.memo(function AnalyteCard({
           const display = edits[key] ?? String(p.value);
           const error = errs[key];
           return (
-            <label key={key} className="flex items-center gap-1.5 rounded-md border border-white/5 bg-slate-950/60 px-1.5 py-0.5">
-              <span className="font-mono text-[9px] text-slate-400">
+            <label key={key} className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-black/40 px-2 py-1">
+              <span className="font-mono text-[9px] text-[#8A93A6]">
                 T{p.timestamp_hr >= 0 ? "+" : "−"}
                 {Math.abs(p.timestamp_hr)}
               </span>
@@ -332,10 +332,10 @@ const AnalyteCard = React.memo(function AnalyteCard({
                 onChange={(e) => onChange(analyte, i, e.target.value)}
                 onBlur={() => onBlur(key)}
                 aria-label={`${ANALYTE_LABELS[analyte]} value at T${p.timestamp_hr}h`}
-                className={`w-14 rounded border bg-slate-900/90 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-slate-100 outline-none transition-all ${
+                className={`w-14 rounded border bg-[#06070C]/90 px-1.5 py-0.5 font-mono text-[11px] font-bold text-white outline-none transition-all ${
                   error
-                    ? "border-rose-500 text-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.4)]"
-                    : "border-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/40"
+                    ? "border-[#FF5A5F] text-[#FF5A5F] shadow-[0_0_10px_rgba(255,90,95,0.4)]"
+                    : "border-white/12 focus:border-[#3DE0D0] focus:ring-1 focus:ring-[#3DE0D0]/50"
                 }`}
               />
             </label>
@@ -343,12 +343,12 @@ const AnalyteCard = React.memo(function AnalyteCard({
         })}
       </div>
 
-      <p className="mx-1 mt-1.5 h-3 font-mono text-[9px] font-medium text-rose-400" role="alert">
+      <p className="mx-1 mt-1.5 h-3 font-mono text-[9px] font-bold text-[#FF5A5F]" role="alert">
         {analyteErr}
       </p>
 
       {bounds && !analyteErr && (
-        <p className="mx-1 font-mono text-[8.5px] tracking-wider text-slate-500">
+        <p className="mx-1 font-mono text-[8.5px] tracking-wider text-[#8A93A6]">
           sandbox bounds {bounds.min}–{bounds.max}
         </p>
       )}
@@ -393,29 +393,29 @@ function LabSparkline({
   };
 
   return (
-    <section className="flex min-h-0 flex-col rounded-xl border border-white/10 bg-slate-950/80 backdrop-blur-md shadow-2xl overflow-hidden">
-      <header className="flex shrink-0 items-center justify-between border-b border-white/10 bg-slate-900/60 px-3.5 py-2">
+    <section className="glass-pane flex min-h-0 flex-col rounded-2xl overflow-hidden">
+      <header className="flex shrink-0 items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <span className="flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]" />
-          <h2 className="font-mono text-[11px] font-bold tracking-[0.16em] text-slate-200">
+          <span className="flex h-2 w-2 rounded-full bg-[#3DE0D0] shadow-[0_0_10px_#3DE0D0]" />
+          <h2 className="font-mono text-[11px] font-bold tracking-[0.18em] text-[#F4F6FA]">
             48-HOUR LAB VELOCITY
           </h2>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {flags.length > 0 && interceptActive && (
-            <span className="rounded bg-rose-500/15 border border-rose-500/40 px-2 py-0.5 font-mono text-[9px] font-bold text-rose-300">
+            <span className="rounded-full bg-[#FF5A5F]/15 border border-[#FF5A5F]/50 px-2.5 py-0.5 font-mono text-[9px] font-bold text-[#FF5A5F] shadow-[0_0_10px_rgba(255,90,95,0.25)]">
               {flags.length} ALARM{flags.length > 1 ? "S" : ""}
             </span>
           )}
-          <span className="font-mono text-[9px] text-slate-400">
+          <span className="font-mono text-[9px] text-[#8A93A6]">
             static band vs kinetic slope
           </span>
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3" data-testid="labs-scroll">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3.5" data-testid="labs-scroll">
         {analytes.length === 0 && (
-          <p className="font-mono text-[10px] text-slate-400 text-center py-4">No serial labs on file</p>
+          <p className="font-mono text-[10px] text-[#8A93A6] text-center py-4">No serial labs on file</p>
         )}
         <div className="flex flex-col gap-3">
           {analytes.map((analyte) => (

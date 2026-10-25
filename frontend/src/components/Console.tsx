@@ -37,7 +37,7 @@ import TelemetryBar from "@/components/TelemetryBar";
 
 const BenchmarkView = dynamic(() => import("@/components/BenchmarkView"), {
   loading: () => (
-    <div className="flex h-full items-center justify-center font-mono text-xs text-slate-500">
+    <div className="flex h-full items-center justify-center font-mono text-xs text-slate-400">
       Loading benchmark suite…
     </div>
   ),
@@ -118,7 +118,7 @@ function RedlineOverlay({
           <path
             d={d}
             fill="none"
-            stroke="#f43f5e"
+            stroke="#FF5A5F"
             strokeOpacity={0.25}
             strokeWidth={8}
             strokeLinecap="round"
@@ -127,7 +127,7 @@ function RedlineOverlay({
             className="redline-path"
             d={d}
             fill="none"
-            stroke="#f43f5e"
+            stroke="#FF5A5F"
             strokeWidth={2}
           />
         </g>
@@ -184,7 +184,7 @@ export default function Console() {
     void streamAudit(
       { encounter_id: doc.encounter_id, encounter: dirtyRef.current ? doc : undefined },
       (evt: AuditEvent) => {
-        if (token !== runToken.current) return; // superseded by a newer run
+        if (token !== runToken.current) return;
         switch (evt.event) {
           case "run_start":
             setRunStart(evt.data);
@@ -259,7 +259,7 @@ export default function Console() {
           setErr(
             e instanceof Error
               ? e.message
-              : "backend unreachable (start uvicorn on :8014)"
+              : "backend unreachable (start uvicorn on :8000)"
           );
           setPhase("error");
         }
@@ -276,7 +276,7 @@ export default function Console() {
 
   const selectEncounter = (record: Encounter) => {
     const doc = structuredClone(record) as Encounter;
-    runToken.current++; // invalidate any in-flight stream listener first
+    runToken.current++;
     abortRef.current?.abort();
     setEnc(doc);
     setSlopes(analyzeSerialLabs(doc.serial_labs));
@@ -334,48 +334,48 @@ export default function Console() {
   const safeActive = phase === "safe";
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#070a0f] text-slate-100">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#06070C] text-[#F4F6FA]">
       {/* ------------------------------------------------------ header */}
-      <header className="flex shrink-0 items-center justify-between border-b border-white/10 bg-slate-950/90 px-4 py-2.5 backdrop-blur-md">
+      <header className="flex shrink-0 items-center justify-between border-b border-white/10 bg-[#0A0D16]/90 px-4 py-2.5 backdrop-blur-xl">
         <div className="flex items-center gap-3">
-          {/* Logo badge */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/15 border border-sky-400/40 shadow-[0_0_12px_rgba(56,189,248,0.3)]">
-              <span className="h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
+          {/* Logo badge with neon glow */}
+          <div className="flex items-center gap-2.5">
+            <div className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#3DE0D0]/20 to-[#FF5A5F]/20 border border-[#3DE0D0]/40 shadow-[0_0_16px_rgba(61,224,208,0.35)]">
+              <span className="h-2 w-2 rounded-full bg-[#3DE0D0] animate-pulse shadow-[0_0_8px_#3DE0D0]" />
             </div>
             <div>
               <div className="flex items-baseline gap-2">
-                <h1 className="font-mono text-[13px] font-black tracking-[0.2em] text-white">
+                <h1 className="font-mono text-[14px] font-black tracking-[0.22em] text-white">
                   SILENTCATCH
                 </h1>
-                <span className="rounded bg-sky-500/10 px-1.5 py-0.2 font-mono text-[9px] font-bold uppercase tracking-wider text-sky-400 border border-sky-500/20">
-                  COPILOT
+                <span className="rounded-full bg-[#3DE0D0]/10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[#3DE0D0] border border-[#3DE0D0]/30 shadow-[0_0_10px_rgba(61,224,208,0.2)]">
+                  FLIGHT-CHECK
                 </span>
               </div>
-              <p className="font-mono text-[9.5px] uppercase tracking-wider text-slate-400 leading-none">
-                ER Pre-Discharge Flight-Check
+              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#8A93A6] leading-none mt-0.5">
+                ER Pre-Discharge Safety Interlock
               </p>
             </div>
           </div>
 
           {/* Tab Toggle: Cockpit vs Model Benchmarks */}
-          <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-slate-900/80 p-0.5 ml-2">
+          <div className="flex items-center gap-1 rounded-xl border border-white/12 bg-white/5 p-1 ml-3">
             <button
               onClick={() => setViewTab("cockpit")}
-              className={`rounded-md px-2.5 py-1 font-mono text-[10px] font-bold tracking-wider transition-all ${
+              className={`rounded-lg px-3 py-1 font-mono text-[10px] font-bold tracking-wider transition-all duration-200 ${
                 viewTab === "cockpit"
-                  ? "bg-sky-500 text-slate-950 shadow-[0_0_12px_rgba(56,189,248,0.35)]"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#3DE0D0] text-[#06070C] font-extrabold shadow-[0_0_16px_rgba(61,224,208,0.45)]"
+                  : "text-[#8A93A6] hover:text-white"
               }`}
             >
               FLIGHT-CHECK
             </button>
             <button
               onClick={() => setViewTab("benchmarks")}
-              className={`rounded-md px-2.5 py-1 font-mono text-[10px] font-bold tracking-wider transition-all ${
+              className={`rounded-lg px-3 py-1 font-mono text-[10px] font-bold tracking-wider transition-all duration-200 ${
                 viewTab === "benchmarks"
-                  ? "bg-sky-500 text-slate-950 shadow-[0_0_12px_rgba(56,189,248,0.35)]"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#3DE0D0] text-[#06070C] font-extrabold shadow-[0_0_16px_rgba(61,224,208,0.45)]"
+                  : "text-[#8A93A6] hover:text-white"
               }`}
             >
               MODEL BENCHMARKS
@@ -383,10 +383,10 @@ export default function Console() {
           </div>
         </div>
 
-        {/* Encounter Switcher (all 12 encounters rendered, key ones easily visible) */}
+        {/* Encounter Switcher (all 12 encounters rendered and navigable) */}
         {viewTab === "cockpit" && (
           <nav
-            className="flex items-center gap-1.5 max-w-[50vw] overflow-x-auto py-0.5 px-2 scrollbar-none"
+            className="flex items-center gap-1.5 max-w-[46vw] overflow-x-auto py-1 px-2 scrollbar-none"
             aria-label="Encounter switcher"
           >
             {fixtures.map((record) => {
@@ -395,22 +395,22 @@ export default function Console() {
                 <button
                   key={record.encounter_id}
                   onClick={() => selectEncounter(record)}
-                  className={`group shrink-0 rounded-lg border px-2.5 py-1 text-left transition-all ${
+                  className={`group shrink-0 rounded-lg border px-2.5 py-1 text-left transition-all duration-150 ${
                     active
-                      ? "border-sky-400/60 bg-sky-500/15 text-sky-200 shadow-[0_0_10px_rgba(56,189,248,0.2)]"
-                      : "border-white/5 bg-slate-900/50 text-slate-400 hover:border-white/15 hover:bg-slate-900 hover:text-slate-200"
+                      ? "border-[#3DE0D0] bg-[#3DE0D0]/15 text-[#3DE0D0] shadow-[0_0_14px_rgba(61,224,208,0.3)]"
+                      : "border-white/8 bg-white/5 text-[#8A93A6] hover:border-white/20 hover:text-white hover:bg-white/10"
                   }`}
                   title={`${record.encounter_id}: ${record.chief_complaint} (${record.patient_scenario})`}
                 >
                   <div className="flex items-center gap-1.5">
                     <span
                       className={`font-mono text-[11px] font-bold ${
-                        active ? "text-sky-300" : "text-slate-300 group-hover:text-white"
+                        active ? "text-[#3DE0D0]" : "text-[#B9C0CF] group-hover:text-white"
                       }`}
                     >
                       {record.encounter_id}
                     </span>
-                    <span className="block max-w-20 truncate text-[9.5px] leading-none text-slate-400">
+                    <span className="block max-w-20 truncate text-[9.5px] leading-none text-[#8A93A6]">
                       {record.chief_complaint}
                     </span>
                   </div>
@@ -424,19 +424,19 @@ export default function Console() {
         <div className="flex shrink-0 items-center gap-2">
           {healthz && (
             <>
-              <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/80 px-2.5 py-1">
+              <div className="flex items-center gap-1.5 rounded-full border border-[#3DE0D0]/30 bg-[#3DE0D0]/10 px-3 py-1 shadow-[0_0_12px_rgba(61,224,208,0.2)]">
                 <span
                   className={`h-2 w-2 rounded-full ${
                     healthz.inference_mode === "LIVE"
-                      ? "bg-emerald-400 shadow-[0_0_8px_#10b981]"
-                      : "bg-amber-400 shadow-[0_0_8px_#f59e0b]"
+                      ? "bg-[#3DE0D0] shadow-[0_0_8px_#3DE0D0]"
+                      : "bg-[#FFB84D] shadow-[0_0_8px_#FFB84D]"
                   }`}
                 />
-                <span className="font-mono text-[10px] font-bold text-slate-200">
+                <span className="font-mono text-[10px] font-bold text-[#3DE0D0]">
                   {healthz.inference_mode}
                 </span>
               </div>
-              <span className="rounded-lg border border-white/5 bg-slate-900/60 px-2 py-1 font-mono text-[9.5px] text-slate-400">
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[9px] text-[#8A93A6]">
                 tavily: {healthz.tavily_live ? "live" : "snapshot"}
               </span>
             </>
@@ -446,7 +446,7 @@ export default function Console() {
 
       {/* ------------------------------------------------------ error strip */}
       {phase === "error" && err && (
-        <div className="shrink-0 border-b border-rose-500/40 bg-rose-950/40 px-4 py-2 font-mono text-[11.5px] font-semibold text-rose-300">
+        <div className="shrink-0 border-b border-[#FF5A5F]/40 bg-[#FF5A5F]/15 px-4 py-2 font-mono text-[11.5px] font-semibold text-[#FF5A5F]">
           ✗ FLIGHT-CHECK ERROR — {err}
         </div>
       )}
@@ -457,7 +457,7 @@ export default function Console() {
       </main>
 
       <main
-        className={`min-h-0 flex-1 grid-cols-[minmax(0,30fr)_minmax(0,27fr)_minmax(0,36fr)] gap-3 p-3 ${
+        className={`min-h-0 flex-1 grid-cols-[minmax(0,30fr)_minmax(0,27fr)_minmax(0,36fr)] gap-3.5 p-3.5 ${
           viewTab === "cockpit" ? "grid" : "hidden"
         }`}
       >
@@ -508,7 +508,7 @@ export default function Console() {
         className="pointer-events-none fixed left-0 right-0 top-14 z-50 flex justify-center"
       >
         {safeActive && lastResult && (
-          <div className="safe-flash rounded-xl border border-emerald-500/70 bg-slate-950/90 px-5 py-2 font-mono text-[11.5px] font-bold tracking-wide text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.3)] backdrop-blur-md">
+          <div className="safe-flash rounded-2xl border border-[#3DE0D0]/80 bg-[#06070C]/95 px-6 py-2.5 font-mono text-[12px] font-bold tracking-wide text-[#3DE0D0] shadow-[0_0_30px_rgba(61,224,208,0.4)] backdrop-blur-xl">
             VERIFIED SAFE — patched packet re-audited: SILENT_PASS in{" "}
             {lastResult.elapsed}ms · ${lastResult.cost.toFixed(4)}
           </div>

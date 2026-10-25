@@ -27,7 +27,7 @@ export default function ThreeDVolumeViewer({ encounter, roi }: ThreeDProps) {
 
     // 1. Scene & Camera
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x06090e);
+    scene.background = new THREE.Color(0x06070c);
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
     camera.position.set(0, -18, 22);
@@ -37,7 +37,7 @@ export default function ThreeDVolumeViewer({ encounter, roi }: ThreeDProps) {
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.25;
     container.appendChild(renderer.domElement);
 
     // 3. OrbitControls
@@ -50,14 +50,14 @@ export default function ThreeDVolumeViewer({ encounter, roi }: ThreeDProps) {
     controlsRef.current = controls;
 
     // 4. Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.3);
     scene.add(ambientLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0x38bdf8, 1.5);
+    const dirLight1 = new THREE.DirectionalLight(0x3de0d0, 1.6);
     dirLight1.position.set(10, 15, 20);
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(0x0284c7, 0.8);
+    const dirLight2 = new THREE.DirectionalLight(0xff5a5f, 0.9);
     dirLight2.position.set(-10, -15, -10);
     scene.add(dirLight2);
 
@@ -87,21 +87,21 @@ export default function ThreeDVolumeViewer({ encounter, roi }: ThreeDProps) {
           mat = new THREE.MeshBasicMaterial({
             map: texture,
             transparent: true,
-            opacity: 0.95,
+            opacity: 0.98,
             side: THREE.DoubleSide,
             depthWrite: false,
           });
         } else {
           // Surrounding context slices with fading opacity
           const distFromTarget = Math.abs(i - numSlices / 2);
-          const opacity = Math.max(0.08, 0.35 - distFromTarget * 0.05);
+          const opacity = Math.max(0.06, 0.32 - distFromTarget * 0.05);
           mat = new THREE.MeshBasicMaterial({
             map: texture,
             transparent: true,
             opacity: opacity,
             side: THREE.DoubleSide,
             depthWrite: false,
-            color: new THREE.Color(0x38bdf8),
+            color: new THREE.Color(0x3de0d0),
           });
         }
 
@@ -114,10 +114,10 @@ export default function ThreeDVolumeViewer({ encounter, roi }: ThreeDProps) {
     // 6. Anatomical Bounding Cage with glowing cyan corners
     const boxGeo = new THREE.BoxGeometry(16.5, 16.5, 12);
     const boxMat = new THREE.MeshBasicMaterial({
-      color: 0x0284c7,
+      color: 0x3de0d0,
       wireframe: true,
       transparent: true,
-      opacity: 0.25,
+      opacity: 0.22,
     });
     const boxMesh = new THREE.Mesh(boxGeo, boxMat);
     scene.add(boxMesh);
@@ -133,22 +133,22 @@ export default function ThreeDVolumeViewer({ encounter, roi }: ThreeDProps) {
       const normZ = 0.0;
 
       // Inner glowing sphere
-      const sphereGeo = new THREE.SphereGeometry(0.45, 16, 16);
+      const sphereGeo = new THREE.SphereGeometry(0.48, 16, 16);
       const sphereMat = new THREE.MeshBasicMaterial({
-        color: 0xf43f5e,
+        color: 0xff5a5f,
         transparent: true,
-        opacity: 0.9,
+        opacity: 0.95,
       });
       const sphere = new THREE.Mesh(sphereGeo, sphereMat);
       beaconGroup.add(sphere);
 
       // Outer pulsing ring
-      const ringGeo = new THREE.RingGeometry(0.7, 0.85, 32);
+      const ringGeo = new THREE.RingGeometry(0.7, 0.88, 32);
       const ringMat = new THREE.MeshBasicMaterial({
-        color: 0x38bdf8,
+        color: 0x3de0d0,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.85,
       });
       const ring = new THREE.Mesh(ringGeo, ringMat);
       beaconGroup.add(ring);
@@ -209,30 +209,30 @@ export default function ThreeDVolumeViewer({ encounter, roi }: ThreeDProps) {
   }, [encounter, roi, autoRotate]);
 
   return (
-    <div className="relative flex h-[280px] w-full flex-col overflow-hidden rounded-lg border border-border bg-[#06090e]">
+    <div className="relative flex h-[280px] w-full flex-col overflow-hidden rounded-xl border border-white/15 bg-[#06070C] shadow-2xl">
       {/* 3D WebGL Canvas */}
       <div ref={mountRef} className="h-full w-full cursor-grab active:cursor-grabbing" />
 
       {/* Floating HUD Controls */}
       <div className="pointer-events-none absolute inset-x-2 top-2 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 rounded-full border border-sky-500/30 bg-slate-900/80 px-2.5 py-0.5 text-[10px] font-mono font-medium text-sky-400 backdrop-blur-md">
-          <span className="h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse" />
+        <div className="flex items-center gap-1.5 rounded-full border border-[#3DE0D0]/40 bg-[#06070C]/80 px-2.5 py-0.5 text-[9.5px] font-mono font-bold text-[#3DE0D0] backdrop-blur-md shadow-[0_0_12px_rgba(61,224,208,0.2)]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#3DE0D0] animate-pulse" />
           <span>3D VOLUMETRIC CT · {encounter.radiology_study.modality}</span>
         </div>
 
         <button
           onClick={() => setAutoRotate(!autoRotate)}
-          className="pointer-events-auto rounded border border-border bg-slate-900/80 px-2 py-0.5 text-[10px] font-mono text-slate-300 hover:text-white transition-colors"
+          className="pointer-events-auto rounded-lg border border-white/15 bg-[#06070C]/80 px-2.5 py-1 text-[9.5px] font-mono font-bold text-[#8A93A6] hover:text-white transition-colors backdrop-blur-md"
         >
-          {autoRotate ? "Pause Spin" : "Auto Spin"}
+          {autoRotate ? "PAUSE SPIN" : "AUTO SPIN"}
         </button>
       </div>
 
       {/* Slice Level Slider & 3D Indicator */}
-      <div className="pointer-events-auto absolute inset-x-3 bottom-2 flex items-center justify-between gap-3 rounded-lg border border-white/5 bg-slate-950/80 px-3 py-1.5 backdrop-blur-md">
+      <div className="pointer-events-auto absolute inset-x-2.5 bottom-2 flex items-center justify-between gap-3 rounded-lg border border-white/12 bg-[#06070C]/85 px-3 py-1.5 backdrop-blur-md">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[10px] text-slate-400">Slice:</span>
-          <span className="font-mono text-[11px] font-bold text-sky-400">#{sliceLevel}</span>
+          <span className="font-mono text-[9.5px] text-[#8A93A6]">Slice:</span>
+          <span className="font-mono text-[10.5px] font-bold text-[#3DE0D0]">#{sliceLevel}</span>
         </div>
         <input
           type="range"
@@ -240,9 +240,9 @@ export default function ThreeDVolumeViewer({ encounter, roi }: ThreeDProps) {
           max={80}
           value={sliceLevel}
           onChange={(e) => setSliceLevel(Number(e.target.value))}
-          className="h-1 w-36 cursor-pointer appearance-none rounded-lg bg-slate-800 accent-sky-400"
+          className="h-1 w-32 cursor-pointer appearance-none rounded-lg bg-white/20 accent-[#3DE0D0]"
         />
-        <div className="font-mono text-[9px] text-slate-400">
+        <div className="font-mono text-[8.5px] text-[#8A93A6]">
           Orbit: Click & Drag · Zoom: Scroll
         </div>
       </div>

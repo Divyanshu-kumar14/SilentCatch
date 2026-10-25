@@ -2,30 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-/* SilentCatch dark clinical cockpit — forced dark, no light variant (PRD FR-5.1). */
+/* SilentCatch Neon Glass 3D Dark Clinical Cockpit */
 :root {
-  --bg: #070a0f;
-  --pane: #0d131d;
-  --pane-raised: #121a27;
-  --border: #182333;
-  --border-strong: #24344b;
-  --text: #e2e8f0;
-  --text-dim: #94a3b8;
-  --text-faint: #64748b;
-  --cyan: #38bdf8;
-  --cyan-dim: #0284c7;
-  --red: #f43f5e;
-  --red-dim: #9f1239;
-  --green: #10b981;
-  --green-dim: #047857;
-  --amber: #f59e0b;
-  --amber-dim: #b45309;
+  --bg: #06070C;
+  --bg-radial: radial-gradient(ellipse at 50% 18%, #141829 0%, #06070C 75%);
+  --pane: rgba(14, 18, 28, 0.82);
+  --pane-raised: rgba(22, 28, 44, 0.9);
+  --border: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --text: #F4F6FA;
+  --text-dim: #B9C0CF;
+  --text-faint: #8A93A6;
+  --cyan: #3DE0D0;
+  --cyan-dim: #1ea396;
+  --red: #FF5A5F;
+  --red-dim: #c93b40;
+  --amber: #FFB84D;
+  --amber-dim: #c7882d;
+  --green: #3DE0D0;
+  --green-dim: #1ea396;
 }
 
 body {
   color: var(--text);
   background: var(--bg);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-image: var(--bg-radial);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow: hidden;
   user-select: none;
   -webkit-font-smoothing: antialiased;
@@ -37,39 +39,31 @@ body {
   height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(13, 19, 29, 0.6);
+  background: rgba(6, 7, 12, 0.6);
 }
 ::-webkit-scrollbar-thumb {
-  background: #24344b;
+  background: rgba(255, 255, 255, 0.16);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #38bdf8;
-}
-
-/* Subtle diagnostic scanline texture */
-.scan-grid {
-  background-image:
-    linear-gradient(rgba(24, 35, 51, 0.45) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(24, 35, 51, 0.45) 1px, transparent 1px);
-  background-size: 24px 24px;
-  background-position: -1px -1px;
+  background: #3DE0D0;
 }
 
 /* Glassmorphism panel styling */
 .glass-pane {
-  background: rgba(13, 19, 29, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .glass-pane-raised {
-  background: rgba(18, 26, 39, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 /* Progressive-release red lines: marching dashes flow source → target */
@@ -87,12 +81,12 @@ body {
   0%, 100% {
     opacity: 0.95;
     transform: scale(1);
-    box-shadow: 0 0 20px rgba(244, 63, 94, 0.7);
+    box-shadow: 0 0 20px rgba(255, 90, 95, 0.7);
   }
   50% {
     opacity: 0.45;
     transform: scale(0.97);
-    box-shadow: 0 0 6px rgba(244, 63, 94, 0.25);
+    box-shadow: 0 0 6px rgba(255, 90, 95, 0.25);
   }
 }
 .roi-pulse {
@@ -101,12 +95,12 @@ body {
 
 @keyframes safe-flash {
   0% {
-    background-color: rgba(16, 185, 129, 0.35);
-    border-color: rgba(16, 185, 129, 0.9);
+    background-color: rgba(61, 224, 208, 0.35);
+    border-color: rgba(61, 224, 208, 0.9);
   }
   100% {
-    background-color: rgba(16, 185, 129, 0);
-    border-color: rgba(16, 185, 129, 0.4);
+    background-color: rgba(61, 224, 208, 0);
+    border-color: rgba(61, 224, 208, 0.4);
   }
 }
 .safe-flash {
@@ -126,29 +120,15 @@ body {
   position: absolute;
   inset-block: 0;
   width: 35%;
-  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(61, 224, 208, 0.3), transparent);
   animation: stage-sweep 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-
-/* Subtle pulsing radar beam */
-@keyframes radar-sweep {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-.radar-sweep {
-  animation: radar-sweep 4s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .redline-path,
   .roi-pulse,
   .safe-flash,
-  .stage-sweep::after,
-  .radar-sweep {
+  .stage-sweep::after {
     animation: none;
   }
 }
