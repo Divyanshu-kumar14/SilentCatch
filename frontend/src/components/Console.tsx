@@ -37,7 +37,7 @@ import TelemetryBar from "@/components/TelemetryBar";
 
 const BenchmarkView = dynamic(() => import("@/components/BenchmarkView"), {
   loading: () => (
-    <div className="flex h-full items-center justify-center font-mono text-xs text-text-faint">
+    <div className="flex h-full items-center justify-center font-mono text-xs text-slate-500">
       Loading benchmark suite…
     </div>
   ),
@@ -118,17 +118,17 @@ function RedlineOverlay({
           <path
             d={d}
             fill="none"
-            stroke="#ff4d5e"
-            strokeOpacity={0.3}
-            strokeWidth={7}
+            stroke="#f43f5e"
+            strokeOpacity={0.25}
+            strokeWidth={8}
             strokeLinecap="round"
           />
           <path
             className="redline-path"
             d={d}
             fill="none"
-            stroke="#ff4d5e"
-            strokeWidth={1.6}
+            stroke="#f43f5e"
+            strokeWidth={2}
           />
         </g>
       ))}
@@ -334,66 +334,83 @@ export default function Console() {
   const safeActive = phase === "safe";
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-bg text-text">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#070a0f] text-slate-100">
       {/* ------------------------------------------------------ header */}
-      <header className="flex shrink-0 items-center gap-4 border-b border-border bg-pane px-4 py-2.5">
-        <div className="flex items-baseline gap-2">
-          <h1 className="font-mono text-[13px] font-semibold tracking-[0.18em] text-text">
-            SILENTCATCH
-          </h1>
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-faint">
-            ER Pre-Discharge Flight-Check
-          </span>
+      <header className="flex shrink-0 items-center justify-between border-b border-white/10 bg-slate-950/90 px-4 py-2.5 backdrop-blur-md">
+        <div className="flex items-center gap-3">
+          {/* Logo badge */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/15 border border-sky-400/40 shadow-[0_0_12px_rgba(56,189,248,0.3)]">
+              <span className="h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-baseline gap-2">
+                <h1 className="font-mono text-[13px] font-black tracking-[0.2em] text-white">
+                  SILENTCATCH
+                </h1>
+                <span className="rounded bg-sky-500/10 px-1.5 py-0.2 font-mono text-[9px] font-bold uppercase tracking-wider text-sky-400 border border-sky-500/20">
+                  COPILOT
+                </span>
+              </div>
+              <p className="font-mono text-[9.5px] uppercase tracking-wider text-slate-400 leading-none">
+                ER Pre-Discharge Flight-Check
+              </p>
+            </div>
+          </div>
+
+          {/* Tab Toggle: Cockpit vs Model Benchmarks */}
+          <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-slate-900/80 p-0.5 ml-2">
+            <button
+              onClick={() => setViewTab("cockpit")}
+              className={`rounded-md px-2.5 py-1 font-mono text-[10px] font-bold tracking-wider transition-all ${
+                viewTab === "cockpit"
+                  ? "bg-sky-500 text-slate-950 shadow-[0_0_12px_rgba(56,189,248,0.35)]"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              FLIGHT-CHECK
+            </button>
+            <button
+              onClick={() => setViewTab("benchmarks")}
+              className={`rounded-md px-2.5 py-1 font-mono text-[10px] font-bold tracking-wider transition-all ${
+                viewTab === "benchmarks"
+                  ? "bg-sky-500 text-slate-950 shadow-[0_0_12px_rgba(56,189,248,0.35)]"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              MODEL BENCHMARKS
+            </button>
+          </div>
         </div>
 
-        {/* Tab Toggle: Cockpit vs Model Benchmarks */}
-        <div className="flex items-center gap-1 border-l border-r border-border px-2">
-          <button
-            onClick={() => setViewTab("cockpit")}
-            className={`rounded-sm px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider transition-colors ${
-              viewTab === "cockpit"
-                ? "border border-live/50 bg-live/15 text-live"
-                : "border border-transparent text-text-faint hover:text-text"
-            }`}
-          >
-            FLIGHT-CHECK
-          </button>
-          <button
-            onClick={() => setViewTab("benchmarks")}
-            className={`rounded-sm px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider transition-colors ${
-              viewTab === "benchmarks"
-                ? "border border-live/50 bg-live/15 text-live"
-                : "border border-transparent text-text-faint hover:text-text"
-            }`}
-          >
-            MODEL BENCHMARKS
-          </button>
-        </div>
-
+        {/* Encounter Switcher (all 12 encounters rendered, key ones easily visible) */}
         {viewTab === "cockpit" && (
-          <nav className="flex items-center gap-1" aria-label="Encounter switcher">
+          <nav
+            className="flex items-center gap-1.5 max-w-[50vw] overflow-x-auto py-0.5 px-2 scrollbar-none"
+            aria-label="Encounter switcher"
+          >
             {fixtures.map((record) => {
               const active = enc?.encounter_id === record.encounter_id;
               return (
                 <button
                   key={record.encounter_id}
                   onClick={() => selectEncounter(record)}
-                  className={`group rounded-sm border px-2 py-0.5 text-left transition-colors ${
+                  className={`group shrink-0 rounded-lg border px-2.5 py-1 text-left transition-all ${
                     active
-                      ? "border-border-strong bg-pane-raised"
-                      : "border-transparent hover:border-border hover:bg-pane"
+                      ? "border-sky-400/60 bg-sky-500/15 text-sky-200 shadow-[0_0_10px_rgba(56,189,248,0.2)]"
+                      : "border-white/5 bg-slate-900/50 text-slate-400 hover:border-white/15 hover:bg-slate-900 hover:text-slate-200"
                   }`}
                   title={`${record.encounter_id}: ${record.chief_complaint} (${record.patient_scenario})`}
                 >
                   <div className="flex items-center gap-1.5">
                     <span
-                      className={`font-mono text-[11px] font-semibold ${
-                        active ? "text-live" : "text-text-dim group-hover:text-text"
+                      className={`font-mono text-[11px] font-bold ${
+                        active ? "text-sky-300" : "text-slate-300 group-hover:text-white"
                       }`}
                     >
                       {record.encounter_id}
                     </span>
-                    <span className="block max-w-28 truncate text-[9px] leading-none text-text-faint">
+                    <span className="block max-w-20 truncate text-[9.5px] leading-none text-slate-400">
                       {record.chief_complaint}
                     </span>
                   </div>
@@ -403,35 +420,33 @@ export default function Console() {
           </nav>
         )}
 
-        <div className="ml-auto flex shrink-0 items-center gap-2.5">
+        {/* Inference status pills */}
+        <div className="flex shrink-0 items-center gap-2">
           {healthz && (
             <>
-              <span
-                className={`rounded-sm border border-border bg-pane-raised px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider ${
-                  healthz.inference_mode === "LIVE" ? "text-live" : "text-warn"
-                }`}
-              >
-                {healthz.inference_mode}
-              </span>
-              <span className="font-mono text-[10px] text-text-faint">
+              <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/80 px-2.5 py-1">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    healthz.inference_mode === "LIVE"
+                      ? "bg-emerald-400 shadow-[0_0_8px_#10b981]"
+                      : "bg-amber-400 shadow-[0_0_8px_#f59e0b]"
+                  }`}
+                />
+                <span className="font-mono text-[10px] font-bold text-slate-200">
+                  {healthz.inference_mode}
+                </span>
+              </div>
+              <span className="rounded-lg border border-white/5 bg-slate-900/60 px-2 py-1 font-mono text-[9.5px] text-slate-400">
                 tavily: {healthz.tavily_live ? "live" : "snapshot"}
               </span>
             </>
-          )}
-          {runStart?.mode_note && (
-            <span
-              className="max-w-48 truncate font-mono text-[9.5px] text-text-faint"
-              title={runStart.mode_note}
-            >
-              {runStart.mode_note}
-            </span>
           )}
         </div>
       </header>
 
       {/* ------------------------------------------------------ error strip */}
       {phase === "error" && err && (
-        <div className="shrink-0 border-b border-intercept-dim bg-pane px-4 py-1.5 font-mono text-[11px] text-intercept">
+        <div className="shrink-0 border-b border-rose-500/40 bg-rose-950/40 px-4 py-2 font-mono text-[11.5px] font-semibold text-rose-300">
           ✗ FLIGHT-CHECK ERROR — {err}
         </div>
       )}
@@ -442,7 +457,7 @@ export default function Console() {
       </main>
 
       <main
-        className={`min-h-0 flex-1 grid-cols-[minmax(0,29fr)_minmax(0,26fr)_minmax(0,37fr)] gap-2.5 p-2.5 ${
+        className={`min-h-0 flex-1 grid-cols-[minmax(0,30fr)_minmax(0,27fr)_minmax(0,36fr)] gap-3 p-3 ${
           viewTab === "cockpit" ? "grid" : "hidden"
         }`}
       >
@@ -493,7 +508,7 @@ export default function Console() {
         className="pointer-events-none fixed left-0 right-0 top-14 z-50 flex justify-center"
       >
         {safeActive && lastResult && (
-          <div className="safe-flash rounded-sm border border-safe/50 bg-pane-raised px-4 py-1.5 font-mono text-[11px] tracking-wide text-safe">
+          <div className="safe-flash rounded-xl border border-emerald-500/70 bg-slate-950/90 px-5 py-2 font-mono text-[11.5px] font-bold tracking-wide text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.3)] backdrop-blur-md">
             VERIFIED SAFE — patched packet re-audited: SILENT_PASS in{" "}
             {lastResult.elapsed}ms · ${lastResult.cost.toFixed(4)}
           </div>
@@ -503,7 +518,7 @@ export default function Console() {
       {/* ------------------------------------------------------ telemetry */}
       <TelemetryBar
         phase={phase}
-        runStart={runStart}
+        _runStart={runStart}
         traces={traces}
         activeStage={activeStage}
       />

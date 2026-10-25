@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "eval_date": "2026-10-25 13:40:35 UTC",
+    "eval_date": "2026-10-25 14:54:16 UTC",
     "environment": "REPLAYED",
     "total_encounters": 12,
     "safe_count": 8,
@@ -140,7 +140,7 @@
       "modality": "Lumbar spine radiographs, AP and lateral",
       "expected_outcome": "SILENT_PASS",
       "tiered_outcome": "SILENT_PASS",
-      "tiered_latency_ms": 0.3,
+      "tiered_latency_ms": 0.2,
       "tiered_cost_usd": 0.00038,
       "passed": true
     },
@@ -160,7 +160,7 @@
       "modality": "Chest radiograph, portable AP",
       "expected_outcome": "CRITICAL_INTERCEPT",
       "tiered_outcome": "CRITICAL_INTERCEPT",
-      "tiered_latency_ms": 0.6,
+      "tiered_latency_ms": 0.4,
       "tiered_cost_usd": 0.005494,
       "passed": true
     },
@@ -170,7 +170,7 @@
       "modality": "Pelvis and right hip radiographs",
       "expected_outcome": "CRITICAL_INTERCEPT",
       "tiered_outcome": "CRITICAL_INTERCEPT",
-      "tiered_latency_ms": 0.5,
+      "tiered_latency_ms": 0.4,
       "tiered_cost_usd": 0.005494,
       "passed": true
     }

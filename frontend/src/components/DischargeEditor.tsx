@@ -42,15 +42,16 @@ function DischargeEditor({
   const isPass = phase === "pass";
 
   return (
-    <section className="flex min-h-0 flex-col border border-border bg-pane">
+    <section className="flex min-h-0 flex-col rounded-xl border border-white/10 bg-slate-950/80 backdrop-blur-md shadow-2xl overflow-hidden">
       {/* ------------------------------------------------ header */}
-      <header className="flex shrink-0 items-center justify-between border-b border-border px-3 py-1.5">
+      <header className="flex shrink-0 items-center justify-between border-b border-white/10 bg-slate-900/60 px-3.5 py-2">
         <div className="flex items-center gap-2 overflow-hidden">
-          <h2 className="shrink-0 font-mono text-[10px] font-semibold tracking-[0.2em] text-text-dim">
+          <span className="flex h-2 w-2 rounded-full bg-indigo-400 shadow-[0_0_8px_#818cf8]" />
+          <h2 className="shrink-0 font-mono text-[11px] font-bold tracking-[0.16em] text-slate-200">
             DISCHARGE PACKET
           </h2>
           <span
-            className="truncate rounded-[2px] border border-border bg-pane-raised px-1.5 py-0.5 font-mono text-[9px] text-text-faint"
+            className="truncate rounded bg-slate-800/80 border border-white/10 px-2 py-0.5 font-mono text-[9.5px] font-medium text-slate-300"
             title={packet.primary_diagnosis_icd10}
           >
             {packet.primary_diagnosis_icd10}
@@ -58,7 +59,7 @@ function DischargeEditor({
         </div>
         <div className="shrink-0 pl-2">
           {lastResult && (
-            <span className="font-mono text-[9px] text-text-faint">
+            <span className="rounded bg-slate-900/90 border border-white/5 px-2 py-0.5 font-mono text-[9px] text-slate-400">
               {lastResult.elapsed}ms · ${lastResult.cost.toFixed(4)}
             </span>
           )}
@@ -66,22 +67,22 @@ function DischargeEditor({
       </header>
 
       {/* ------------------------------------------------ action button */}
-      <div className="shrink-0 border-b border-border bg-pane-raised px-3 py-2.5">
+      <div className="shrink-0 border-b border-white/10 bg-slate-900/40 px-3.5 py-3">
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <span
-                className={`inline-block h-2 w-2 rounded-full ${
+                className={`inline-block h-2.5 w-2.5 rounded-full ${
                   isRunning
-                    ? "bg-live animate-ping"
+                    ? "bg-sky-400 animate-ping"
                     : isIntercept
-                      ? "bg-intercept"
+                      ? "bg-rose-500 shadow-[0_0_10px_#f43f5e]"
                       : isSafe || isPass
-                        ? "bg-safe"
-                        : "bg-text-faint"
+                        ? "bg-emerald-400 shadow-[0_0_10px_#10b981]"
+                        : "bg-slate-500"
                 }`}
               />
-              <span className="font-mono text-[11px] font-semibold tracking-wide text-text">
+              <span className="font-mono text-[11.5px] font-bold tracking-wide text-white">
                 {isRunning
                   ? "RUNNING FLIGHT-CHECK INTERLOCK…"
                   : isIntercept
@@ -93,7 +94,7 @@ function DischargeEditor({
                         : "PENDING CLINICAL SIGN-OFF"}
               </span>
             </div>
-            <p className="font-mono text-[9.5px] text-text-faint">
+            <p className="mt-0.5 font-mono text-[10px] text-slate-400">
               {isRunning
                 ? "Streaming multi-stage audit via Nebius Token Factory & Tavily"
                 : isIntercept
@@ -108,14 +109,14 @@ function DischargeEditor({
             onClick={onRun}
             disabled={isRunning}
             data-testid="sign-discharge-btn"
-            className={`group relative shrink-0 rounded-sm border px-3.5 py-2 font-mono text-[11px] font-semibold tracking-wider transition-all ${
+            className={`group relative shrink-0 rounded-lg border px-4 py-2 font-mono text-[11px] font-bold tracking-wider transition-all duration-200 shadow-md ${
               isRunning
-                ? "border-live/40 bg-live/10 text-live cursor-wait"
+                ? "border-sky-500/40 bg-sky-500/15 text-sky-300 cursor-wait"
                 : isIntercept
-                  ? "border-intercept/60 bg-intercept/10 text-intercept hover:bg-intercept/20"
+                  ? "border-rose-500/80 bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 hover:border-rose-400"
                   : isSafe || isPass
-                    ? "border-safe/60 bg-safe/10 text-safe hover:bg-safe/20"
-                    : "border-live/60 bg-live/15 text-live hover:bg-live/25 hover:border-live"
+                    ? "border-emerald-500/80 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 hover:border-emerald-400"
+                    : "border-sky-500/80 bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 hover:border-sky-400"
             }`}
           >
             {isRunning ? "AUDITING…" : "Sign & Discharge Patient"}
@@ -124,10 +125,10 @@ function DischargeEditor({
       </div>
 
       {/* ------------------------------------------------ scrollable body */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3" data-testid="discharge-scroll">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3.5" data-testid="discharge-scroll">
         {/* ----------------- CRITICAL INTERCEPT CARDS (FR-5.2) ----------------- */}
         {isIntercept && (
-          <div className="mb-4 flex flex-col gap-2.5">
+          <div className="mb-4 flex flex-col gap-3">
             {verdicts.map((v, i) => {
               const key = patchKey(v);
               const isApplied = applied.has(key);
@@ -140,14 +141,14 @@ function DischargeEditor({
               return (
                 <article
                   key={i}
-                  className="rounded-sm border border-intercept/70 bg-gradient-to-b from-intercept/15 to-intercept/5 p-3"
+                  className="rounded-xl border border-rose-500/70 bg-gradient-to-b from-rose-950/40 via-slate-900/80 to-slate-950/90 p-3.5 shadow-[0_4px_24px_rgba(244,63,94,0.18)]"
                 >
                   <div className="flex items-baseline justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="rounded-[2px] bg-intercept px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-bg">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded bg-rose-500 px-2 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider text-slate-950 shadow-sm">
                         {v.severity}
                       </span>
-                      <span className="font-mono text-[11px] font-semibold text-intercept">
+                      <span className="font-mono text-[11.5px] font-bold text-rose-300">
                         {kindLabel(v.kind)}
                       </span>
                     </div>
@@ -157,10 +158,10 @@ function DischargeEditor({
                         href={guidelineUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 font-mono text-[9px] text-live hover:underline"
+                        className="flex items-center gap-1.5 font-mono text-[9px] font-medium text-sky-400 hover:text-sky-300 transition-colors"
                         title={guidelineUrl}
                       >
-                        <span className="rounded-[2px] border border-live/40 bg-live/10 px-1 py-0.2">
+                        <span className="rounded border border-sky-400/40 bg-sky-500/10 px-1.5 py-0.5">
                           Tavily Guideline
                         </span>
                         <span className="max-w-28 truncate">{guidelineUrl.replace(/^https?:\/\//, "")}</span>
@@ -169,64 +170,64 @@ function DischargeEditor({
                     )}
                   </div>
 
-                  <p className="mt-1.5 text-[11.5px] leading-snug text-text">
+                  <p className="mt-2 text-[12px] leading-relaxed text-slate-200">
                     {v.explanation}
                   </p>
 
-                  <div className="mt-2 rounded-[2px] border border-border-strong bg-bg/80 px-2 py-1.5">
-                    <span className="block font-mono text-[8.5px] uppercase tracking-wider text-text-faint">
+                  <div className="mt-2.5 rounded-lg border border-white/10 bg-black/60 p-2.5">
+                    <span className="block font-mono text-[8.5px] font-bold uppercase tracking-wider text-slate-400">
                       Verified Quote (Span-Guard Match {v.verified_span.start_char}–{v.verified_span.end_char} · {v.verified_span.match_mode})
                     </span>
-                    <blockquote className="mt-0.5 font-mono text-[10.5px] text-text-dim">
+                    <blockquote className="mt-1 font-mono text-[11px] leading-snug text-slate-300">
                       &ldquo;{v.source_quote}&rdquo;
                     </blockquote>
                   </div>
 
                   {/* Patch preview */}
-                  <div className="mt-2.5 rounded-[2px] border border-border bg-pane-raised px-2.5 py-2">
-                    <span className="block font-mono text-[8.5px] font-semibold tracking-wider text-text-faint uppercase">
+                  <div className="mt-3 rounded-lg border border-white/10 bg-slate-900/80 p-3">
+                    <span className="block font-mono text-[9px] font-bold tracking-wider text-slate-400 uppercase">
                       Recommended Safe Patch
                     </span>
-                    <div className="mt-1 flex flex-col gap-1 font-mono text-[10px]">
+                    <div className="mt-1.5 flex flex-col gap-1.5 font-mono text-[10.5px]">
                       {patch.remove_drug_name && (
-                        <div className="flex items-baseline gap-1 text-intercept">
+                        <div className="flex items-baseline gap-1.5 text-rose-400">
                           <span>− Discontinue:</span>
-                          <span className="font-semibold">{patch.remove_drug_name}</span>
+                          <span className="font-bold underline">{patch.remove_drug_name}</span>
                         </div>
                       )}
                       {patch.add_prescription && (
-                        <div className="flex items-baseline gap-1 text-safe">
+                        <div className="flex items-baseline gap-1.5 text-emerald-400">
                           <span>+ Add Rx:</span>
-                          <span className="font-semibold">
+                          <span className="font-bold">
                             {patch.add_prescription.drug_name} ({patch.add_prescription.dose})
                           </span>
                         </div>
                       )}
                       {patch.add_follow_up_order && (
-                        <div className="flex items-baseline gap-1 text-safe">
+                        <div className="flex items-baseline gap-1.5 text-emerald-400">
                           <span>+ Order CPT {patch.add_follow_up_order.cpt_code}:</span>
-                          <span className="font-semibold">
+                          <span className="font-bold">
                             {patch.add_follow_up_order.reason} ({patch.add_follow_up_order.timeframe})
                           </span>
                         </div>
                       )}
                       {patch.note && (
-                        <p className="mt-0.5 text-[9.5px] text-text-dim">
+                        <p className="mt-1 text-[10px] text-slate-400">
                           Note: {patch.note}
                         </p>
                       )}
                     </div>
 
-                    <div className="mt-2.5 flex items-center justify-end">
+                    <div className="mt-3 flex items-center justify-end">
                       {isApplied ? (
-                        <span className="rounded-sm border border-safe/60 bg-safe/10 px-2.5 py-1 font-mono text-[10px] font-semibold text-safe">
+                        <span className="rounded-lg border border-emerald-500/60 bg-emerald-500/15 px-3 py-1 font-mono text-[10px] font-bold text-emerald-300">
                           ✓ Safe Patch Applied &amp; Re-Verified
                         </span>
                       ) : (
                         <button
                           onClick={() => onApply(v)}
                           disabled={isRunning}
-                          className="rounded-sm border border-live bg-live px-3 py-1 font-mono text-[10.5px] font-semibold tracking-wider text-bg transition-opacity hover:opacity-90 disabled:opacity-50"
+                          className="rounded-lg border border-sky-400 bg-sky-500 hover:bg-sky-400 px-3.5 py-1.5 font-mono text-[11px] font-bold tracking-wider text-slate-950 shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                         >
                           Apply Safe Patch &amp; Re-Verify
                         </button>
@@ -240,19 +241,19 @@ function DischargeEditor({
         )}
 
         {/* ----------------- SECTION: HOME MEDICATIONS (#rx-anchor) ----------------- */}
-        <div id="rx-anchor" className="mb-4 rounded-sm border border-border bg-pane-raised p-2.5">
-          <div className="flex items-center justify-between border-b border-border pb-1.5">
-            <h3 className="font-mono text-[9.5px] font-semibold tracking-[0.18em] text-text-dim uppercase">
+        <div id="rx-anchor" className="mb-4 rounded-xl border border-white/10 bg-slate-900/40 p-3">
+          <div className="flex items-center justify-between border-b border-white/10 pb-2">
+            <h3 className="font-mono text-[10px] font-bold tracking-[0.16em] text-slate-400 uppercase">
               Home Medications &amp; Prescriptions
             </h3>
-            <span className="font-mono text-[8.5px] text-text-faint">
+            <span className="rounded bg-slate-800/80 px-1.5 py-0.5 font-mono text-[8.5px] font-medium text-slate-400 border border-white/5">
               {packet.prescriptions.length} order{packet.prescriptions.length !== 1 ? "s" : ""}
             </span>
           </div>
 
-          <div className="mt-2 flex flex-col gap-1.5">
+          <div className="mt-2.5 flex flex-col gap-2">
             {packet.prescriptions.length === 0 ? (
-              <p className="font-mono text-[10px] text-text-faint">No prescriptions</p>
+              <p className="font-mono text-[10px] text-slate-500">No prescriptions</p>
             ) : (
               packet.prescriptions.map((rx: Prescription, idx: number) => {
                 const isKetorolac = rx.drug_name.toLowerCase().includes("ketorolac") || rx.drug_name.toLowerCase().includes("toradol");
@@ -260,20 +261,20 @@ function DischargeEditor({
                 return (
                   <div
                     key={idx}
-                    className={`flex items-baseline justify-between rounded-[2px] border px-2 py-1.5 font-mono text-[10.5px] transition-colors ${
+                    className={`flex items-baseline justify-between rounded-lg border px-3 py-2 font-mono text-[11px] transition-colors ${
                       isIntercept && isKetorolac
-                        ? "border-intercept/60 bg-intercept/10 text-intercept"
+                        ? "border-rose-500/70 bg-rose-950/40 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.2)]"
                         : isAcetaminophen
-                          ? "border-safe/60 bg-safe/10 text-safe"
-                          : "border-border bg-bg/50 text-text"
+                          ? "border-emerald-500/70 bg-emerald-950/40 text-emerald-300"
+                          : "border-white/5 bg-slate-950/60 text-slate-200"
                     }`}
                   >
                     <div>
-                      <span className="font-semibold">{rx.drug_name}</span>
-                      <span className="ml-2 text-[9.5px] text-text-dim">{rx.dose}</span>
-                      <span className="ml-1 text-[8.5px] text-text-faint">x{rx.days}d</span>
+                      <span className="font-bold">{rx.drug_name}</span>
+                      <span className="ml-2 text-[10px] text-slate-400">{rx.dose}</span>
+                      <span className="ml-1 text-[9px] text-slate-500">x{rx.days}d</span>
                     </div>
-                    <span className="rounded-[2px] border border-border px-1 py-0.2 text-[8px] text-text-faint">
+                    <span className="rounded border border-white/10 bg-slate-900/80 px-1.5 py-0.5 text-[8.5px] text-slate-400">
                       {rx.drug_class || rx.class}
                     </span>
                   </div>
@@ -284,41 +285,41 @@ function DischargeEditor({
         </div>
 
         {/* ----------------- SECTION: FOLLOW-UP ORDERS (#orders-anchor) ----------------- */}
-        <div id="orders-anchor" className="mb-4 rounded-sm border border-border bg-pane-raised p-2.5">
-          <div className="flex items-center justify-between border-b border-border pb-1.5">
-            <h3 className="font-mono text-[9.5px] font-semibold tracking-[0.18em] text-text-dim uppercase">
+        <div id="orders-anchor" className="mb-4 rounded-xl border border-white/10 bg-slate-900/40 p-3">
+          <div className="flex items-center justify-between border-b border-white/10 pb-2">
+            <h3 className="font-mono text-[10px] font-bold tracking-[0.16em] text-slate-400 uppercase">
               Follow-Up Orders &amp; Closed-Loop Referrals
             </h3>
-            <span className="font-mono text-[8.5px] text-text-faint">
+            <span className="rounded bg-slate-800/80 px-1.5 py-0.5 font-mono text-[8.5px] font-medium text-slate-400 border border-white/5">
               {packet.follow_up_orders.length} order{packet.follow_up_orders.length !== 1 ? "s" : ""}
             </span>
           </div>
 
-          <div className="mt-2 flex flex-col gap-1.5">
+          <div className="mt-2.5 flex flex-col gap-2">
             {packet.follow_up_orders.length === 0 ? (
-              <p className="font-mono text-[10px] text-text-faint">No follow-up orders</p>
+              <p className="font-mono text-[10px] text-slate-500">No follow-up orders</p>
             ) : (
               packet.follow_up_orders.map((ord: FollowUpOrder, idx: number) => {
                 const isCpt71250 = ord.cpt_code.trim() === "71250";
                 return (
                   <div
                     key={idx}
-                    className={`rounded-[2px] border px-2 py-1.5 font-mono text-[10.5px] ${
+                    className={`rounded-lg border px-3 py-2 font-mono text-[11px] ${
                       isCpt71250
-                        ? "border-safe/60 bg-safe/10 text-safe"
-                        : "border-border bg-bg/50 text-text"
+                        ? "border-emerald-500/70 bg-emerald-950/40 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]"
+                        : "border-white/5 bg-slate-950/60 text-slate-200"
                     }`}
                   >
                     <div className="flex items-baseline justify-between">
-                      <span className="font-semibold">{ord.specialty}</span>
+                      <span className="font-bold">{ord.specialty}</span>
                       <div className="flex items-center gap-1.5">
-                        <span className="rounded-[2px] border border-border px-1 py-0.2 text-[8.5px] text-text-faint">
+                        <span className="rounded border border-white/10 bg-slate-900/80 px-1.5 py-0.5 text-[9px] text-slate-300">
                           CPT {ord.cpt_code}
                         </span>
-                        <span className="text-[9.5px] text-text-dim">{ord.timeframe}</span>
+                        <span className="text-[10px] text-slate-400">{ord.timeframe}</span>
                       </div>
                     </div>
-                    <p className="mt-0.5 text-[9.5px] text-text-dim">{ord.reason}</p>
+                    <p className="mt-1 text-[10px] text-slate-400">{ord.reason}</p>
                   </div>
                 );
               })
@@ -327,16 +328,16 @@ function DischargeEditor({
         </div>
 
         {/* ----------------- SECTION: DISCHARGE INSTRUCTIONS ----------------- */}
-        <div className="rounded-sm border border-border bg-pane-raised p-2.5">
-          <div className="flex items-center justify-between border-b border-border pb-1.5">
-            <h3 className="font-mono text-[9.5px] font-semibold tracking-[0.18em] text-text-dim uppercase">
+        <div className="rounded-xl border border-white/10 bg-slate-900/40 p-3">
+          <div className="flex items-center justify-between border-b border-white/10 pb-2">
+            <h3 className="font-mono text-[10px] font-bold tracking-[0.16em] text-slate-400 uppercase">
               Discharge Instructions &amp; Patient Guidance
             </h3>
             <button
               onClick={() => setEditingInstructions(!editingInstructions)}
-              className="font-mono text-[8.5px] text-live hover:underline"
+              className="font-mono text-[9px] font-semibold text-sky-400 hover:text-sky-300 transition-colors"
             >
-              {editingInstructions ? "Done" : "Edit in Sandbox"}
+              {editingInstructions ? "Done Editing" : "Edit in Sandbox"}
             </button>
           </div>
 
@@ -345,10 +346,10 @@ function DischargeEditor({
               value={packet.discharge_instructions}
               onChange={(e) => onEditInstructions(e.target.value)}
               rows={4}
-              className="mt-2 w-full rounded-sm border border-live/60 bg-bg p-2 font-mono text-[11px] text-text outline-none focus:border-live"
+              className="mt-2.5 w-full rounded-lg border border-sky-500/50 bg-slate-950/90 p-2.5 font-mono text-[11px] text-slate-200 outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/40"
             />
           ) : (
-            <p className="mt-2 text-[11px] leading-relaxed text-text-dim whitespace-pre-wrap">
+            <p className="mt-2 text-[11.5px] leading-relaxed text-slate-300 whitespace-pre-wrap">
               {packet.discharge_instructions}
             </p>
           )}

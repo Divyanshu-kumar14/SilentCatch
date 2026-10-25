@@ -18,12 +18,12 @@ const STAGE_CONFIG: ReadonlyArray<{
 
 function TelemetryBar({
   phase,
-  runStart,
+  _runStart,
   traces,
   activeStage,
 }: {
   phase: Phase;
-  runStart: RunStartEvent | null;
+  _runStart?: RunStartEvent | null;
   traces: StageTrace[];
   activeStage: string | null;
 }) {
@@ -43,7 +43,7 @@ function TelemetryBar({
   }, [traces]);
 
   return (
-    <footer className="flex h-11 shrink-0 items-center justify-between border-t border-border bg-pane px-3 font-mono text-[10px]">
+    <footer className="flex h-11 shrink-0 items-center justify-between border-t border-white/10 bg-slate-950/90 px-4 font-mono text-[10px] backdrop-blur-md">
       {/* ---------------- 4 pipeline stages ---------------- */}
       <div className="flex items-center gap-2">
         {STAGE_CONFIG.map((cfg) => {
@@ -54,44 +54,44 @@ function TelemetryBar({
           return (
             <div
               key={cfg.id}
-              className={`flex items-center gap-1.5 rounded-sm border px-2 py-0.5 transition-colors ${
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 transition-all ${
                 isActive
-                  ? "border-live/60 bg-live/15 text-live"
+                  ? "border-sky-400/60 bg-sky-500/20 text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.25)]"
                   : isDone
-                    ? "border-border-strong bg-pane-raised text-text"
-                    : "border-border/40 bg-bg/50 text-text-faint"
+                    ? "border-white/10 bg-slate-900/80 text-slate-200"
+                    : "border-white/5 bg-slate-950/40 text-slate-500"
               }`}
             >
               <span
                 className={`inline-block h-1.5 w-1.5 rounded-full ${
                   isActive
-                    ? "bg-live animate-ping"
+                    ? "bg-sky-400 animate-ping"
                     : isDone
-                      ? "bg-safe"
-                      : "bg-text-faint/50"
+                      ? "bg-emerald-400 shadow-[0_0_6px_#10b981]"
+                      : "bg-slate-600"
                 }`}
               />
-              <span className="font-semibold">{cfg.label}</span>
+              <span className="font-bold">{cfg.label}</span>
 
               {trace ? (
-                <div className="flex items-center gap-1 text-[9px] text-text-dim">
+                <div className="flex items-center gap-1 text-[9px] text-slate-400">
                   {trace.model_id && (
-                    <span className="text-text-faint">{shortModel(trace.model_id)}</span>
+                    <span className="text-slate-500">{shortModel(trace.model_id)}</span>
                   )}
-                  <span>{trace.latency_ms}ms</span>
+                  <span className="text-slate-300 font-semibold">{trace.latency_ms}ms</span>
                   {trace.prompt_tokens > 0 && (
-                    <span className="text-text-faint">
+                    <span className="text-slate-500">
                       {trace.prompt_tokens + trace.completion_tokens}tok
                     </span>
                   )}
                   {trace.replayed && (
-                    <span className="rounded-[2px] border border-warn/30 bg-warn/10 px-0.5 text-[8px] text-warn">
+                    <span className="rounded bg-amber-500/15 border border-amber-500/40 px-1 text-[8px] font-bold text-amber-300">
                       REPLAY
                     </span>
                   )}
                 </div>
               ) : (
-                <span className="text-[9px] text-text-faint">{cfg.role}</span>
+                <span className="text-[9px] text-slate-500">{cfg.role}</span>
               )}
             </div>
           );
@@ -99,40 +99,37 @@ function TelemetryBar({
       </div>
 
       {/* ---------------- right totals & spend ---------------- */}
-      <div className="flex items-center gap-3 text-[10px]">
+      <div className="flex items-center gap-3.5 text-[10px]">
+        {_runStart?.mode_note && (
+          <span className="text-[9px] text-slate-500 max-w-36 truncate" title={_runStart.mode_note}>
+            {_runStart.mode_note}
+          </span>
+        )}
         {isRunning && (
-          <span className="animate-pulse font-mono text-[9.5px] text-live">
-            ● STREAMING PIPELINE…
+          <span className="flex items-center gap-1.5 font-mono text-[9.5px] font-semibold text-sky-400 animate-pulse">
+            <span className="h-2 w-2 rounded-full bg-sky-400 animate-ping" />
+            STREAMING PIPELINE…
           </span>
         )}
         {traces.length > 0 && (
           <>
-            <div className="flex items-center gap-1 text-text-dim">
-              <span className="text-text-faint">Latency:</span>
-              <span className="text-text font-semibold">{totalLatency}ms</span>
+            <div className="flex items-center gap-1 text-slate-400">
+              <span className="text-slate-500">Latency:</span>
+              <span className="font-bold text-slate-200">{totalLatency}ms</span>
             </div>
 
-            <div className="flex items-center gap-1 text-text-dim">
-              <span className="text-text-faint">Tokens:</span>
-              <span className="text-text font-semibold">
-                {totalTokens}
-              </span>
+            <div className="flex items-center gap-1 text-slate-400">
+              <span className="text-slate-500">Tokens:</span>
+              <span className="font-bold text-slate-200">{totalTokens}</span>
             </div>
 
-            <div className="flex items-center gap-1 text-text-dim">
-              <span className="text-text-faint">Audit Cost:</span>
-              <span className={`font-semibold ${totalCost > 0 ? "text-live" : "text-text"}`}>
+            <div className="flex items-center gap-1 text-slate-400">
+              <span className="text-slate-500">Audit Cost:</span>
+              <span className={`font-bold ${totalCost > 0 ? "text-sky-400" : "text-slate-200"}`}>
                 ${totalCost.toFixed(4)}
               </span>
             </div>
           </>
-        )}
-
-        {runStart && (
-          <div className="flex items-center gap-1 rounded-[2px] border border-border bg-bg/80 px-1.5 py-0.5 text-text-dim">
-            <span className="text-text-faint">Daily Ledger:</span>
-            <span className="text-text">${runStart.daily_spend_usd.toFixed(4)} / $2.00</span>
-          </div>
         )}
       </div>
     </footer>
