@@ -153,6 +153,34 @@ async function run() {
   await page.screenshot({ path: "/tmp/phase3_sandbox_edit.png" });
   console.log("✓ Captured screenshot: /tmp/phase3_sandbox_edit.png");
 
+  // ---------------- MODEL BENCHMARKS TAB (FA-6 / FR-6.1) ----------------
+  console.log("6. Testing Model Benchmarks Tab (offline results_latest.json)...");
+  await page.click('button:has-text("MODEL BENCHMARKS")');
+  await page.waitForSelector("text=Architecture Benchmark Comparison (36 Evaluation Runs)", { timeout: 5000 });
+
+  const benchText = await page.textContent("main");
+  assert(benchText.includes("0%"), "Missing 0% FPR in benchmark view");
+  assert(benchText.includes("100%"), "Missing 100% Recall in benchmark view");
+  assert(benchText.includes("75.5%"), "Missing 75.5% Cost Reduction in benchmark view");
+  assert(benchText.includes("Nemotron 3 Nano-30B Only"), "Missing Nano-30B row");
+  assert(benchText.includes("Nemotron 3 Ultra-550B Only"), "Missing Ultra-550B row");
+  assert(benchText.includes("SilentCatch Tiered Router"), "Missing Tiered Router row");
+  console.log("✓ Benchmark summary cards verified: 0% FPR, 100% Recall, 75.5% Cost Reduction vs Ultra-550B");
+  console.log("✓ All 3 architecture configurations rendered in comparison table");
+
+  // Verify all 12 cases in the audit ledger
+  const ledgerRows = await page.$$("table:nth-of-type(1) tr");
+  assert(ledgerRows.length >= 12, `Expected at least 12 ledger cases, found ${ledgerRows.length}`);
+  console.log("✓ Per-Encounter Validation Ledger rendered all 12 clinical encounters");
+
+  await page.screenshot({ path: "/tmp/phase4_model_benchmarks.png" });
+  console.log("✓ Captured screenshot: /tmp/phase4_model_benchmarks.png");
+
+  // Return to flight-check console
+  await page.click('button:has-text("FLIGHT-CHECK")');
+  await page.waitForSelector("text=RADIOLOGY · KEY-SLICE", { timeout: 5000 });
+  console.log("✓ Successfully returned to Flight-Check Console");
+
   await browser.close();
   console.log("\n========================================================");
   console.log("🎉 ALL PHASE 3 ACCEPTANCE CRITERIA VERIFIED AUTOMATICALLY!");

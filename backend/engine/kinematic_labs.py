@@ -90,6 +90,8 @@ def _flags(analyte: str, slope: KinematicSlope) -> list[str]:
         return ["OCCULT_HEMORRHAGE_SLOPE"]
     elif analyte == "platelets" and pct <= PLATELET_PCT_DROP:
         return ["OCCULT_HEMORRHAGE_SLOPE"]
+    elif analyte == "potassium_mmol_l" and (slope.last_value >= 5.2 and pct >= 20.0):
+        return ["KINETIC_HYPERKALEMIA_SLOPE"]
     return []
 
 

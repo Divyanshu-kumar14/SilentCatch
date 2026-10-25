@@ -1,5 +1,6 @@
 # Local planning docs (ignored per request — everything inside specs/)
 specs/
+.orchestrator/
 
 # Python
 __pycache__/

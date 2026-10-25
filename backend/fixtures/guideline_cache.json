@@ -24,6 +24,27 @@
       "title": "FDA — Toradol (ketorolac tromethamine) labeling information",
       "url": "https://www.accessdata.fda.gov/scripts/cder/daf/",
       "snippet": "Contraindicated in advanced renal impairment and in patients at risk for renal failure due to volume depletion; recommend avoiding in acute kidney injury."
+    },
+    {
+      "id": "acr_adrenal_white_paper",
+      "match_terms": "adrenal|mass|incidental|acr|74170",
+      "title": "Managing Incidental Adrenal Masses: ACR Incidental Findings Committee",
+      "url": "https://www.jacr.org/article/S1546-1440(17)30372-2/fulltext",
+      "snippet": "For indeterminate adrenal nodules 1 to 4 cm with attenuation >10 HU, follow-up adrenal protocol CT (CPT 74170) or chemical shift MRI at 6-12 months is indicated."
+    },
+    {
+      "id": "aha_hyperkalemia_guidelines",
+      "match_terms": "potassium|hyperkalemia|spironolactone|aldosterone",
+      "title": "AHA/ACC Heart Failure Guidelines — Potassium and Mineralocorticoid Antagonists",
+      "url": "https://www.ahajournals.org/doi/10.1161/CIR.0000000000001063",
+      "snippet": "Aldosterone antagonists should not be initiated or continued in setting of rising serum potassium >= 5.0 mmol/L to avoid lethal arrhythmia."
+    },
+    {
+      "id": "acg_acute_hemorrhage_nsaid",
+      "match_terms": "hemorrhage|hemoglobin|bleeding|meloxicam|nsaid",
+      "title": "ACG Clinical Guideline: Management of Acute Occult Hemorrhage and Antithrombotic Therapy",
+      "url": "https://journals.lww.com/ajg/fulltext/2022/04000/management_of_anticoagulants_and_antiplatelets.14.aspx",
+      "snippet": "Discontinue NSAIDs and anticoagulants immediately in the presence of acute kinetic hemoglobin drops until source is definitively identified."
     }
   ]
 }

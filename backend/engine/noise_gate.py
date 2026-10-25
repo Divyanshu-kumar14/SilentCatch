@@ -68,7 +68,7 @@ def deterministic_forces(
             )
     for slope in slopes:
         pct = abs(slope.pct_delta_from_baseline or 0.0)
-        if slope.flags and pct >= FORCE_ESCALATE_PCT:
+        if slope.flags and (pct >= FORCE_ESCALATE_PCT or "OCCULT_HEMORRHAGE_SLOPE" in slope.flags):
             forces.append(
                 f"deterministic override: {slope.analyte} moved {pct:.1f}% "
                 f"with {slope.flags}"

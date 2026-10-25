@@ -44,13 +44,14 @@ class LlmTransport(Protocol):
 
 VISION_IMAGE_MAX_EDGE_PX = 768  # PRD Fallback A
 
-_MM_RE = re.compile(r"(\d+(?:\.\d+)?)\s*mm", re.IGNORECASE)
-_LESION_WORDS = ("nodule", "mass", "lesion", "aneurysm", "calcification")
+_MM_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(mm|cm)", re.IGNORECASE)
+_LESION_WORDS = ("nodule", "mass", "lesion", "aneurysm", "calcification", "adrenal")
 _ACUTE_WORDS = ("fracture", "consolidation", "pneumothorax", "stone", "hematoma")
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.;])\s+")
 _FOLLOWUP_CPT_HINTS: dict[str, str] = {
     "nodule": "71250",  # CT thorax, follow-up
-    "mass": "71250",
+    "mass": "74170",
+    "adrenal": "74170",
     "aneurysm": "74150",
 }
 
@@ -86,13 +87,16 @@ def parse_report_sentences(report_text: str) -> list[ScanFinding]:
         if not (mm and (incidental or acute)):
             continue
         word = next((word for word in _LESION_WORDS if word in lowered), None)
+        unit = (mm.group(2) or "mm").lower()
+        val = float(mm.group(1)) * (10.0 if unit == "cm" else 1.0)
+        cpt = "74170" if "adrenal" in lowered else (_FOLLOWUP_CPT_HINTS.get(word) if incidental else None)
         findings.append(
             ScanFinding(
                 description=sentence.strip(),
-                measurement_mm=float(mm.group(1)),
+                measurement_mm=round(val, 1),
                 acute=acute,
                 verbatim_quote=sentence.strip(),
-                recommended_cpt=_FOLLOWUP_CPT_HINTS.get(word) if incidental else None,
+                recommended_cpt=cpt,
             )
         )
     return findings

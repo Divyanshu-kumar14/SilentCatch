@@ -70,6 +70,14 @@ def main() -> None:
         "cxr_rll_consolidation_54f.png": (150, 120, 26, 70),  # RLL consolidation region
         "ct_abd_stone_3mm_41m.png": None,
         "ct_chest_rul_nodule_7mm.png": (90, 170, 4, 110),  # 7.2 mm RUL caliper target
+        "forearm_xray_33f.png": None,
+        "cxr_normal_47m.png": None,
+        "abd_xray_normal_19m.png": None,
+        "renal_us_normal_68f.png": None,
+        "lspine_xray_51m.png": None,
+        "ct_abd_adrenal_28mm_59m.png": (140, 160, 14, 85),  # 2.8 cm adrenal lesion target
+        "cxr_chf_73f.png": (130, 110, 32, 60),  # cardiomegaly / CHF vascular congestion
+        "pelvis_xray_45m.png": None,
     }
     for name, lesion in targets.items():
         write_png(OUT_DIR / name, compose(rng, lesion))

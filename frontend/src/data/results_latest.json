@@ -1,0 +1,178 @@
+{
+  "meta": {
+    "version": "1.0",
+    "eval_date": "2026-10-25 11:31:56 UTC",
+    "environment": "REPLAYED",
+    "total_encounters": 12,
+    "safe_count": 8,
+    "contradiction_count": 4,
+    "total_eval_runs": 36
+  },
+  "summary": {
+    "nano_only": {
+      "name": "Nemotron 3 Nano-30B Only",
+      "total_encounters": 12,
+      "tp": 4,
+      "fp": 0,
+      "tn": 8,
+      "fn": 0,
+      "fpr_pct": 0.0,
+      "recall_pct": 100.0,
+      "precision_pct": 100.0,
+      "median_latency_s": 0.0,
+      "cost_per_1k_discharges_usd": 0.01,
+      "cost_per_discharge_avg_usd": 1.5e-05
+    },
+    "ultra_only": {
+      "name": "Nemotron 3 Ultra-550B Only",
+      "total_encounters": 12,
+      "tp": 4,
+      "fp": 0,
+      "tn": 8,
+      "fn": 0,
+      "fpr_pct": 0.0,
+      "recall_pct": 100.0,
+      "precision_pct": 100.0,
+      "median_latency_s": 0.001,
+      "cost_per_1k_discharges_usd": 8.5,
+      "cost_per_discharge_avg_usd": 0.0085
+    },
+    "tiered_router": {
+      "name": "SilentCatch Tiered Router (Ours)",
+      "total_encounters": 12,
+      "tp": 4,
+      "fp": 0,
+      "tn": 8,
+      "fn": 0,
+      "fpr_pct": 0.0,
+      "recall_pct": 100.0,
+      "precision_pct": 100.0,
+      "median_latency_s": 0.001,
+      "cost_per_1k_discharges_usd": 2.08,
+      "cost_per_discharge_avg_usd": 0.002085,
+      "cost_reduction_vs_ultra_pct": 75.5
+    }
+  },
+  "cases": [
+    {
+      "encounter_id": "ED-101",
+      "scenario": "28M ankle sprain after pickup basketball game",
+      "modality": "Ankle X-ray, three views",
+      "expected_outcome": "SILENT_PASS",
+      "tiered_outcome": "SILENT_PASS",
+      "tiered_latency_ms": 0.5,
+      "tiered_cost_usd": 0.00038,
+      "passed": true
+    },
+    {
+      "encounter_id": "ED-102",
+      "scenario": "54F community-acquired pneumonia with incidentally noted 6 mm nodule that ALREADY has follow-up ordered",
+      "modality": "Chest X-ray, PA and lateral",
+      "expected_outcome": "SILENT_PASS",
+      "tiered_outcome": "SILENT_PASS",
+      "tiered_latency_ms": 0.5,
+      "tiered_cost_usd": 0.00038,
+      "passed": true
+    },
+    {
+      "encounter_id": "ED-103",
+      "scenario": "41M renal colic, 3 mm stone passed, creatinine RECOVERING",
+      "modality": "CT Abdomen/Pelvis without contrast",
+      "expected_outcome": "SILENT_PASS",
+      "tiered_outcome": "SILENT_PASS",
+      "tiered_latency_ms": 0.5,
+      "tiered_cost_usd": 0.00038,
+      "passed": true
+    },
+    {
+      "encounter_id": "ED-104",
+      "scenario": "62M bicycle fall \u2014 right 7th rib fracture; buried 7.2mm RUL nodule dropped + kinetic AKI x Ketorolac collision (HERO DEMO)",
+      "modality": "CT Chest without IV Contrast",
+      "expected_outcome": "CRITICAL_INTERCEPT",
+      "tiered_outcome": "CRITICAL_INTERCEPT",
+      "tiered_latency_ms": 1.5,
+      "tiered_cost_usd": 0.005494,
+      "passed": true
+    },
+    {
+      "encounter_id": "ED-105",
+      "scenario": "33F forearm superficial laceration from kitchen knife, sutured and stable",
+      "modality": "Forearm X-ray, AP and lateral",
+      "expected_outcome": "SILENT_PASS",
+      "tiered_outcome": "SILENT_PASS",
+      "tiered_latency_ms": 0.4,
+      "tiered_cost_usd": 0.00038,
+      "passed": true
+    },
+    {
+      "encounter_id": "ED-106",
+      "scenario": "47M atypical chest pain, ruled out for ACS, GERD discharge",
+      "modality": "Chest radiograph, PA and lateral",
+      "expected_outcome": "SILENT_PASS",
+      "tiered_outcome": "SILENT_PASS",
+      "tiered_latency_ms": 0.5,
+      "tiered_cost_usd": 0.00038,
+      "passed": true
+    },
+    {
+      "encounter_id": "ED-107",
+      "scenario": "19M acute viral gastroenteritis with mild dehydration, rehydrated",
+      "modality": "Abdominal radiograph, two views",
+      "expected_outcome": "SILENT_PASS",
+      "tiered_outcome": "SILENT_PASS",
+      "tiered_latency_ms": 0.4,
+      "tiered_cost_usd": 0.00038,
+      "passed": true
+    },
+    {
+      "encounter_id": "ED-108",
+      "scenario": "68F uncomplicated acute cystitis responding to oral nitrofurantoin",
+      "modality": "Renal and bladder ultrasound",
+      "expected_outcome": "SILENT_PASS",
+      "tiered_outcome": "SILENT_PASS",
+      "tiered_latency_ms": 0.4,
+      "tiered_cost_usd": 0.00038,
+      "passed": true
+    },
+    {
+      "encounter_id": "ED-109",
+      "scenario": "51M acute-on-chronic mechanical lumbar strain",
+      "modality": "Lumbar spine radiographs, AP and lateral",
+      "expected_outcome": "SILENT_PASS",
+      "tiered_outcome": "SILENT_PASS",
+      "tiered_latency_ms": 0.4,
+      "tiered_cost_usd": 0.00038,
+      "passed": true
+    },
+    {
+      "encounter_id": "ED-110",
+      "scenario": "59M abdominal blunt trauma after minor MVA, incidental adrenal lesion dropped",
+      "modality": "CT Abdomen and Pelvis with IV contrast",
+      "expected_outcome": "CRITICAL_INTERCEPT",
+      "tiered_outcome": "CRITICAL_INTERCEPT",
+      "tiered_latency_ms": 1.1,
+      "tiered_cost_usd": 0.005494,
+      "passed": true
+    },
+    {
+      "encounter_id": "ED-111",
+      "scenario": "73F congestive heart failure with acute kinetic potassium rise, spironolactone prescribed",
+      "modality": "Chest radiograph, portable AP",
+      "expected_outcome": "CRITICAL_INTERCEPT",
+      "tiered_outcome": "CRITICAL_INTERCEPT",
+      "tiered_latency_ms": 1.0,
+      "tiered_cost_usd": 0.005494,
+      "passed": true
+    },
+    {
+      "encounter_id": "ED-112",
+      "scenario": "45M severe mechanical fall with occult kinetic hemoglobin drop, anticoagulant prescribed",
+      "modality": "Pelvis and right hip radiographs",
+      "expected_outcome": "CRITICAL_INTERCEPT",
+      "tiered_outcome": "CRITICAL_INTERCEPT",
+      "tiered_latency_ms": 0.9,
+      "tiered_cost_usd": 0.005494,
+      "passed": true
+    }
+  ]
+}

@@ -33,6 +33,7 @@ import DischargeEditor from "@/components/DischargeEditor";
 import LabSparkline from "@/components/LabSparkline";
 import ScanViewer from "@/components/ScanViewer";
 import TelemetryBar from "@/components/TelemetryBar";
+import BenchmarkView from "@/components/BenchmarkView";
 
 /** Stable identity for an applied patch (indexes can drift between re-runs). */
 function patchKey(v: InterceptionVerdict): string {
@@ -142,6 +143,7 @@ export default function Console() {
   const [applied, setApplied] = useState<Set<string>>(new Set());
   const [slopes, setSlopes] = useState<Record<string, KinematicSlope>>({});
   const [err, setErr] = useState<string | null>(null);
+  const [viewTab, setViewTab] = useState<"cockpit" | "benchmarks">("cockpit");
   const [lastResult, setLastResult] = useState<{ elapsed: number; cost: number } | null>(
     null
   );
@@ -327,36 +329,62 @@ export default function Console() {
           </span>
         </div>
 
-        <nav className="flex items-center gap-1" aria-label="Encounter switcher">
-          {fixtures.map((record) => {
-            const active = enc?.encounter_id === record.encounter_id;
-            return (
-              <button
-                key={record.encounter_id}
-                onClick={() => selectEncounter(record)}
-                className={`group rounded-sm border px-2 py-0.5 text-left transition-colors ${
-                  active
-                    ? "border-border-strong bg-pane-raised"
-                    : "border-transparent hover:border-border hover:bg-pane"
-                }`}
-                title={`${record.encounter_id}: ${record.chief_complaint} (${record.patient_scenario})`}
-              >
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className={`font-mono text-[11px] font-semibold ${
-                      active ? "text-live" : "text-text-dim group-hover:text-text"
-                    }`}
-                  >
-                    {record.encounter_id}
-                  </span>
-                  <span className="block max-w-28 truncate text-[9px] leading-none text-text-faint">
-                    {record.chief_complaint}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </nav>
+        {/* Tab Toggle: Cockpit vs Model Benchmarks */}
+        <div className="flex items-center gap-1 border-l border-r border-border px-2">
+          <button
+            onClick={() => setViewTab("cockpit")}
+            className={`rounded-sm px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider transition-colors ${
+              viewTab === "cockpit"
+                ? "border border-live/50 bg-live/15 text-live"
+                : "border border-transparent text-text-faint hover:text-text"
+            }`}
+          >
+            FLIGHT-CHECK
+          </button>
+          <button
+            onClick={() => setViewTab("benchmarks")}
+            className={`rounded-sm px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider transition-colors ${
+              viewTab === "benchmarks"
+                ? "border border-live/50 bg-live/15 text-live"
+                : "border border-transparent text-text-faint hover:text-text"
+            }`}
+          >
+            MODEL BENCHMARKS
+          </button>
+        </div>
+
+        {viewTab === "cockpit" && (
+          <nav className="flex items-center gap-1" aria-label="Encounter switcher">
+            {fixtures.map((record) => {
+              const active = enc?.encounter_id === record.encounter_id;
+              return (
+                <button
+                  key={record.encounter_id}
+                  onClick={() => selectEncounter(record)}
+                  className={`group rounded-sm border px-2 py-0.5 text-left transition-colors ${
+                    active
+                      ? "border-border-strong bg-pane-raised"
+                      : "border-transparent hover:border-border hover:bg-pane"
+                  }`}
+                  title={`${record.encounter_id}: ${record.chief_complaint} (${record.patient_scenario})`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`font-mono text-[11px] font-semibold ${
+                        active ? "text-live" : "text-text-dim group-hover:text-text"
+                      }`}
+                    >
+                      {record.encounter_id}
+                    </span>
+                    <span className="block max-w-28 truncate text-[9px] leading-none text-text-faint">
+                      {record.chief_complaint}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </nav>
+        )}
 
         <div className="ml-auto flex shrink-0 items-center gap-2.5">
           {healthz && (
@@ -392,42 +420,52 @@ export default function Console() {
       )}
 
       {/* ------------------------------------------------------ panes */}
-      <main className="grid min-h-0 flex-1 grid-cols-[minmax(0,29fr)_minmax(0,26fr)_minmax(0,37fr)] gap-2.5 p-2.5">
-        {enc && (
-          <ScanViewer
-            encounter={enc}
-            findings={findings}
-            verdicts={verdicts}
-            interceptActive={interceptActive}
-          />
-        )}
-        {enc && (
-          <LabSparkline
-            slopes={slopes}
-            serialLabs={enc.serial_labs}
-            flags={flags}
-            onEdit={editLabValue}
-            interceptActive={interceptActive}
-          />
-        )}
-        {enc && (
-          <DischargeEditor
-            encounter={enc}
-            phase={phase}
-            verdicts={verdicts}
-            guides={guides}
-            applied={applied}
-            lastResult={lastResult}
-            onApply={applyAndRerun}
-            onEditInstructions={editInstructions}
-            onRun={() => enc && startRun(enc)}
-          />
-        )}
-      </main>
+      {viewTab === "benchmarks" ? (
+        <main className="min-h-0 flex-1 overflow-hidden">
+          <BenchmarkView />
+        </main>
+      ) : (
+        <main className="grid min-h-0 flex-1 grid-cols-[minmax(0,29fr)_minmax(0,26fr)_minmax(0,37fr)] gap-2.5 p-2.5">
+          {enc && (
+            <ScanViewer
+              encounter={enc}
+              findings={findings}
+              verdicts={verdicts}
+              interceptActive={interceptActive}
+            />
+          )}
+          {enc && (
+            <LabSparkline
+              slopes={slopes}
+              serialLabs={enc.serial_labs}
+              flags={flags}
+              onEdit={editLabValue}
+              interceptActive={interceptActive}
+            />
+          )}
+          {enc && (
+            <DischargeEditor
+              encounter={enc}
+              phase={phase}
+              verdicts={verdicts}
+              guides={guides}
+              applied={applied}
+              lastResult={lastResult}
+              onApply={applyAndRerun}
+              onEditInstructions={editInstructions}
+              onRun={() => enc && startRun(enc)}
+            />
+          )}
+        </main>
+      )}
 
       {/* ------------------------------------------------------ red-lines */}
       {enc && (
-        <RedlineOverlay verdicts={verdicts} encounter={enc} active={interceptActive} />
+        <RedlineOverlay
+          verdicts={verdicts}
+          encounter={enc}
+          active={viewTab === "cockpit" && interceptActive}
+        />
       )}
 
       {/* ------------------------------------------------------ safety banner */}

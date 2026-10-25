@@ -10,8 +10,10 @@ Phase 2 scope:
 
 from __future__ import annotations
 
+import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -85,6 +87,15 @@ async def healthz() -> dict:
 async def list_encounters() -> list[dict]:
     """Production view of all available encounters (expected_findings stripped)."""
     return [enc.model_dump(by_alias=True) for enc in load_encounters()]
+
+
+@app.get("/api/benchmark")
+async def get_benchmark() -> dict:
+    """Pre-computed empirical evaluation metrics across 12 encounters x 3 architectures."""
+    benchmark_file = Path(__file__).resolve().parent.parent / "eval" / "results_latest.json"
+    if benchmark_file.is_file():
+        return json.loads(benchmark_file.read_text())
+    return {"status": "pending", "message": "Run make benchmark to generate results."}
 
 
 @app.post("/api/audit-stream")

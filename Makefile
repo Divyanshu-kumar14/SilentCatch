@@ -15,4 +15,4 @@ judge-demo:
 	docker compose up --build
 
 benchmark:
-	@./.venv/bin/python eval/benchmark.py --live 2>/dev/null || { echo "eval/benchmark.py arrives in Phase 4"; exit 1; }
+	./.venv/bin/python eval/benchmark.py

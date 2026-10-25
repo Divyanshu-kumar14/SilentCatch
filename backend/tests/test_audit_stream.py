@@ -169,9 +169,10 @@ def test_encounters_endpoint_and_static_images() -> None:
     res = client.get("/api/encounters")
     assert res.status_code == 200
     encs = res.json()
-    assert len(encs) == 4
+    assert len(encs) == 12
     eids = [e["encounter_id"] for e in encs]
-    assert eids == ["ED-101", "ED-102", "ED-103", "ED-104"]
+    assert eids[:4] == ["ED-101", "ED-102", "ED-103", "ED-104"]
+    assert eids[4:] == ["ED-105", "ED-106", "ED-107", "ED-108", "ED-109", "ED-110", "ED-111", "ED-112"]
     # expected_findings stripped from production view
     assert "expected_findings" not in encs[0]
 
@@ -180,3 +181,10 @@ def test_encounters_endpoint_and_static_images() -> None:
     assert img_res.status_code == 200
     assert img_res.headers["content-type"] == "image/png"
     assert len(img_res.content) > 1000
+
+    # Benchmark API
+    bench_res = client.get("/api/benchmark")
+    assert bench_res.status_code == 200
+    bench_data = bench_res.json()
+    assert "summary" in bench_data
+    assert bench_data["summary"]["tiered_router"]["recall_pct"] == 100.0

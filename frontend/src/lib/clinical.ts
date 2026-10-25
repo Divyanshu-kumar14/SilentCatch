@@ -120,6 +120,8 @@ function deriveFlags(analyte: string, slope: KinematicSlope): string[] {
     return ["OCCULT_HEMORRHAGE_SLOPE"];
   } else if (analyte === "platelets" && pct <= PLATELET_PCT_DROP) {
     return ["OCCULT_HEMORRHAGE_SLOPE"];
+  } else if (analyte === "potassium_mmol_l" && (last >= 5.2 && pct >= 20.0)) {
+    return ["KINETIC_HYPERKALEMIA_SLOPE"];
   }
   return [];
 }

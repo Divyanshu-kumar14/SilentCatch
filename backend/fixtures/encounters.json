@@ -3,9 +3,9 @@
     "version": 1,
     "phi_policy": "100% synthetic ED encounters — zero real PHI (PRD §0)",
     "eval_note": "expected_findings are VerificationSpecs for the deterministic rig + eval/benchmark.py (G1/G2). Silent encounters must always list zero.",
-    "encounter_count": 4,
-    "silent_expected": ["ED-101", "ED-102", "ED-103"],
-    "intercept_expected": ["ED-104"]
+    "encounter_count": 12,
+    "silent_expected": ["ED-101", "ED-102", "ED-103", "ED-105", "ED-106", "ED-107", "ED-108", "ED-109"],
+    "intercept_expected": ["ED-104", "ED-110", "ED-111", "ED-112"]
   },
   "encounters": [
     {
@@ -173,6 +173,300 @@
             },
             "add_follow_up_order": null,
             "note": "Swaps nephrotoxic NSAID for renal-safe analgesia given acute creatinine velocity."
+          }
+        }
+      ]
+    },
+    {
+      "encounter_id": "ED-105",
+      "patient_scenario": "33F forearm superficial laceration from kitchen knife, sutured and stable",
+      "chief_complaint": "Left distal forearm 2.5 cm linear laceration with clean margins",
+      "radiology_study": {
+        "modality": "Forearm X-ray, AP and lateral",
+        "slice_image_url": "/fixtures/images/forearm_xray_33f.png",
+        "report_text": "TECHNIQUE: AP and lateral radiographs of the left forearm. FINDINGS: No radiopaque foreign body identified. Intact bony cortices without acute fracture. Soft tissue defect corresponds to superficial skin laceration. IMPRESSION: 1. No radiopaque foreign body or acute osseous injury."
+      },
+      "serial_labs": {
+        "hemoglobin_g_dl": [
+          { "timestamp_hr": -24, "value": 13.8, "ref_min": 12.0, "ref_max": 16.0 },
+          { "timestamp_hr": 0, "value": 13.7, "ref_min": 12.0, "ref_max": 16.0 }
+        ]
+      },
+      "lab_note": "Hemoglobin stable. Hemostasis achieved in triage.",
+      "draft_discharge_packet": {
+        "primary_diagnosis_icd10": "S51.812A - Laceration without foreign body of left forearm",
+        "discharge_instructions": "Keep wound clean and dry for 24h. Suture removal in 7 days.",
+        "prescriptions": [
+          { "drug_name": "Cephalexin", "dose": "500 mg PO q6h", "days": 5, "class": "ANTIBIOTIC" }
+        ],
+        "follow_up_orders": [
+          { "specialty": "Primary Care", "timeframe": "7 days", "reason": "Suture removal and wound check", "cpt_code": "99213" }
+        ]
+      },
+      "expected_findings": []
+    },
+    {
+      "encounter_id": "ED-106",
+      "patient_scenario": "47M atypical chest pain, ruled out for ACS, GERD discharge",
+      "chief_complaint": "Substernal burning sensation after heavy meal, ECG normal",
+      "radiology_study": {
+        "modality": "Chest radiograph, PA and lateral",
+        "slice_image_url": "/fixtures/images/cxr_normal_47m.png",
+        "report_text": "TECHNIQUE: PA and lateral views of the chest. FINDINGS: Normal cardiothoracic ratio. Lungs are clear without focal consolidation, pneumothorax, or effusion. Osseous structures intact. IMPRESSION: 1. Normal chest radiograph."
+      },
+      "serial_labs": {
+        "potassium_mmol_l": [
+          { "timestamp_hr": -12, "value": 4.2, "ref_min": 3.5, "ref_max": 5.2 },
+          { "timestamp_hr": 0, "value": 4.1, "ref_min": 3.5, "ref_max": 5.2 }
+        ],
+        "creatinine_mg_dl": [
+          { "timestamp_hr": -12, "value": 0.95, "ref_min": 0.60, "ref_max": 1.20 },
+          { "timestamp_hr": 0, "value": 0.94, "ref_min": 0.60, "ref_max": 1.20 }
+        ]
+      },
+      "lab_note": "Serial troponins negative x2 at 0h and 3h. Electrolytes and creatinine normal.",
+      "draft_discharge_packet": {
+        "primary_diagnosis_icd10": "K21.9 - Gastro-esophageal reflux disease without esophagitis",
+        "discharge_instructions": "Dietary modification. Return precautions for recurrent chest pressure or diaphoresis.",
+        "prescriptions": [
+          { "drug_name": "Pantoprazole", "dose": "40 mg PO daily", "days": 30, "class": "PPI" }
+        ],
+        "follow_up_orders": [
+          { "specialty": "Primary Care", "timeframe": "2 weeks", "reason": "Follow-up atypical chest symptoms", "cpt_code": "99213" }
+        ]
+      },
+      "expected_findings": []
+    },
+    {
+      "encounter_id": "ED-107",
+      "patient_scenario": "19M acute viral gastroenteritis with mild dehydration, rehydrated",
+      "chief_complaint": "Nausea, non-bloody diarrhea for 24 hours after collegiate cafeteria meal",
+      "radiology_study": {
+        "modality": "Abdominal radiograph, two views",
+        "slice_image_url": "/fixtures/images/abd_xray_normal_19m.png",
+        "report_text": "TECHNIQUE: Supine and upright views of abdomen. FINDINGS: Normal bowel gas distribution without dilated loops or air-fluid levels. No free air under diaphragm. IMPRESSION: 1. Unremarkable abdominal radiograph."
+      },
+      "serial_labs": {
+        "potassium_mmol_l": [
+          { "timestamp_hr": -8, "value": 3.8, "ref_min": 3.5, "ref_max": 5.2 },
+          { "timestamp_hr": 0, "value": 4.2, "ref_min": 3.5, "ref_max": 5.2 }
+        ],
+        "creatinine_mg_dl": [
+          { "timestamp_hr": -8, "value": 1.10, "ref_min": 0.60, "ref_max": 1.20 },
+          { "timestamp_hr": 0, "value": 0.90, "ref_min": 0.60, "ref_max": 1.20 }
+        ]
+      },
+      "lab_note": "Electrolytes and prererenal creatinine elevation normalized after 2L normal saline.",
+      "draft_discharge_packet": {
+        "primary_diagnosis_icd10": "A08.4 - Viral intestinal infection, unspecified",
+        "discharge_instructions": "Oral rehydration solution. BRAT diet as tolerated.",
+        "prescriptions": [
+          { "drug_name": "Ondansetron", "dose": "4 mg PO q8h PRN", "days": 3, "class": "ANTIEMETIC" }
+        ],
+        "follow_up_orders": [
+          { "specialty": "Primary Care", "timeframe": "1 week PRN", "reason": "Re-evaluation if symptoms persist", "cpt_code": "99213" }
+        ]
+      },
+      "expected_findings": []
+    },
+    {
+      "encounter_id": "ED-108",
+      "patient_scenario": "68F uncomplicated acute cystitis responding to oral nitrofurantoin",
+      "chief_complaint": "Dysuria and urinary urgency for 48 hours",
+      "radiology_study": {
+        "modality": "Renal and bladder ultrasound",
+        "slice_image_url": "/fixtures/images/renal_us_normal_68f.png",
+        "report_text": "TECHNIQUE: Gray scale and color Doppler ultrasound of bilateral kidneys and bladder. FINDINGS: Normal renal size and parenchymal thickness bilaterally. No hydronephrosis, calculus, or perinephric fluid. Bladder lumen clear. IMPRESSION: 1. Normal bilateral renal ultrasound."
+      },
+      "serial_labs": {
+        "creatinine_mg_dl": [
+          { "timestamp_hr": -24, "value": 1.05, "ref_min": 0.60, "ref_max": 1.20 },
+          { "timestamp_hr": 0, "value": 1.02, "ref_min": 0.60, "ref_max": 1.20 }
+        ]
+      },
+      "lab_note": "Chronic baseline renal indices stable. Urine culture pending.",
+      "draft_discharge_packet": {
+        "primary_diagnosis_icd10": "N30.00 - Acute cystitis without hematuria",
+        "discharge_instructions": "Hydration, complete full antibiotic course. Return for flank pain or fever.",
+        "prescriptions": [
+          { "drug_name": "Nitrofurantoin monohydrate", "dose": "100 mg PO BID", "days": 5, "class": "ANTIBIOTIC" }
+        ],
+        "follow_up_orders": [
+          { "specialty": "Primary Care", "timeframe": "1 week", "reason": "Urine culture review", "cpt_code": "99213" }
+        ]
+      },
+      "expected_findings": []
+    },
+    {
+      "encounter_id": "ED-109",
+      "patient_scenario": "51M acute-on-chronic mechanical lumbar strain",
+      "chief_complaint": "Lower back pain after lifting furniture, no neurological deficits",
+      "radiology_study": {
+        "modality": "Lumbar spine radiographs, AP and lateral",
+        "slice_image_url": "/fixtures/images/lspine_xray_51m.png",
+        "report_text": "TECHNIQUE: AP and lateral views of the lumbar spine. FINDINGS: Mild age-appropriate L4-L5 disc space narrowing. Alignment maintained without spondylolisthesis or acute fracture. Pedicles and posterior elements intact. IMPRESSION: 1. Mild degenerative disc disease at L4-L5. No acute fracture."
+      },
+      "serial_labs": {
+        "creatinine_mg_dl": [
+          { "timestamp_hr": -12, "value": 0.85, "ref_min": 0.60, "ref_max": 1.20 },
+          { "timestamp_hr": 0, "value": 0.84, "ref_min": 0.60, "ref_max": 1.20 }
+        ]
+      },
+      "lab_note": "Normal baseline metabolic panel. Renal parameters stable.",
+      "draft_discharge_packet": {
+        "primary_diagnosis_icd10": "S39.012A - Strain of muscle, fascia and tendon of lower back",
+        "discharge_instructions": "Core ergonomics, gentle stretching. Ice 20 min q4h.",
+        "prescriptions": [
+          { "drug_name": "Naproxen", "dose": "500 mg PO BID", "days": 5, "class": "NSAID" }
+        ],
+        "follow_up_orders": [
+          { "specialty": "Primary Care", "timeframe": "2 weeks", "reason": "Back pain re-assessment", "cpt_code": "99213" }
+        ]
+      },
+      "expected_findings": []
+    },
+    {
+      "encounter_id": "ED-110",
+      "patient_scenario": "59M abdominal blunt trauma after minor MVA, incidental adrenal lesion dropped",
+      "chief_complaint": "Seatbelt sign and epigastric contusion following motor vehicle collision",
+      "radiology_study": {
+        "modality": "CT Abdomen and Pelvis with IV contrast",
+        "slice_image_url": "/fixtures/images/ct_abd_adrenal_28mm_59m.png",
+        "report_text": "TECHNIQUE: Contrast-enhanced CT of abdomen and pelvis. FINDINGS: No solid organ laceration or active hemorrhage. Incidental 2.8 cm indeterminate right adrenal nodule with attenuation 24 HU (Series 4, Image 18); per ACR white paper guidelines, dedicated adrenal CT or chemical-shift MRI in 6-12 months is recommended to assess for adenoma vs non-adenoma. IMPRESSION: 1. Abdominal wall contusion without acute intra-abdominal injury. 2. Incidental 2.8 cm right adrenal nodule requiring follow-up imaging."
+      },
+      "serial_labs": {
+        "creatinine_mg_dl": [
+          { "timestamp_hr": -18, "value": 0.90, "ref_min": 0.60, "ref_max": 1.20 },
+          { "timestamp_hr": 0, "value": 0.89, "ref_min": 0.60, "ref_max": 1.20 }
+        ]
+      },
+      "lab_note": "Post-trauma labs unremarkable. Hemoglobin and creatinine stable.",
+      "draft_discharge_packet": {
+        "primary_diagnosis_icd10": "S30.0XXA - Contusion of lower back and pelvis",
+        "discharge_instructions": "Activity as tolerated, ice pack to contusion.",
+        "prescriptions": [
+          { "drug_name": "Acetaminophen", "dose": "650 mg PO q6h PRN", "days": 5, "class": "ANALGESIC" }
+        ],
+        "follow_up_orders": [
+          { "specialty": "Primary Care", "timeframe": "2 weeks", "reason": "MVA contusion recheck", "cpt_code": "99213" }
+        ]
+      },
+      "expected_findings": [
+        {
+          "kind": "INCIDENTAL_FINDING_DROP",
+          "severity": "CRITICAL",
+          "explanation": "Discharge packet omits follow-up order for radiologist-reported 2.8 cm indeterminate right adrenal nodule (ACR guidelines: adrenal CT CPT 74170 in 6–12 months).",
+          "source_quote": "Incidental 2.8 cm indeterminate right adrenal nodule",
+          "source": "radiology_report",
+          "guideline_url": null,
+          "discharge_patch": {
+            "remove_drug_name": null,
+            "add_prescription": null,
+            "add_follow_up_order": {
+              "specialty": "Radiology (Endocrinology PCP)",
+              "timeframe": "6 months",
+              "reason": "Follow-up right adrenal protocol CT (CPT 74170) for 2.8 cm indeterminate nodule",
+              "cpt_code": "74170"
+            },
+            "note": "Adds mandatory follow-up CPT 74170 for 2.8 cm adrenal mass per ACR incidental findings committee."
+          }
+        }
+      ]
+    },
+    {
+      "encounter_id": "ED-111",
+      "patient_scenario": "73F congestive heart failure with acute kinetic potassium rise, spironolactone prescribed",
+      "chief_complaint": "Shortness of breath on exertion and lower extremity edema",
+      "radiology_study": {
+        "modality": "Chest radiograph, portable AP",
+        "slice_image_url": "/fixtures/images/cxr_chf_73f.png",
+        "report_text": "TECHNIQUE: Single view portable AP chest. FINDINGS: Mild cardiomegaly with bibasilar pulmonary vascular congestion consistent with congestive heart failure. No focal infiltrate or pneumothorax. IMPRESSION: 1. Mild congestive heart failure exacerbation."
+      },
+      "serial_labs": {
+        "potassium_mmol_l": [
+          { "timestamp_hr": -24, "value": 4.1, "ref_min": 3.5, "ref_max": 5.2 },
+          { "timestamp_hr": -12, "value": 4.8, "ref_min": 3.5, "ref_max": 5.2 },
+          { "timestamp_hr": 0, "value": 5.5, "ref_min": 3.5, "ref_max": 5.2 }
+        ],
+        "creatinine_mg_dl": [
+          { "timestamp_hr": -24, "value": 1.10, "ref_min": 0.60, "ref_max": 1.20 },
+          { "timestamp_hr": 0, "value": 1.20, "ref_min": 0.60, "ref_max": 1.20 }
+        ]
+      },
+      "lab_note": "Serial electrolytes show serum potassium rising sharply 4.1 → 4.8 → 5.5 mmol/L over 24 hours. Impending hyperkalemia risk flagged.",
+      "draft_discharge_packet": {
+        "primary_diagnosis_icd10": "I50.9 - Heart failure, unspecified",
+        "discharge_instructions": "Low sodium diet, daily morning weights.",
+        "prescriptions": [
+          { "drug_name": "Furosemide", "dose": "40 mg PO daily", "days": 30, "class": "LOOP_DIURETIC" },
+          { "drug_name": "Spironolactone", "dose": "25 mg PO daily", "days": 30, "class": "POTASSIUM_SPARING_DIURETIC" }
+        ],
+        "follow_up_orders": [
+          { "specialty": "Cardiology", "timeframe": "1 week", "reason": "Heart failure post-discharge clinic", "cpt_code": "99213" }
+        ]
+      },
+      "expected_findings": [
+        {
+          "kind": "KINETIC_MED_COLLISION",
+          "severity": "CRITICAL",
+          "explanation": "Potassium velocity +34% over 24 hours reaching 5.5 mmol/L contradicts initiation of potassium-sparing diuretic (Spironolactone) due to lethal hyperkalemia risk.",
+          "source_quote": "potassium rising sharply 4.1 → 4.8 → 5.5 mmol/L",
+          "source": "lab_note",
+          "guideline_url": null,
+          "discharge_patch": {
+            "remove_drug_name": "Spironolactone",
+            "add_prescription": null,
+            "add_follow_up_order": null,
+            "note": "Holds potassium-sparing diuretic spironolactone given acute hyperkalemia kinetic velocity."
+          }
+        }
+      ]
+    },
+    {
+      "encounter_id": "ED-112",
+      "patient_scenario": "45M severe mechanical fall with occult kinetic hemoglobin drop, anticoagulant prescribed",
+      "chief_complaint": "Right flank and hip pain after falling from a 6-foot ladder",
+      "radiology_study": {
+        "modality": "Pelvis and right hip radiographs",
+        "slice_image_url": "/fixtures/images/pelvis_xray_45m.png",
+        "report_text": "TECHNIQUE: AP pelvis and right hip views. FINDINGS: No acute pelvic ring disruption or hip fracture. Extensive subcutaneous hematoma and soft tissue contusion overlying right lateral iliac crest. IMPRESSION: 1. Soft tissue hematoma and pelvic contusion without bony fracture."
+      },
+      "serial_labs": {
+        "hemoglobin_g_dl": [
+          { "timestamp_hr": -24, "value": 15.0, "ref_min": 13.0, "ref_max": 17.5 },
+          { "timestamp_hr": -12, "value": 12.6, "ref_min": 13.0, "ref_max": 17.5 },
+          { "timestamp_hr": 0, "value": 10.8, "ref_min": 13.0, "ref_max": 17.5 }
+        ]
+      },
+      "lab_note": "Serial blood counts reveal acute hemoglobin decline 15.0 → 12.6 → 10.8 g/dL over 24 hours (drop of -4.2 g/dL exceeding occult hemorrhage threshold). Retroperitoneal hematoma watch.",
+      "draft_discharge_packet": {
+        "primary_diagnosis_icd10": "S30.0XXA - Contusion of lower back and pelvis",
+        "discharge_instructions": "Bed rest for 24h, return immediately for dizziness or syncope.",
+        "prescriptions": [
+          { "drug_name": "Meloxicam", "dose": "15 mg PO daily", "days": 5, "class": "NSAID" }
+        ],
+        "follow_up_orders": [
+          { "specialty": "Primary Care", "timeframe": "2 weeks", "reason": "Hematoma re-examination", "cpt_code": "99213" }
+        ]
+      },
+      "expected_findings": [
+        {
+          "kind": "KINETIC_MED_COLLISION",
+          "severity": "CRITICAL",
+          "explanation": "Kinetic hemoglobin drop of -4.2 g/dL (-28%) over 24h exceeds occult hemorrhage threshold (-1.5 g/dL); NSAID / anticoagulant therapy contradicts active internal bleeding risk.",
+          "source_quote": "hemoglobin decline 15.0 → 12.6 → 10.8 g/dL over 24 hours",
+          "source": "lab_note",
+          "guideline_url": null,
+          "discharge_patch": {
+            "remove_drug_name": "Meloxicam",
+            "add_prescription": {
+              "drug_name": "Acetaminophen",
+              "dose": "650 mg PO q6h PRN",
+              "days": 5,
+              "class": "ANALGESIC"
+            },
+            "add_follow_up_order": null,
+            "note": "Discontinues antiplatelet/NSAID meloxicam and substitutes safe analgesic given occult hemorrhage velocity."
           }
         }
       ]

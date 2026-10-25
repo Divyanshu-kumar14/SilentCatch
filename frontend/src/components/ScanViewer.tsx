@@ -16,6 +16,8 @@ import type { Encounter, InterceptionVerdict, ScanFinding } from "@/lib/types";
 const ROI: Record<string, { cx: number; cy: number; ring: number }> = {
   "ED-102": { cx: 120, cy: 150, ring: 50 }, // r=26 consolidation + 24 ring
   "ED-104": { cx: 170, cy: 90, ring: 28 }, // r=4 nodule + 24 ring
+  "ED-110": { cx: 160, cy: 140, ring: 38 }, // r=14 adrenal mass + 24 ring
+  "ED-111": { cx: 110, cy: 130, ring: 56 }, // r=32 cardiomegaly + 24 ring
 };
 
 interface Highlight {
