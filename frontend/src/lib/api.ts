@@ -57,7 +57,7 @@ export async function streamAudit(
     if (dataLines.length === 0) return;
     let data: unknown;
     try {
-      data = JSON.parse(dataLines.join("\n"));
+      data = JSON.parse(dataLines.length === 1 ? dataLines[0] : dataLines.join("\n"));
     } catch {
       return; // malformed frame — skip, never crash the console on a bad line
     }

@@ -1,5 +1,7 @@
 "use client";
 
+import React, { useMemo } from "react";
+
 import { shortModel } from "@/lib/clinical";
 import type { Phase, RunStartEvent, StageTrace } from "@/lib/types";
 
@@ -14,7 +16,7 @@ const STAGE_CONFIG: ReadonlyArray<{
   { id: "reasoning", label: "STAGE 4 · ULTRA", role: "Ultra 550B + Rig" },
 ];
 
-export default function TelemetryBar({
+function TelemetryBar({
   phase,
   runStart,
   traces,
@@ -27,11 +29,18 @@ export default function TelemetryBar({
 }) {
   const isRunning = phase === "running";
 
-  // Aggregate totals
-  const totalLatency = traces.reduce((acc, t) => acc + (t.latency_ms || 0), 0);
-  const totalPromptTokens = traces.reduce((acc, t) => acc + (t.prompt_tokens || 0), 0);
-  const totalCompTokens = traces.reduce((acc, t) => acc + (t.completion_tokens || 0), 0);
-  const totalCost = traces.reduce((acc, t) => acc + (t.est_cost_usd || 0), 0);
+  // Single-pass aggregate totals with useMemo
+  const { totalLatency, totalTokens, totalCost } = useMemo(() => {
+    let latency = 0;
+    let tokens = 0;
+    let cost = 0;
+    for (const t of traces) {
+      latency += t.latency_ms || 0;
+      tokens += (t.prompt_tokens || 0) + (t.completion_tokens || 0);
+      cost += t.est_cost_usd || 0;
+    }
+    return { totalLatency: latency, totalTokens: tokens, totalCost: cost };
+  }, [traces]);
 
   return (
     <footer className="flex h-11 shrink-0 items-center justify-between border-t border-border bg-pane px-3 font-mono text-[10px]">
@@ -106,7 +115,7 @@ export default function TelemetryBar({
             <div className="flex items-center gap-1 text-text-dim">
               <span className="text-text-faint">Tokens:</span>
               <span className="text-text font-semibold">
-                {totalPromptTokens + totalCompTokens}
+                {totalTokens}
               </span>
             </div>
 
@@ -129,3 +138,5 @@ export default function TelemetryBar({
     </footer>
   );
 }
+
+export default React.memo(TelemetryBar);

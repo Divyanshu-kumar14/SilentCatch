@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 
 import { API_BASE } from "@/lib/api";
 import { resolveSpan } from "@/lib/clinical";
@@ -52,7 +52,7 @@ function renderWithHighlights(
   return nodes;
 }
 
-export default function ScanViewer({
+function ScanViewer({
   encounter,
   findings,
   verdicts,
@@ -66,27 +66,26 @@ export default function ScanViewer({
   const report = encounter.radiology_study.report_text;
   const labNote = encounter.lab_note?.text ?? "";
 
-  const highlights = useMemo(() => {
+  const { highlights, reportHls, labHls } = useMemo(() => {
     const out: Array<Highlight & { pane: "report" | "lab_note" }> = [];
-    if (!interceptActive) return out;
+    const rep: Array<Highlight & { pane: "report" | "lab_note" }> = [];
+    const lab: Array<Highlight & { pane: "report" | "lab_note" }> = [];
+    if (!interceptActive) return { highlights: out, reportHls: rep, labHls: lab };
     verdicts.forEach((v, idx) => {
       const span = resolveSpan(encounter, v);
       if (!span) return;
-      out.push({
+      const item = {
         pane: span.pane,
         start: v.verified_span.start_char,
         end: v.verified_span.end_char,
         idx,
-      });
+      };
+      out.push(item);
+      if (item.pane === "report") rep.push(item);
+      else lab.push(item);
     });
-    return out;
+    return { highlights: out, reportHls: rep, labHls: lab };
   }, [encounter, verdicts, interceptActive]);
-
-  // Round-trip proof: the offsets the guard produced must slice back to the
-  // quote in exactly one pane. Mismatches never happen on stream truth; if a
-  // future run violated that, we'd still render, just without the highlight.
-  const reportHls = highlights.filter((h) => h.pane === "report");
-  const labHls = highlights.filter((h) => h.pane === "lab_note");
   const spanMeta =(highlights.length > 0
     ? verdicts[highlights[0].idx]?.verified_span
     : null);
@@ -122,7 +121,9 @@ export default function ScanViewer({
               alt={`Synthetic ${encounter.radiology_study.modality} key slice for ${encounter.encounter_id}`}
               width={256}
               height={256}
-              className="w-full bg-[#0d1218] [image-rendering:pixelated]"
+              fetchPriority="high"
+              decoding="async"
+              className="aspect-square w-full bg-[#0d1218] [image-rendering:pixelated]"
             />
             {roi ? (
               <div
@@ -198,3 +199,5 @@ export default function ScanViewer({
     </section>
   );
 }
+
+export default React.memo(ScanViewer);

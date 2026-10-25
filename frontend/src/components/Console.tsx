@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import {
   useCallback,
   useEffect,
@@ -33,7 +34,14 @@ import DischargeEditor from "@/components/DischargeEditor";
 import LabSparkline from "@/components/LabSparkline";
 import ScanViewer from "@/components/ScanViewer";
 import TelemetryBar from "@/components/TelemetryBar";
-import BenchmarkView from "@/components/BenchmarkView";
+
+const BenchmarkView = dynamic(() => import("@/components/BenchmarkView"), {
+  loading: () => (
+    <div className="flex h-full items-center justify-center font-mono text-xs text-text-faint">
+      Loading benchmark suite…
+    </div>
+  ),
+});
 
 /** Stable identity for an applied patch (indexes can drift between re-runs). */
 function patchKey(v: InterceptionVerdict): string {
@@ -93,8 +101,8 @@ function RedlineOverlay({
       raf = requestAnimationFrame(measure);
     };
     queue();
-    window.addEventListener("resize", queue);
-    window.addEventListener("scroll", queue, true);
+    window.addEventListener("resize", queue, { passive: true });
+    window.addEventListener("scroll", queue, { passive: true, capture: true });
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", queue);
@@ -153,6 +161,8 @@ export default function Console() {
   const dirtyRef = useRef(false);
   const appliedRef = useRef<Set<string>>(applied);
   appliedRef.current = applied;
+  const encRef = useRef<Encounter | null>(enc);
+  encRef.current = enc;
 
   const startRun = useCallback((doc: Encounter) => {
     const token = ++runToken.current;
@@ -276,14 +286,15 @@ export default function Console() {
   };
 
   // Sandbox edit: instant slope recalc on valid numeric edits only (FR-5.3).
-  const editLabValue = (analyte: string, idx: number, raw: string): string | null => {
-    if (!enc) return "No encounter loaded";
+  const editLabValue = useCallback((analyte: string, idx: number, raw: string): string | null => {
+    const currentEnc = encRef.current;
+    if (!currentEnc) return "No encounter loaded";
     if (!isValidLabValue(analyte, raw)) {
       const bound =
         analyte === "creatinine_mg_dl" ? "0.1–25.0 mg/dL" : "numeric, in range";
       return `rejected — bound ${bound}`;
     }
-    const next = structuredClone(enc) as Encounter;
+    const next = structuredClone(currentEnc) as Encounter;
     next.serial_labs[analyte][idx] = {
       ...next.serial_labs[analyte][idx],
       value: Number(raw),
@@ -292,26 +303,32 @@ export default function Console() {
     dirtyRef.current = true;
     setSlopes(analyzeSerialLabs(next.serial_labs));
     return null;
-  };
+  }, []);
 
-  const editInstructions = (text: string) => {
-    if (!enc) return;
-    const next = structuredClone(enc) as Encounter;
+  const editInstructions = useCallback((text: string) => {
+    const currentEnc = encRef.current;
+    if (!currentEnc) return;
+    const next = structuredClone(currentEnc) as Encounter;
     next.draft_discharge_packet.discharge_instructions = text;
     setEnc(next);
     dirtyRef.current = true;
-  };
+  }, []);
 
   // One click: mutate the packet in place with the patch, then re-audit (FR-5.2).
-  const applyAndRerun = (verdict: InterceptionVerdict) => {
-    if (!enc) return;
-    const next = applyPatch(enc, verdict.discharge_patch);
+  const applyAndRerun = useCallback((verdict: InterceptionVerdict) => {
+    const currentEnc = encRef.current;
+    if (!currentEnc) return;
+    const next = applyPatch(currentEnc, verdict.discharge_patch);
     dirtyRef.current = true;
     setEnc(next);
     setApplied((prev) => new Set(prev).add(patchKey(verdict)));
     setSlopes(analyzeSerialLabs(next.serial_labs));
     startRun(next);
-  };
+  }, [startRun]);
+
+  const handleRun = useCallback(() => {
+    if (encRef.current) startRun(encRef.current);
+  }, [startRun]);
 
   const interceptActive = phase === "intercept" && verdicts.length > 0;
   const safeActive = phase === "safe";
@@ -420,44 +437,46 @@ export default function Console() {
       )}
 
       {/* ------------------------------------------------------ panes */}
-      {viewTab === "benchmarks" ? (
-        <main className="min-h-0 flex-1 overflow-hidden">
-          <BenchmarkView />
-        </main>
-      ) : (
-        <main className="grid min-h-0 flex-1 grid-cols-[minmax(0,29fr)_minmax(0,26fr)_minmax(0,37fr)] gap-2.5 p-2.5">
-          {enc && (
-            <ScanViewer
-              encounter={enc}
-              findings={findings}
-              verdicts={verdicts}
-              interceptActive={interceptActive}
-            />
-          )}
-          {enc && (
-            <LabSparkline
-              slopes={slopes}
-              serialLabs={enc.serial_labs}
-              flags={flags}
-              onEdit={editLabValue}
-              interceptActive={interceptActive}
-            />
-          )}
-          {enc && (
-            <DischargeEditor
-              encounter={enc}
-              phase={phase}
-              verdicts={verdicts}
-              guides={guides}
-              applied={applied}
-              lastResult={lastResult}
-              onApply={applyAndRerun}
-              onEditInstructions={editInstructions}
-              onRun={() => enc && startRun(enc)}
-            />
-          )}
-        </main>
-      )}
+      <main className={`min-h-0 flex-1 overflow-hidden ${viewTab === "benchmarks" ? "block" : "hidden"}`}>
+        {viewTab === "benchmarks" && <BenchmarkView />}
+      </main>
+
+      <main
+        className={`min-h-0 flex-1 grid-cols-[minmax(0,29fr)_minmax(0,26fr)_minmax(0,37fr)] gap-2.5 p-2.5 ${
+          viewTab === "cockpit" ? "grid" : "hidden"
+        }`}
+      >
+        {enc && (
+          <ScanViewer
+            encounter={enc}
+            findings={findings}
+            verdicts={verdicts}
+            interceptActive={interceptActive}
+          />
+        )}
+        {enc && (
+          <LabSparkline
+            slopes={slopes}
+            serialLabs={enc.serial_labs}
+            flags={flags}
+            onEdit={editLabValue}
+            interceptActive={interceptActive}
+          />
+        )}
+        {enc && (
+          <DischargeEditor
+            encounter={enc}
+            phase={phase}
+            verdicts={verdicts}
+            guides={guides}
+            applied={applied}
+            lastResult={lastResult}
+            onApply={applyAndRerun}
+            onEditInstructions={editInstructions}
+            onRun={handleRun}
+          />
+        )}
+      </main>
 
       {/* ------------------------------------------------------ red-lines */}
       {enc && (

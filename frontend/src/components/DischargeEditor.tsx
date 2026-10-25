@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 
 import { kindLabel, patchKey } from "@/lib/clinical";
 import type {
@@ -13,7 +13,7 @@ import type {
   Prescription,
 } from "@/lib/types";
 
-export default function DischargeEditor({
+function DischargeEditor({
   encounter,
   phase,
   verdicts,
@@ -357,3 +357,5 @@ export default function DischargeEditor({
     </section>
   );
 }
+
+export default React.memo(DischargeEditor);

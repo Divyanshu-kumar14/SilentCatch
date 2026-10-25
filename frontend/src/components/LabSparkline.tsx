@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 
 import {
   ANALYTE_BOUNDS,
@@ -32,7 +32,7 @@ const PAD_R = 34;
 const PAD_T = 12;
 const PAD_B = 20;
 
-function SparkCanvas({
+const SparkCanvas = React.memo(function SparkCanvas({
   points,
   slope,
 }: {
@@ -174,9 +174,130 @@ function SparkCanvas({
       ))}
     </svg>
   );
+});
+
+interface AnalyteCardProps {
+  analyte: string;
+  slope: KinematicSlope | undefined;
+  points: LabPoint[];
+  interceptActive: boolean;
+  edits: Record<string, string>;
+  errs: Record<string, string>;
+  onChange: (analyte: string, idx: number, raw: string) => void;
+  onBlur: (key: string) => void;
 }
 
-export default function LabSparkline({
+const AnalyteCard = React.memo(function AnalyteCard({
+  analyte,
+  slope,
+  points,
+  interceptActive,
+  edits,
+  errs,
+  onChange,
+  onBlur,
+}: AnalyteCardProps) {
+  const flagged = (slope?.flags?.length ?? 0) > 0 && interceptActive;
+  const bounds = ANALYTE_BOUNDS[analyte];
+  let analyteErr = "";
+  for (const [key, msg] of Object.entries(errs)) {
+    if (key.startsWith(`${analyte}:`) && msg) {
+      analyteErr = msg;
+      break;
+    }
+  }
+
+  return (
+    <article
+      className={`rounded-sm border bg-pane-raised px-2 pt-1.5 pb-2 ${
+        flagged ? "border-intercept-dim" : "border-border"
+      }`}
+    >
+      <div className="flex items-baseline justify-between px-1">
+        <h3 className="font-mono text-[10.5px] font-semibold tracking-wider text-text">
+          {ANALYTE_LABELS[analyte]}
+          <span className="ml-1.5 text-[8.5px] font-normal text-text-faint">
+            {ANALYTE_UNIT[analyte]}
+          </span>
+        </h3>
+        <div className="flex items-baseline gap-2">
+          {slope?.pct_delta_from_baseline != null && (
+            <span
+              className={`font-mono text-[10px] font-semibold ${
+                slope.pct_delta_from_baseline > 15
+                  ? "text-intercept"
+                  : slope.pct_delta_from_baseline < -15
+                    ? "text-warn"
+                    : "text-text-dim"
+              }`}
+            >
+              Δ{slope.pct_delta_from_baseline > 0 ? "+" : ""}
+              {slope.pct_delta_from_baseline.toFixed(0)}%
+            </span>
+          )}
+          <span className="font-mono text-[8.5px] text-text-faint">
+            {slope?.slope_per_hour != null
+              ? `slope ${slope.slope_per_hour >= 0 ? "+" : ""}${(slope.slope_per_hour * 24).toFixed(3)}/d`
+              : "no slope"}
+          </span>
+        </div>
+      </div>
+
+      {slope && <SparkCanvas points={points} slope={slope} />}
+
+      {flagged && slope && (
+        <div className="mx-1 mb-1 flex flex-wrap gap-1">
+          {slope.flags.map((f) => (
+            <span
+              key={f}
+              className="rounded-sm border border-intercept-dim bg-intercept/10 px-1.5 py-0.5 font-mono text-[8.5px] font-semibold tracking-wide text-intercept"
+            >
+              {LEGEND[f] ?? f}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="mx-1 flex flex-wrap items-center gap-1.5">
+        {points.map((p, i) => {
+          const key = `${analyte}:${i}`;
+          const display = edits[key] ?? String(p.value);
+          const error = errs[key];
+          return (
+            <label key={key} className="flex items-center gap-1">
+              <span className="font-mono text-[8.5px] text-text-faint">
+                T{p.timestamp_hr >= 0 ? "+" : "−"}
+                {Math.abs(p.timestamp_hr)}
+              </span>
+              <input
+                inputMode="decimal"
+                value={display}
+                onChange={(e) => onChange(analyte, i, e.target.value)}
+                onBlur={() => onBlur(key)}
+                aria-label={`${ANALYTE_LABELS[analyte]} value at T${p.timestamp_hr}h`}
+                className={`w-16 rounded-sm border bg-bg px-1.5 py-0.5 font-mono text-[11px] text-text outline-none transition-colors ${
+                  error
+                    ? "border-intercept text-intercept"
+                    : "border-border-strong focus:border-live"
+                }`}
+              />
+            </label>
+          );
+        })}
+      </div>
+      <p className="mx-1 mt-1 h-3 font-mono text-[8.5px] text-intercept" role="alert">
+        {analyteErr}
+      </p>
+      {bounds && !analyteErr && (
+        <p className="mx-1 font-mono text-[8px] tracking-wider text-text-faint">
+          sandbox bounds {bounds.min}–{bounds.max}
+        </p>
+      )}
+    </article>
+  );
+});
+
+function LabSparkline({
   slopes,
   serialLabs,
   flags,
@@ -192,15 +313,16 @@ export default function LabSparkline({
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [errs, setErrs] = useState<Record<string, string>>({});
 
-  const analytes = ANALYTE_ORDER.filter((a) => serialLabs[a]?.length);
+  const analytes = useMemo(
+    () => ANALYTE_ORDER.filter((a) => Boolean(serialLabs[a]?.length)),
+    [serialLabs]
+  );
 
   const handleChange = (analyte: string, idx: number, raw: string) => {
     const key = `${analyte}:${idx}`;
     setEdits((prev) => ({ ...prev, [key]: raw }));
     const rejected = onEdit(analyte, idx, raw);
     setErrs((prev) => ({ ...prev, [key]: rejected ?? "" }));
-    // On success the committed value already re-rendered the sparkline (instant
-    // recalc, FR-5.3); raw stays until blur for uninterrupted typing.
   };
 
   const handleBlur = (key: string) => {
@@ -234,107 +356,23 @@ export default function LabSparkline({
           <p className="font-mono text-[10px] text-text-faint">no serial labs on file</p>
         )}
         <div className="flex flex-col gap-3">
-          {analytes.map((analyte) => {
-            const slope = slopes[analyte];
-            const points = serialLabs[analyte];
-            const flagged = slope?.flags?.length > 0 && interceptActive;
-            const bounds = ANALYTE_BOUNDS[analyte];
-            let analyteErr = "";
-            for (const [key, msg] of Object.entries(errs)) {
-              if (key.startsWith(`${analyte}:`) && msg) analyteErr = msg;
-            }
-            return (
-              <article
-                key={analyte}
-                className={`rounded-sm border bg-pane-raised px-2 pt-1.5 pb-2 ${
-                  flagged ? "border-intercept-dim" : "border-border"
-                }`}
-              >
-                <div className="flex items-baseline justify-between px-1">
-                  <h3 className="font-mono text-[10.5px] font-semibold tracking-wider text-text">
-                    {ANALYTE_LABELS[analyte]}
-                    <span className="ml-1.5 text-[8.5px] font-normal text-text-faint">
-                      {ANALYTE_UNIT[analyte]}
-                    </span>
-                  </h3>
-                  <div className="flex items-baseline gap-2">
-                    {slope?.pct_delta_from_baseline != null && (
-                      <span
-                        className={`font-mono text-[10px] font-semibold ${
-                          slope.pct_delta_from_baseline > 15
-                            ? "text-intercept"
-                            : slope.pct_delta_from_baseline < -15
-                              ? "text-warn"
-                              : "text-text-dim"
-                        }`}
-                      >
-                        Δ{slope.pct_delta_from_baseline > 0 ? "+" : ""}
-                        {slope.pct_delta_from_baseline.toFixed(0)}%
-                      </span>
-                    )}
-                    <span className="font-mono text-[8.5px] text-text-faint">
-                      {slope?.slope_per_hour != null
-                        ? `slope ${slope.slope_per_hour >= 0 ? "+" : ""}${(slope.slope_per_hour * 24).toFixed(3)}/d`
-                        : "no slope"}
-                    </span>
-                  </div>
-                </div>
-
-                {slope && <SparkCanvas points={points} slope={slope} />}
-
-                {flagged && (
-                  <div className="mx-1 mb-1 flex flex-wrap gap-1">
-                    {slope.flags.map((f) => (
-                      <span
-                        key={f}
-                        className="rounded-sm border border-intercept-dim bg-intercept/10 px-1.5 py-0.5 font-mono text-[8.5px] font-semibold tracking-wide text-intercept"
-                      >
-                        {LEGEND[f] ?? f}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                <div className="mx-1 flex flex-wrap items-center gap-1.5">
-                  {points.map((p, i) => {
-                    const key = `${analyte}:${i}`;
-                    const display = edits[key] ?? String(p.value);
-                    const error = errs[key];
-                    return (
-                      <label key={key} className="flex items-center gap-1">
-                        <span className="font-mono text-[8.5px] text-text-faint">
-                          T{p.timestamp_hr >= 0 ? "+" : "−"}
-                          {Math.abs(p.timestamp_hr)}
-                        </span>
-                        <input
-                          inputMode="decimal"
-                          value={display}
-                          onChange={(e) => handleChange(analyte, i, e.target.value)}
-                          onBlur={() => handleBlur(key)}
-                          aria-label={`${ANALYTE_LABELS[analyte]} value at T${p.timestamp_hr}h`}
-                          className={`w-16 rounded-sm border bg-bg px-1.5 py-0.5 font-mono text-[11px] text-text outline-none transition-colors ${
-                            error
-                              ? "border-intercept text-intercept"
-                              : "border-border-strong focus:border-live"
-                          }`}
-                        />
-                      </label>
-                    );
-                  })}
-                </div>
-                <p className="mx-1 mt-1 h-3 font-mono text-[8.5px] text-intercept" role="alert">
-                  {analyteErr}
-                </p>
-                {bounds && !analyteErr && (
-                  <p className="mx-1 font-mono text-[8px] tracking-wider text-text-faint">
-                    sandbox bounds {bounds.min}–{bounds.max}
-                  </p>
-                )}
-              </article>
-            );
-          })}
+          {analytes.map((analyte) => (
+            <AnalyteCard
+              key={analyte}
+              analyte={analyte}
+              slope={slopes[analyte]}
+              points={serialLabs[analyte]}
+              interceptActive={interceptActive}
+              edits={edits}
+              errs={errs}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            />
+          ))}
         </div>
       </div>
     </section>
   );
 }
+
+export default React.memo(LabSparkline);
