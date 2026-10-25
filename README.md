@@ -34,19 +34,19 @@
 In high-volume Emergency Departments (ED), clinicians operate under immense cognitive load, managing multiple deteriorating patients simultaneously. When preparing discharge packets, two silent, high-liability blind spots frequently bypass standard EHR warning systems:
 
 ```
-                  THE "SILENT TRAP" OF ROUTINE ER DISCHARGES
+                       THE "SILENT TRAP" OF ROUTINE ER DISCHARGES
 
-   ┌───────────────────────────────────┐    ┌───────────────────────────────────┐
-   │     1. Buried Incidental Nodule   │    │  2. "Normal Box" Kinetic Collapse │
-   ├───────────────────────────────────┤    ├───────────────────────────────────┤
-   │ Trauma CT rule-out for rib fracture│    │ Serial Creatinine: 0.62 → 0.88 →  │
-   │ Radiologist notes 7.2 mm incidental│    │ 1.16 mg/dL (+87% delta in 36h).   │
-   │ nodule on image slice #42.         │    │ Still within reference (0.6-1.20).│
-   │                                   │    │                                   │
-   │ Outcome: Missed in acute discharge│    │ Outcome: Clinician prescribes     │
-   │ instructions; patient presents 2  │    │ Ketorolac (Toradol), precipitating│
-   │ years later with Stage IV cancer. │    │ acute tubular necrosis (ATN).     │
-   └───────────────────────────────────┘    └───────────────────────────────────┘
+   ┌───────────────────────────────────────┐    ┌───────────────────────────────────────┐
+   │      1. Buried Incidental Nodule      │    │    2. "Normal Box" Kinetic Collapse   │
+   ├───────────────────────────────────────┤    ├───────────────────────────────────────┤
+   │ Trauma CT rule-out for rib fracture   │    │ Serial Creatinine: 0.62 → 0.88 →      │
+   │ Radiologist notes 7.2 mm incidental   │    │ 1.16 mg/dL (+87% delta in 36h).       │
+   │ nodule on image slice #42.            │    │ Still within reference (0.6-1.20).    │
+   │                                       │    │                                       │
+   │ Outcome: Missed in acute discharge    │    │ Outcome: Clinician prescribes         │
+   │ instructions; patient presents 2      │    │ Ketorolac (Toradol), precipitating    │
+   │ years later with Stage IV cancer.     │    │ acute tubular necrosis (ATN).         │
+   └───────────────────────────────────────┘    └───────────────────────────────────────┘
 ```
 
 ### Why Conventional Clinical Decision Support (CDS) Fails
@@ -136,7 +136,7 @@ The interface is engineered as an ergonomic dark cockpit (`#0A0E13`) formatted t
 │ • Verbatim Span-Guard Quote  │ • Interactive Judge Sandbox  │ • Tavily Clinical Badges │
 │   Offset Highlighting        │ • Real-time bounds (0.1-25.0)│ • 1-Click Patch & Verify │
 ├──────────────────────────────┴──────────────────────────────┴──────────────────────────┤
-│ TELEMETRY: STAGE 1: VISION (32ms) | STAGE 2: GATE (18ms) | STAGE 3: TAVILY | STAGE 4   │
+│ TELEMETRY: S1: VISION (32ms) | S2: GATE (18ms) | S3: TAVILY (95ms) | S4: ULTRA (410ms) │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
