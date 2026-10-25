@@ -181,18 +181,25 @@ function ScanViewer({
                 </div>
 
                 {/* DICOM Overlays */}
-                <div className="pointer-events-none absolute inset-3 flex flex-col justify-between font-mono text-[9px] text-[#F4F6FA] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-                  <div className="flex justify-between">
-                    <span className="font-bold">{encounter.encounter_id} · {encounter.patient_scenario}</span>
-                    <span className="text-[#3DE0D0]">AXIAL SLICE 42</span>
+                <div className="pointer-events-none absolute inset-2.5 flex flex-col justify-between font-mono text-[9px] text-[#F4F6FA] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold bg-black/60 px-1.5 py-0.5 rounded border border-white/10 backdrop-blur-sm">
+                      {encounter.encounter_id} · {encounter.patient_scenario}
+                    </span>
+                    <span className="text-[#3DE0D0] bg-black/70 px-1.5 py-0.5 rounded border border-[#3DE0D0]/40 backdrop-blur-sm font-bold">
+                      AXIAL #42 · 1.25mm
+                    </span>
                   </div>
-                  <div className="flex justify-between text-[#8A93A6]">
-                    <span>R (Right)</span>
-                    <span>L (Left)</span>
+                  <div className="flex justify-between items-center text-[#8A93A6]">
+                    <span className="bg-black/60 px-1.5 py-0.5 rounded font-bold text-[#F4F6FA]">R</span>
+                    <span className="bg-black/70 px-2 py-0.5 rounded text-[8.5px] text-[#3DE0D0] border border-[#3DE0D0]/30 font-semibold tracking-wider">
+                      HU: +48.2 [Tissue/Nodule]
+                    </span>
+                    <span className="bg-black/60 px-1.5 py-0.5 rounded font-bold text-[#F4F6FA]">L</span>
                   </div>
-                  <div className="flex justify-between text-[8.5px] text-[#8A93A6]">
-                    <span>FOV: 350mm</span>
-                    <span>W/L: {windowPreset.toUpperCase()}</span>
+                  <div className="flex justify-between items-center text-[8.5px] text-[#8A93A6]">
+                    <span className="bg-black/60 px-1.5 py-0.5 rounded">FOV: 350mm</span>
+                    <span className="bg-black/60 px-1.5 py-0.5 rounded text-[#3DE0D0]">W/L: {windowPreset.toUpperCase()}</span>
                   </div>
                 </div>
 

@@ -31,6 +31,11 @@ body {
   overflow: hidden;
   user-select: none;
   -webkit-font-smoothing: antialiased;
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(99, 253, 236, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(99, 253, 236, 0.02) 1px, transparent 1px),
+    var(--bg-radial);
 }
 
 /* Custom sleek medical scrollbars */

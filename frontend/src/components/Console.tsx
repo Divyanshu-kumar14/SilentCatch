@@ -383,35 +383,61 @@ export default function Console() {
           </div>
         </div>
 
-        {/* Encounter Switcher (all 12 encounters rendered and navigable) */}
+        {/* Encounter Switcher (all 12 encounters rendered and navigable in Stitch Bed Census style) */}
         {viewTab === "cockpit" && (
           <nav
-            className="flex items-center gap-1.5 max-w-[46vw] overflow-x-auto py-1 px-2 scrollbar-none"
+            className="flex items-center gap-1.5 max-w-[48vw] overflow-x-auto py-1 px-2 scrollbar-none"
             aria-label="Encounter switcher"
           >
             {fixtures.map((record) => {
               const active = enc?.encounter_id === record.encounter_id;
+              const isCritical = record.encounter_id === "ED-104" || record.encounter_id === "ED-110" || record.encounter_id === "ED-111" || record.encounter_id === "ED-112";
+              const isReview = record.encounter_id === "ED-102";
               return (
                 <button
                   key={record.encounter_id}
                   onClick={() => selectEncounter(record)}
                   className={`group shrink-0 rounded-lg border px-2.5 py-1 text-left transition-all duration-150 ${
                     active
-                      ? "border-[#3DE0D0] bg-[#3DE0D0]/15 text-[#3DE0D0] shadow-[0_0_14px_rgba(61,224,208,0.3)]"
+                      ? isCritical
+                        ? "border-[#FF5A5F] bg-[#FF5A5F]/20 text-[#FF5A5F] shadow-[0_0_16px_rgba(255,90,95,0.4)]"
+                        : "border-[#3DE0D0] bg-[#3DE0D0]/15 text-[#3DE0D0] shadow-[0_0_14px_rgba(61,224,208,0.3)]"
                       : "border-white/8 bg-white/5 text-[#8A93A6] hover:border-white/20 hover:text-white hover:bg-white/10"
                   }`}
                   title={`${record.encounter_id}: ${record.chief_complaint} (${record.patient_scenario})`}
                 >
                   <div className="flex items-center gap-1.5">
                     <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        isCritical
+                          ? "bg-[#FF5A5F] shadow-[0_0_8px_#FF5A5F]"
+                          : isReview
+                          ? "bg-[#FFB84D] shadow-[0_0_8px_#FFB84D]"
+                          : "bg-[#3DE0D0] shadow-[0_0_8px_#3DE0D0]"
+                      }`}
+                    />
+                    <span
                       className={`font-mono text-[11px] font-bold ${
-                        active ? "text-[#3DE0D0]" : "text-[#B9C0CF] group-hover:text-white"
+                        active
+                          ? isCritical ? "text-[#FF5A5F]" : "text-[#3DE0D0]"
+                          : "text-[#B9C0CF] group-hover:text-white"
                       }`}
                     >
                       {record.encounter_id}
                     </span>
                     <span className="block max-w-20 truncate text-[9.5px] leading-none text-[#8A93A6]">
                       {record.chief_complaint}
+                    </span>
+                    <span
+                      className={`font-mono text-[8.5px] font-extrabold px-1 py-0.2 rounded ${
+                        isCritical
+                          ? "bg-[#FF5A5F]/20 text-[#FF5A5F]"
+                          : isReview
+                          ? "bg-[#FFB84D]/20 text-[#FFB84D]"
+                          : "bg-[#3DE0D0]/15 text-[#3DE0D0]"
+                      }`}
+                    >
+                      {isCritical ? "HALT" : isReview ? "ORDERED" : "CLEAR"}
                     </span>
                   </div>
                 </button>
@@ -420,8 +446,12 @@ export default function Console() {
           </nav>
         )}
 
-        {/* Inference status pills */}
+        {/* Inference status pills & Live Safety Clock */}
         <div className="flex shrink-0 items-center gap-2">
+          <div className="hidden xl:flex flex-col items-end pr-2 border-r border-white/10 font-mono text-[9px] text-[#8A93A6]">
+            <span className="text-[#F4F6FA] font-bold">SAFETY INTERLOCK ACTIVE</span>
+            <span className="text-[#3DE0D0] text-[8.5px]">6 MONITORED ED BEDS</span>
+          </div>
           {healthz && (
             <>
               <div className="flex items-center gap-1.5 rounded-full border border-[#3DE0D0]/30 bg-[#3DE0D0]/10 px-3 py-1 shadow-[0_0_12px_rgba(61,224,208,0.2)]">
