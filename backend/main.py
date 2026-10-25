@@ -16,12 +16,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from backend import config
 from backend.engine import pipeline
 from backend.engine.replay import ReplayStore
-from backend.fixtures.loader import load_encounter
+from backend.fixtures.loader import FIXTURES_DIR, load_encounter, load_encounters
 from backend.schemas import Encounter
 
 
@@ -45,6 +46,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve key-slice fixture images directly to the frontend console
+_images_dir = FIXTURES_DIR / "images"
+if _images_dir.is_dir():
+    app.mount("/fixtures/images", StaticFiles(directory=_images_dir), name="images")
 
 # Module-scoped runtime state: vision cache (D-1) + replay captures + day ledger
 _vision_cache: dict[str, object] = {}
@@ -73,6 +79,12 @@ async def healthz() -> dict:
         "tavily_live": bool(config.TAVILY_API_KEY),
         "spend_caps": config.spend_caps(),
     }
+
+
+@app.get("/api/encounters")
+async def list_encounters() -> list[dict]:
+    """Production view of all available encounters (expected_findings stripped)."""
+    return [enc.model_dump(by_alias=True) for enc in load_encounters()]
 
 
 @app.post("/api/audit-stream")

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node test-phase3.cjs"
   },
   "dependencies": {
     "lucide-react": "^1.61.0",

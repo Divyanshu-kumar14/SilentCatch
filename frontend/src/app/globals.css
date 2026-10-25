@@ -2,22 +2,102 @@
 @tailwind components;
 @tailwind utilities;
 
+/* SilentCatch dark clinical cockpit — forced dark, no light variant (PRD FR-5.1). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --bg: #0a0e13;
+  --pane: #101820;
+  --pane-raised: #141f2b;
+  --border: #1d2833;
+  --border-strong: #2b3b4a;
+  --text: #ccd6e0;
+  --text-dim: #7d8c9b;
+  --text-faint: #54626e;
+  --cyan: #4fd8eb;
+  --cyan-dim: #2a7f8f;
+  --red: #ff4d5e;
+  --red-dim: #8f2431;
+  --green: #3ddc97;
+  --green-dim: #1e6647;
+  --amber: #ffc440;
+  --amber-dim: #8a6a1e;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Faint instrument grids inside panes (flight-check texture, not decoration). */
+.scan-grid {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: -1px -1px;
+  opacity: 0.35;
+}
+
+/* Progressive-release red lines: marching dashes flow source → target. */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.redline-path {
+  stroke-dasharray: 10 14;
+  animation: dash-flow 0.7s linear infinite;
+}
+
+@keyframes roi-pulse {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.roi-pulse {
+  animation: roi-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes safe-flash {
+  0% {
+    background-color: rgba(61, 220, 151, 0.28);
+  }
+  100% {
+    background-color: rgba(61, 220, 151, 0);
+  }
+}
+.safe-flash {
+  animation: safe-flash 1.4s ease-out 1;
+}
+
+@keyframes stage-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(340%);
+  }
+}
+.stage-sweep::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, rgba(79, 216, 235, 0.25), transparent);
+  animation: stage-sweep 1.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .redline-path,
+  .roi-pulse,
+  .safe-flash,
+  .stage-sweep::after {
+    animation: none;
+  }
 }
 
 @layer utilities {

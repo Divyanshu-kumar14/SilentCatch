@@ -161,3 +161,22 @@ def test_endpoint_streams_sse_and_404s_unknown() -> None:
     silent = client.post("/api/audit-stream", json={"encounter_id": "ED-101"})
     assert silent.status_code == 200
     assert "SILENT_PASS" in silent.text
+
+
+def test_encounters_endpoint_and_static_images() -> None:
+    client = TestClient(app)
+    # Encounters API
+    res = client.get("/api/encounters")
+    assert res.status_code == 200
+    encs = res.json()
+    assert len(encs) == 4
+    eids = [e["encounter_id"] for e in encs]
+    assert eids == ["ED-101", "ED-102", "ED-103", "ED-104"]
+    # expected_findings stripped from production view
+    assert "expected_findings" not in encs[0]
+
+    # Static key-slice image serving
+    img_res = client.get("/fixtures/images/ankle_xray_28m.png")
+    assert img_res.status_code == 200
+    assert img_res.headers["content-type"] == "image/png"
+    assert len(img_res.content) > 1000
