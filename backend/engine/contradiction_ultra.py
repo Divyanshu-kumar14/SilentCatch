@@ -215,6 +215,8 @@ def synthesize_verdicts(
             serial_labs=serial_labs,
             packet=packet,
             candidates=specs,
+            slopes=slopes,
+            kinetic_flags=flags,
         )
         return [
             _to_verdict(verified, _match_spec(verified, specs), bundle)

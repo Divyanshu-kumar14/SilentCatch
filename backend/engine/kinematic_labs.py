@@ -41,11 +41,28 @@ SUPPORTED_ANALYTES: tuple[str, ...] = (
 
 
 def _ols_slope(points: list[LabPoint]) -> float:
-    """NumPy least-squares slope dy/dt in per-hour units (deterministic)."""
-    t = np.array([p.timestamp_hr for p in points], dtype=float)
-    y = np.array([p.value for p in points], dtype=float)
-    slope_per_hour, _ = np.polyfit(t, y, deg=1)
-    return float(slope_per_hour)
+    """Least-squares slope dy/dt in per-hour units (deterministic, analytical OLS)."""
+    n = len(points)
+    if n < 2:
+        return 0.0
+    if n == 2:
+        dt = points[1].timestamp_hr - points[0].timestamp_hr
+        return (points[1].value - points[0].value) / dt if dt != 0.0 else 0.0
+    sum_t = 0.0
+    sum_y = 0.0
+    sum_tt = 0.0
+    sum_ty = 0.0
+    for p in points:
+        t = p.timestamp_hr
+        y = p.value
+        sum_t += t
+        sum_y += y
+        sum_tt += t * t
+        sum_ty += t * y
+    denom = n * sum_tt - sum_t * sum_t
+    if denom == 0.0:
+        return 0.0
+    return (n * sum_ty - sum_t * sum_y) / denom
 
 
 def _analyze(analyte: str, points: list[LabPoint]) -> KinematicSlope:
@@ -106,9 +123,8 @@ def analyze_serial_labs(serial_labs: dict[str, list[LabPoint]]) -> list[Kinemati
 
 def all_flags(slopes: list[KinematicSlope]) -> list[str]:
     """Flat, de-duplicated, order-stable list of kinetic risk flags."""
-    seen: list[str] = []
+    seen: dict[str, None] = {}
     for slope in slopes:
         for flag in slope.flags:
-            if flag not in seen:
-                seen.append(flag)
-    return seen
+            seen[flag] = None
+    return list(seen.keys())

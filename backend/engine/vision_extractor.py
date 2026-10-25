@@ -14,6 +14,7 @@ PNG before base64. D-1 (PRD §9): cache by SHA-256 of ORIGINAL bytes.
 from __future__ import annotations
 
 import base64
+import functools
 import hashlib
 import io
 import logging
@@ -76,8 +77,8 @@ def normalize_image_png(image_bytes: bytes) -> bytes:
         return buffer.getvalue()
 
 
-def parse_report_sentences(report_text: str) -> list[ScanFinding]:
-    """Deterministic mm-sentence extractor powering the seed path."""
+@functools.lru_cache(maxsize=64)
+def _parse_report_sentences_cached(report_text: str) -> tuple[ScanFinding, ...]:
     findings: list[ScanFinding] = []
     for sentence in _SENTENCE_SPLIT_RE.split(report_text or ""):
         lowered = sentence.lower()
@@ -99,7 +100,12 @@ def parse_report_sentences(report_text: str) -> list[ScanFinding]:
                 recommended_cpt=cpt,
             )
         )
-    return findings
+    return tuple(findings)
+
+
+def parse_report_sentences(report_text: str) -> list[ScanFinding]:
+    """Deterministic mm-sentence extractor powering the seed path."""
+    return [f.model_copy() for f in _parse_report_sentences_cached(report_text)]
 
 
 VISION_SYSTEM_PROMPT = (

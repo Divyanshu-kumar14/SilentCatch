@@ -66,10 +66,14 @@ def run_deterministic_pipeline(
     serial_labs: dict[str, list],
     packet: DischargePacket,
     candidates: list[FindingSpec] | None = None,
+    slopes: list[KinematicSlope] | None = None,
+    kinetic_flags: list[str] | None = None,
 ) -> DeterministicResult:
     """Verify all candidate contradictions against input chart evidence only."""
-    slopes = kinematic_labs.analyze_serial_labs(serial_labs)
-    kinetic_flags = kinematic_labs.all_flags(slopes)
+    if slopes is None:
+        slopes = kinematic_labs.analyze_serial_labs(serial_labs)
+    if kinetic_flags is None:
+        kinetic_flags = kinematic_labs.all_flags(slopes)
     result = DeterministicResult(
         encounter_id=encounter_id, slopes=slopes, kinetic_flags=kinetic_flags
     )

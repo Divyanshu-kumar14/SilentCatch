@@ -9,6 +9,8 @@ fall down the same ladder. Guards are never bypassed in either mode.
 
 from __future__ import annotations
 
+import concurrent.futures
+import functools
 import json
 import logging
 import queue
@@ -43,6 +45,7 @@ logger = logging.getLogger(__name__)
 StageRole = str  # vision | gate | reasoning | failsafe
 
 
+@functools.lru_cache(maxsize=32)
 def _fixture_png(url: str | None) -> bytes | None:
     """PRD image URLs are '/fixtures/images/<name>.png' under backend/fixtures."""
     if not url:
@@ -336,6 +339,11 @@ def serialize_sse(events: Iterator[dict]) -> Iterator[str]:
         yield f"event: {event['event']}\ndata: {json.dumps(event['data'], default=str)}\n\n"
 
 
+_AUDIT_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
+    max_workers=16, thread_name_prefix="audit-worker"
+)
+
+
 def event_stream(
     encounter: Encounter,
     *,
@@ -345,7 +353,7 @@ def event_stream(
     """Progressive audit events for SSE.
 
     Stage engines are synchronous (Token Factory REST calls), so the audit runs
-    on a worker thread emitting into a queue; the generator drains it stage by
+    on a pooled worker thread emitting into a queue; the generator drains it stage by
     stage — the frontend sees stage_start/done lines incrementally (PRD R-2).
     """
     events: queue.Queue = queue.Queue()
@@ -361,8 +369,7 @@ def event_stream(
         finally:
             events.put(None)  # sentinel: stream complete
 
-    worker_thread = threading.Thread(target=worker, daemon=True)
-    worker_thread.start()
+    _AUDIT_EXECUTOR.submit(worker)
     while True:
         event = events.get()
         if event is None:

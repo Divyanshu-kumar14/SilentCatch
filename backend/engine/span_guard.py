@@ -16,6 +16,7 @@ No alert is rendered without verify_quote() succeeding (PRD R-1).
 
 from __future__ import annotations
 
+import functools
 import re
 import unicodedata
 
@@ -25,6 +26,7 @@ _WS_RE = re.compile(r"\s+")
 _ALNUM_ONLY_RE = re.compile(r"[^a-z0-9]+")
 
 
+@functools.lru_cache(maxsize=128)
 def _normalize_keep_offsets(text: str) -> tuple[str, list[int]]:
     """P1 normalization: lowercase, every non-alphanumeric -> one space;
     collapse runs -> single char. Returns (normalized, char_index_map)
@@ -49,6 +51,7 @@ def _normalize_keep_offsets(text: str) -> tuple[str, list[int]]:
     return "".join(out), mapping
 
 
+@functools.lru_cache(maxsize=128)
 def _normalize_alnum_only(text: str) -> tuple[str, list[int]]:
     """P2 normalization: drop everything except [a-z0-9]; map kept chars back."""
     lowered = unicodedata.normalize("NFKC", text).lower()

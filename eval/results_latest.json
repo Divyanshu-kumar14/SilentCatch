@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "eval_date": "2026-10-25 11:46:19 UTC",
+    "eval_date": "2026-10-25 13:40:35 UTC",
     "environment": "REPLAYED",
     "total_encounters": 12,
     "safe_count": 8,
@@ -33,7 +33,7 @@
       "fpr_pct": 0.0,
       "recall_pct": 100.0,
       "precision_pct": 100.0,
-      "median_latency_s": 0.001,
+      "median_latency_s": 0.0,
       "cost_per_1k_discharges_usd": 8.5,
       "cost_per_discharge_avg_usd": 0.0085
     },
@@ -47,7 +47,7 @@
       "fpr_pct": 0.0,
       "recall_pct": 100.0,
       "precision_pct": 100.0,
-      "median_latency_s": 0.001,
+      "median_latency_s": 0.0,
       "cost_per_1k_discharges_usd": 2.08,
       "cost_per_discharge_avg_usd": 0.002085,
       "cost_reduction_vs_ultra_pct": 75.5
@@ -60,7 +60,7 @@
       "modality": "Ankle X-ray, three views",
       "expected_outcome": "SILENT_PASS",
       "tiered_outcome": "SILENT_PASS",
-      "tiered_latency_ms": 0.5,
+      "tiered_latency_ms": 0.4,
       "tiered_cost_usd": 0.00038,
       "passed": true
     },
@@ -70,7 +70,7 @@
       "modality": "Chest X-ray, PA and lateral",
       "expected_outcome": "SILENT_PASS",
       "tiered_outcome": "SILENT_PASS",
-      "tiered_latency_ms": 0.5,
+      "tiered_latency_ms": 0.3,
       "tiered_cost_usd": 0.00038,
       "passed": true
     },
@@ -80,7 +80,7 @@
       "modality": "CT Abdomen/Pelvis without contrast",
       "expected_outcome": "SILENT_PASS",
       "tiered_outcome": "SILENT_PASS",
-      "tiered_latency_ms": 0.6,
+      "tiered_latency_ms": 0.3,
       "tiered_cost_usd": 0.00038,
       "passed": true
     },
@@ -90,7 +90,7 @@
       "modality": "CT Chest without IV Contrast",
       "expected_outcome": "CRITICAL_INTERCEPT",
       "tiered_outcome": "CRITICAL_INTERCEPT",
-      "tiered_latency_ms": 1.4,
+      "tiered_latency_ms": 0.6,
       "tiered_cost_usd": 0.005494,
       "passed": true
     },
@@ -100,7 +100,7 @@
       "modality": "Forearm X-ray, AP and lateral",
       "expected_outcome": "SILENT_PASS",
       "tiered_outcome": "SILENT_PASS",
-      "tiered_latency_ms": 0.5,
+      "tiered_latency_ms": 0.3,
       "tiered_cost_usd": 0.00038,
       "passed": true
     },
@@ -110,7 +110,7 @@
       "modality": "Chest radiograph, PA and lateral",
       "expected_outcome": "SILENT_PASS",
       "tiered_outcome": "SILENT_PASS",
-      "tiered_latency_ms": 0.5,
+      "tiered_latency_ms": 0.3,
       "tiered_cost_usd": 0.00038,
       "passed": true
     },
@@ -120,7 +120,7 @@
       "modality": "Abdominal radiograph, two views",
       "expected_outcome": "SILENT_PASS",
       "tiered_outcome": "SILENT_PASS",
-      "tiered_latency_ms": 0.4,
+      "tiered_latency_ms": 0.3,
       "tiered_cost_usd": 0.00038,
       "passed": true
     },
@@ -130,7 +130,7 @@
       "modality": "Renal and bladder ultrasound",
       "expected_outcome": "SILENT_PASS",
       "tiered_outcome": "SILENT_PASS",
-      "tiered_latency_ms": 0.5,
+      "tiered_latency_ms": 0.3,
       "tiered_cost_usd": 0.00038,
       "passed": true
     },
@@ -140,7 +140,7 @@
       "modality": "Lumbar spine radiographs, AP and lateral",
       "expected_outcome": "SILENT_PASS",
       "tiered_outcome": "SILENT_PASS",
-      "tiered_latency_ms": 0.4,
+      "tiered_latency_ms": 0.3,
       "tiered_cost_usd": 0.00038,
       "passed": true
     },
@@ -150,7 +150,7 @@
       "modality": "CT Abdomen and Pelvis with IV contrast",
       "expected_outcome": "CRITICAL_INTERCEPT",
       "tiered_outcome": "CRITICAL_INTERCEPT",
-      "tiered_latency_ms": 1.3,
+      "tiered_latency_ms": 0.4,
       "tiered_cost_usd": 0.005494,
       "passed": true
     },
@@ -160,7 +160,7 @@
       "modality": "Chest radiograph, portable AP",
       "expected_outcome": "CRITICAL_INTERCEPT",
       "tiered_outcome": "CRITICAL_INTERCEPT",
-      "tiered_latency_ms": 1.1,
+      "tiered_latency_ms": 0.6,
       "tiered_cost_usd": 0.005494,
       "passed": true
     },
@@ -170,7 +170,7 @@
       "modality": "Pelvis and right hip radiographs",
       "expected_outcome": "CRITICAL_INTERCEPT",
       "tiered_outcome": "CRITICAL_INTERCEPT",
-      "tiered_latency_ms": 1.1,
+      "tiered_latency_ms": 0.5,
       "tiered_cost_usd": 0.005494,
       "passed": true
     }

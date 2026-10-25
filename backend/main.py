@@ -24,7 +24,12 @@ from pydantic import BaseModel
 from backend import config
 from backend.engine import pipeline
 from backend.engine.replay import ReplayStore
-from backend.fixtures.loader import FIXTURES_DIR, load_encounter, load_encounters
+from backend.fixtures.loader import (
+    FIXTURES_DIR,
+    load_encounter,
+    load_encounters,
+    load_encounters_dumped,
+)
 from backend.schemas import Encounter
 
 
@@ -83,19 +88,29 @@ async def healthz() -> dict:
     }
 
 
+_benchmark_cache: dict | None = None
+_benchmark_mtime: float = 0.0
+
+
 @app.get("/api/encounters")
 async def list_encounters() -> list[dict]:
     """Production view of all available encounters (expected_findings stripped)."""
-    return [enc.model_dump(by_alias=True) for enc in load_encounters()]
+    return load_encounters_dumped()
 
 
 @app.get("/api/benchmark")
 async def get_benchmark() -> dict:
     """Pre-computed empirical evaluation metrics across 12 encounters x 3 architectures."""
+    global _benchmark_cache, _benchmark_mtime
     benchmark_file = Path(__file__).resolve().parent.parent / "eval" / "results_latest.json"
-    if benchmark_file.is_file():
-        return json.loads(benchmark_file.read_text())
-    return {"status": "pending", "message": "Run make benchmark to generate results."}
+    try:
+        mtime = benchmark_file.stat().st_mtime
+        if _benchmark_cache is None or mtime != _benchmark_mtime:
+            _benchmark_cache = json.loads(benchmark_file.read_text())
+            _benchmark_mtime = mtime
+        return _benchmark_cache
+    except FileNotFoundError:
+        return {"status": "pending", "message": "Run make benchmark to generate results."}
 
 
 @app.post("/api/audit-stream")

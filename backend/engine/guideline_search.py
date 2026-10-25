@@ -13,6 +13,7 @@ Contract:
 
 from __future__ import annotations
 
+import functools
 import json
 import logging
 import re
@@ -187,6 +188,7 @@ class QueryPlan(BaseModel):
     queries: list[str]
 
 
+@functools.lru_cache(maxsize=1)
 def _load_cache_snapshot() -> list[dict]:
     try:
         data = json.loads(_GUIDELINE_CACHE_PATH.read_text())
@@ -197,12 +199,20 @@ def _load_cache_snapshot() -> list[dict]:
         logger.warning("guideline_cache.json malformed (%s)", exc)
         return []
     rows = data.get("snapshots") if isinstance(data, dict) else data
-    return rows if isinstance(rows, list) else []
+    if not isinstance(rows, list):
+        return []
+    for row in rows:
+        if isinstance(row, dict):
+            needle = row.get("match_terms") or ""
+            row["_terms"] = tuple(term.lower() for term in needle.split("|") if term)
+    return rows
 
 
 def _snapshot_matches(query: str, row: dict) -> bool:
-    needle = (row.get("match_terms") or "")
-    terms = [term.lower() for term in needle.split("|") if term]
+    terms = row.get("_terms")
+    if terms is None:
+        needle = row.get("match_terms") or ""
+        terms = tuple(term.lower() for term in needle.split("|") if term)
     lowered = query.lower()
     return any(term in lowered for term in terms)
 
