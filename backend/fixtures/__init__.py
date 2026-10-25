@@ -1,0 +1,1 @@
+# SilentCatch fixtures package

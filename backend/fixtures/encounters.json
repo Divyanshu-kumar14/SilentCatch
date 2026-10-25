@@ -1,0 +1,181 @@
+{
+  "meta": {
+    "version": 1,
+    "phi_policy": "100% synthetic ED encounters — zero real PHI (PRD §0)",
+    "eval_note": "expected_findings are VerificationSpecs for the deterministic rig + eval/benchmark.py (G1/G2). Silent encounters must always list zero.",
+    "encounter_count": 4,
+    "silent_expected": ["ED-101", "ED-102", "ED-103"],
+    "intercept_expected": ["ED-104"]
+  },
+  "encounters": [
+    {
+      "encounter_id": "ED-101",
+      "patient_scenario": "28M ankle sprain after pickup basketball game",
+      "chief_complaint": "Right ankle pain and swelling after landing on another player's foot",
+      "radiology_study": {
+        "modality": "Ankle X-ray, three views",
+        "slice_image_url": "/fixtures/images/ankle_xray_28m.png",
+        "report_text": "TECHNIQUE: Three views of the right ankle. FINDINGS: No acute fracture or dislocation. No incidental osseous lesion. Mild lateral soft tissue swelling. IMPRESSION: 1. Right lateral ankle soft tissue sprain, grade II. No fracture."
+      },
+      "serial_labs": {
+        "creatinine_mg_dl": [
+          { "timestamp_hr": -36, "value": 0.78, "ref_min": 0.60, "ref_max": 1.20 },
+          { "timestamp_hr": 0, "value": 0.78, "ref_min": 0.60, "ref_max": 1.20 }
+        ]
+      },
+      "lab_note": "Metabolic panel unremarkable; creatinine flat.",
+      "draft_discharge_packet": {
+        "primary_diagnosis_icd10": "S93.411A - Sprain of calcaneofibular ligament, right ankle",
+        "discharge_instructions": "RICE protocol: rest, ice 20 min q3h, compression wrap, elevation. Ibuprofen 400 mg PO q6h PRN pain. Weight bearing as tolerated.",
+        "prescriptions": [
+          { "drug_name": "Ibuprofen", "dose": "400 mg PO q6h PRN", "days": 5, "class": "NSAID" }
+        ],
+        "follow_up_orders": [
+          { "specialty": "Primary Care", "timeframe": "2 weeks PRN", "reason": "Pain recheck if not improving", "cpt_code": "99213" }
+        ]
+      },
+      "expected_findings": []
+    },
+    {
+      "encounter_id": "ED-102",
+      "patient_scenario": "54F community-acquired pneumonia with incidentally noted 6 mm nodule that ALREADY has follow-up ordered",
+      "chief_complaint": "Productive cough and fever for 3 days",
+      "radiology_study": {
+        "modality": "Chest X-ray, PA and lateral",
+        "slice_image_url": "/fixtures/images/cxr_rll_consolidation_54f.png",
+        "report_text": "TECHNIQUE: PA and lateral chest radiographs. FINDINGS: Dense right lower lobe consolidation consistent with pneumonia. Incidental 6 mm solid noncalcified nodule in the right middle lobe; per report review, follow-up chest CT in 6 months is already scheduled and documented in this patient's packet. No pneumothorax. IMPRESSION: 1. Right lower lobe pneumonia. 2. Incidental 6 mm nodule with follow-up CT already arranged."
+      },
+      "serial_labs": {
+        "creatinine_mg_dl": [
+          { "timestamp_hr": -36, "value": 0.80, "ref_min": 0.60, "ref_max": 1.20 },
+          { "timestamp_hr": 0, "value": 0.80, "ref_min": 0.60, "ref_max": 1.20 }
+        ],
+        "platelets": [
+          { "timestamp_hr": -36, "value": 310 },
+          { "timestamp_hr": 0, "value": 305 }
+        ]
+      },
+      "lab_note": "Creatinine stable; platelets stable.",
+      "draft_discharge_packet": {
+        "primary_diagnosis_icd10": "J18.9 - Pneumonia, unspecified organism",
+        "discharge_instructions": "Amoxicillin-clavulanate 875/125 mg PO BID x7 days. Return precautions for fever >39C or dyspnea.",
+        "prescriptions": [
+          { "drug_name": "Amoxicillin-clavulanate", "dose": "875/125 mg PO BID", "days": 7, "class": "ANTIBIOTIC" }
+        ],
+        "follow_up_orders": [
+          { "specialty": "Primary Care", "timeframe": "3 days", "reason": "Clinical improvement check", "cpt_code": "99213" },
+          { "specialty": "Radiology", "timeframe": "6 months", "reason": "Incidental 6 mm right middle lobe nodule follow-up CT — already scheduled", "cpt_code": "71250" }
+        ]
+      },
+      "expected_findings": [],
+      "eval_note": "Proves SilentCatch does NOT nag when the follow-up CPT (71250) is already present — absence-check fails any duplicate proposal (PRD §11)."
+    },
+    {
+      "encounter_id": "ED-103",
+      "patient_scenario": "41M renal colic, 3 mm stone passed, creatinine RECOVERING",
+      "chief_complaint": "Left flank pain, resolving after stone passage",
+      "radiology_study": {
+        "modality": "CT Abdomen/Pelvis without contrast",
+        "slice_image_url": "/fixtures/images/ct_abd_stone_3mm_41m.png",
+        "report_text": "TECHNIQUE: Non-contrast CT abdomen/pelvis. FINDINGS: 3 mm distal left ureteral calculus no longer visualized; previously noted mild hydronephrosis resolved. No residual obstructing stone. No incidental masses or lesions. IMPRESSION: 1. Passage of 3 mm left distal ureteral stone. 2. Resolved hydronephrosis. No incidental findings requiring follow-up."
+      },
+      "serial_labs": {
+        "creatinine_mg_dl": [
+          { "timestamp_hr": -24, "value": 1.35, "ref_min": 0.60, "ref_max": 1.20 },
+          { "timestamp_hr": 0, "value": 0.92, "ref_min": 0.60, "ref_max": 1.20 }
+        ],
+        "egfr_ml_min": [
+          { "timestamp_hr": -24, "value": 55 },
+          { "timestamp_hr": 0, "value": 82 }
+        ]
+      },
+      "lab_note": "Creatinine improving from obstructive spike 1.35 to 0.92; eGFR 55 to 82.",
+      "draft_discharge_packet": {
+        "primary_diagnosis_icd10": "N20.0 - calculus of kidney",
+        "discharge_instructions": "Strain urine. Tamsulosin 0.4 mg PO daily. Acetaminophen 650 mg PO q6h PRN pain. Increase oral fluids.",
+        "prescriptions": [
+          { "drug_name": "Tamsulosin", "dose": "0.4 mg PO daily", "days": 7, "class": "ALPHA_BLOCKER" },
+          { "drug_name": "Acetaminophen", "dose": "650 mg PO q6h PRN", "days": 5, "class": "ANALGESIC" }
+        ],
+        "follow_up_orders": [
+          { "specialty": "Urology", "timeframe": "2 weeks", "reason": "Post-stone passage recheck", "cpt_code": "99213" }
+        ]
+      },
+      "expected_findings": [],
+      "eval_note": "Proves the kinematic engine distinguishes RECOVERING kidney slope (no alert) from DECLINING slope (PRD §11 ED-103)."
+    },
+    {
+      "encounter_id": "ED-104",
+      "patient_scenario": "62M bicycle fall — right 7th rib fracture; buried 7.2mm RUL nodule dropped + kinetic AKI x Ketorolac collision (HERO DEMO)",
+      "chief_complaint": "Right lateral chest wall pain after bicycle fall",
+      "radiology_study": {
+        "modality": "CT Chest without IV Contrast",
+        "slice_image_url": "/fixtures/images/ct_chest_rul_nodule_7mm.png",
+        "report_text": "TECHNIQUE: Helical CT of the thorax. FINDINGS: Acute minimally displaced fracture of the right 7th lateral rib. No pneumothorax. Lungs: Incidental 7.2 mm spiculated solid noncalcified nodule in the right upper lobe (Series 3, Image 42). IMPRESSION: 1. Right 7th rib fracture. 2. Incidental 7.2 mm RUL pulmonary nodule; in a patient with risk factors, follow-up chest CT in 6 months is recommended per Fleischner Society guidelines."
+      },
+      "serial_labs": {
+        "creatinine_mg_dl": [
+          { "timestamp_hr": -36, "value": 0.62, "ref_min": 0.60, "ref_max": 1.20 },
+          { "timestamp_hr": -18, "value": 0.88, "ref_min": 0.60, "ref_max": 1.20 },
+          { "timestamp_hr": 0, "value": 1.16, "ref_min": 0.60, "ref_max": 1.20 }
+        ],
+        "egfr_ml_min": [
+          { "timestamp_hr": -36, "value": 104 },
+          { "timestamp_hr": -18, "value": 78 },
+          { "timestamp_hr": 0, "value": 58 }
+        ]
+      },
+      "lab_note": "Serial labs reviewed at discharge: serum creatinine rising 0.62 → 0.88 → 1.16 mg/dL over 36 hours (eGFR 104 → 78 → 58). Nephrology velocity concern flagged by lab committee.",
+      "draft_discharge_packet": {
+        "primary_diagnosis_icd10": "S22.31XA - Fracture of one rib, right side",
+        "discharge_instructions": "Rest, ice pack to right ribs, incentive spirometry every 2 hours while awake.",
+        "prescriptions": [
+          { "drug_name": "Ketorolac tromethamine (Toradol)", "dose": "10 mg PO q6h", "days": 5, "class": "NSAID" }
+        ],
+        "follow_up_orders": [
+          { "specialty": "Primary Care", "timeframe": "2 weeks", "reason": "Rib fracture pain recheck", "cpt_code": "99213" }
+        ]
+      },
+      "expected_findings": [
+        {
+          "kind": "INCIDENTAL_FINDING_DROP",
+          "severity": "CRITICAL",
+          "explanation": "Discharge packet contains no chest CT follow-up for the radiologist-documented 7.2 mm spiculated RUL nodule (Fleischner: solid nodule 6–8 mm, CT at 6–12 months). CPT 71250 absent.",
+          "source_quote": "Incidental 7.2 mm spiculated solid noncalcified nodule in the right upper lobe",
+          "source": "radiology_report",
+          "guideline_url": null,
+          "discharge_patch": {
+            "remove_drug_name": null,
+            "add_prescription": null,
+            "add_follow_up_order": {
+              "specialty": "Radiology (PCP notified)",
+              "timeframe": "6 months",
+              "reason": "Incidental 7.2 mm RUL spiculated nodule — Fleischner follow-up chest CT",
+              "cpt_code": "71250"
+            },
+            "note": "Adds the missing closed-loop follow-up order and notifies PCP."
+          }
+        },
+        {
+          "kind": "KINETIC_MED_COLLISION",
+          "severity": "CRITICAL",
+          "explanation": "Creatinine velocity +87% over 36 h still inside static reference — nephrotoxic NSAID (ketorolac) contradicts KINETIC_AKI_STAGE_1 (KDIGO: >=0.3 mg/dL rise / 1.5–1.9x baseline). Renal-safe analgesic swap offered.",
+          "source_quote": "creatinine rising 0.62 → 0.88 → 1.16 mg/dL over 36 hours",
+          "source": "lab_note",
+          "guideline_url": null,
+          "discharge_patch": {
+            "remove_drug_name": "Ketorolac tromethamine (Toradol)",
+            "add_prescription": {
+              "drug_name": "Acetaminophen with codeine substitution note",
+              "dose": "650 mg PO q6h PRN (renal-safe)",
+              "days": 5,
+              "class": "ANALGESIC"
+            },
+            "add_follow_up_order": null,
+            "note": "Swaps nephrotoxic NSAID for renal-safe analgesia given acute creatinine velocity."
+          }
+        }
+      ]
+    }
+  ]
+}

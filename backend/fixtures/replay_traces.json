@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "meta": {
+    "generator": "Phase-2 recorder (backend/main.py audit-stream)",
+    "purpose": "Recorded real Nebius Token Factory responses for instant offline replay (PRD FR-2.2 / §7). Phase-1 placeholder — empty captures."
+  },
+  "captures": []
+}
