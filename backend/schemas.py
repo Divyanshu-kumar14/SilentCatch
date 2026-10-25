@@ -147,6 +147,44 @@ class StageTrace(BaseModel):
     completion_tokens: int = 0
     est_cost_usd: float = 0.0
     payload: dict[str, Any] = Field(default_factory=dict)
+    note: str = ""  # e.g. "capture", "seed", "failure_fallback", "cache_hit"
+
+
+class ScanFinding(BaseModel):
+    """One imaging finding produced by Stage 1 (VL live, capture, or seed parser)."""
+
+    description: str
+    location: str | None = None
+    measurement_mm: float | None = None
+    acute: bool = False
+    verbatim_quote: str
+    recommended_cpt: str | None = None  # deterministic hint used by the gate
+
+
+class VisionResult(BaseModel):
+    """Stage-1 output. `source` is code-set after parsing — never trusted from
+    the model (same discipline as GateDecision.source)."""
+
+    findings: list[ScanFinding]
+    vision_confidence: str = "HIGH"  # HIGH | LOW (FR-1.1 edge)
+    source: str = ""  # vl_live | vl_capture | vl_seed
+    note: str = ""
+
+
+class GateDecision(BaseModel):
+    action: str  # SILENT_PASS | ESCALATE
+    reasons: list[str] = Field(default_factory=list)
+    confidence: float = 1.0
+    source: str = ""  # set by code (never trusted from the model)
+
+
+class AuditResult(BaseModel):
+    encounter_id: str
+    status: str  # SILENT_PASS | CRITICAL_INTERCEPT
+    verdicts: list[InterceptionVerdict] = Field(default_factory=list)
+    traces: list[StageTrace] = Field(default_factory=list)
+    total_cost_usd: float = 0.0
+    elapsed_ms: int = 0
 
 
 # ---------------------------------------------------------------- eval metadata

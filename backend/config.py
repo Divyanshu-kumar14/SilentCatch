@@ -98,6 +98,11 @@ def resolve_model_ids(client: "httpx.Client") -> dict[str, str]:
         return dict(DEFAULT_MODEL_IDS)
 
 
+def resolved() -> dict[str, str]:
+    """Active model IDs: startup-resolved values, or PRD defaults (R-3)."""
+    return dict(globals().get("resolved_model_ids", DEFAULT_MODEL_IDS))
+
+
 def spend_caps() -> dict[str, float]:
     return {
         "per_discharge_usd": MAX_COST_PER_DISCHARGE_USD,

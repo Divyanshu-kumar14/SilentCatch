@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "description": "Verified clinical guideline snapshot for offline fallback (PRD FR-3.1). URLs captured Oct 2026 via MCP-verified searches. Live Tavily replaces these at runtime when a TAVILY_API_KEY exists.",
+    "captured": "2026-10-25"
+  },
+  "snapshots": [
+    {
+      "id": "fleischner_2017",
+      "match_terms": "nodule|fleischner|lung|pulmonary",
+      "title": "Fleischner Society 2017 Guidelines for Incidental Pulmonary Nodules (Radiology)",
+      "url": "https://pubs.rsna.org/doi/10.1148/radiol.2017161659",
+      "snippet": "For a solid nodule measuring 6 to 8 mm in a patient at low or moderate risk: perform initial follow-up CT at 6-12 months."
+    },
+    {
+      "id": "kdigo_2012_aki",
+      "match_terms": "kdigo|kidney|creatinine|renal|nsaid|ketorolac",
+      "title": "KDIGO 2012 Clinical Practice Guideline for Acute Kidney Injury",
+      "url": "https://kdigo.org/guidelines/acute-kidney-injury/",
+      "snippet": "AKI Stage 1: increase in serum creatinine >= 0.3 mg/dL (26.5 µmol/L) within 48 hours, or 1.5-1.9 times baseline within 7 days."
+    },
+    {
+      "id": "fda_ketorolac_label",
+      "match_terms": "ketorolac|nsaid|fda|analgesic|nephrotoxic",
+      "title": "FDA — Toradol (ketorolac tromethamine) labeling information",
+      "url": "https://www.accessdata.fda.gov/scripts/cder/daf/",
+      "snippet": "Contraindicated in advanced renal impairment and in patients at risk for renal failure due to volume depletion; recommend avoiding in acute kidney injury."
+    }
+  ]
+}

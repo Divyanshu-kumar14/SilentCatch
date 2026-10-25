@@ -1,8 +1,22 @@
 {
-  "version": 1,
+  "version": 2,
   "meta": {
-    "generator": "Phase-2 recorder (backend/main.py audit-stream)",
-    "purpose": "Recorded real Nebius Token Factory responses for instant offline replay (PRD FR-2.2 / §7). Phase-1 placeholder — empty captures."
+    "generator": "ReplayStore (backend/engine/replay.py) \u2014 written automatically on real live stage successes",
+    "purpose": "Recorded Nebius Token Factory / Tavily responses for instant offline replay (PRD FR-2.2 / NFR 7). Empty captures = no live keys used yet; all audits run the deterministic seed path with honest replay badges."
   },
-  "captures": []
+  "captures": {
+    "vision": {
+      "ED-104": {
+        "meta": {
+          "model_id": "nvidia/Nemotron-3.5-Super-VL-120B-A12B"
+        },
+        "payload": {
+          "findings": [],
+          "vision_confidence": "HIGH",
+          "source": "vl_live",
+          "note": ""
+        }
+      }
+    }
+  }
 }
