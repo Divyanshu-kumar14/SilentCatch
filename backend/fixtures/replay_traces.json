@@ -11,32 +11,7 @@
           "model_id": "nvidia/Nemotron-3.5-Super-VL"
         },
         "payload": {
-          "findings": [
-            {
-              "description": "Acute minimally displaced fracture of the right 7th lateral rib",
-              "location": "right 7th lateral rib",
-              "measurement_mm": null,
-              "acute": true,
-              "verbatim_quote": "Acute minimally displaced fracture of the right 7th lateral rib.",
-              "recommended_cpt": null
-            },
-            {
-              "description": "No pneumothorax",
-              "location": "thorax",
-              "measurement_mm": null,
-              "acute": false,
-              "verbatim_quote": "No pneumothorax.",
-              "recommended_cpt": null
-            },
-            {
-              "description": "Incidental 7.2 mm spiculated solid noncalcified nodule in the right upper lobe",
-              "location": "right upper lobe",
-              "measurement_mm": 7.2,
-              "acute": false,
-              "verbatim_quote": "Incidental 7.2 mm spiculated solid noncalcified nodule in the right upper lobe (Series 3, Image 42).",
-              "recommended_cpt": null
-            }
-          ],
+          "findings": [],
           "vision_confidence": "HIGH",
           "source": "vl_live",
           "note": ""
@@ -175,9 +150,9 @@
         "payload": {
           "action": "ESCALATE",
           "reasons": [
-            "Incidental 7.2 mm spiculated solid nodule in right upper lobe requires documented follow-up imaging or referral; no follow-up plan mentioned in discharge packet",
-            "Kinetic flags indicate EGFR decline trend; omission of follow-up for nodule contradicts standard oncologic surveillance",
-            "Discharge packet lacks any mention of pulmonary nodule management or referral to oncology/pulmonology",
+            "Incidental 7.2 mm spiculated solid nodule in right upper lobe requires follow-up CT in 3 months per clinical guidelines; no follow-up order documented in discharge packet",
+            "Kinetic flag KINETIC_EGFR_DECLINE indicates disease progression; omission of oncologic referral or repeat imaging order creates a clinical contradiction",
+            "Discharge packet contains no CPT code for CT follow-up or oncology consult, violating standard care pathway for spiculated nodules >6 mm",
             "deterministic override: unaddressed 7.2mm finding needs follow-up",
             "deterministic override: creatinine_mg_dl moved 87.1% with ['KINETIC_AKI_STAGE_1']",
             "deterministic override: egfr_ml_min moved 44.2% with ['KINETIC_EGFR_DECLINE']"
@@ -195,12 +170,12 @@
           "reasons": [
             "No acute fracture or dislocation identified",
             "No incidental osseous lesion identified",
-            "Mild lateral soft tissue swelling is non-acute and consistent with sprain",
+            "Mild lateral soft tissue swelling is acute but non-osseous and consistent with sprain",
             "Sprain diagnosis explicitly states 'No fracture'",
-            "No recommended CPT codes indicate no billing or procedural concerns",
-            "Prescription of Ibuprofen is appropriate for grade II sprain",
-            "No kinetic flags or acute lab trends present",
-            "Discharge summary lacks contradictions or escalation triggers"
+            "Prescribed ibuprofen aligns with sprain management",
+            "No follow-up required for incidental findings",
+            "No kinetic flags or contradictory lab trends present",
+            "CPT 99213 appropriate for established patient evaluation of acute sprain"
           ],
           "confidence": 0.99,
           "source": "nano_live"

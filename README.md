@@ -119,6 +119,11 @@ Benchmark Acceptance Summary:
   [PASS] 75.5% Cost Reduction vs. Frontier Baseline ($2.08 vs $8.50 per 1k cases)
 ```
 
+<br/>
+
+![SilentCatch Empirical Model Benchmarks](docs/assets/model-benchmarks-tab.png)
+*SilentCatch Model Benchmarks & Architecture Validation Ledger: comparing single-model baselines against the Tiered Cascade across 12 emergency encounters (36 runs) on Nebius Token Factory with 100% ground-truth match.*
+
 ---
 
 ## 🖥️ Clinical Flight-Check Console
