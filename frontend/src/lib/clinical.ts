@@ -73,11 +73,12 @@ export function analyteBounds(analyte: string): { min: number; max: number } | n
 }
 
 /** Numeric parse + per-analyte bound check; NaN / empty / out-of-range all reject. */
-export function isValidLabValue(analyte: string, raw: string): boolean {
+export function isValidLabValue(analyte: string, raw: string | number): boolean {
   const bounds = ANALYTE_BOUNDS[analyte];
   if (!bounds) return false;
-  if (!/^\d*\.?\d*$/.test(raw.trim())) return false; // digits only — "abc" rejected
-  const value = Number(raw);
+  const str = String(raw).trim();
+  if (!/^\d*\.?\d*$/.test(str)) return false; // digits only — "abc" rejected
+  const value = Number(str);
   if (!Number.isFinite(value)) return false;
   return value >= bounds.min && value <= bounds.max;
 }
@@ -275,11 +276,17 @@ export function kindLabel(kind: string): string {
   }
 }
 
-/** Compact model badge ("nvidia/Nemotron-3-Nano-30B-A3B" → "Nemotron-3-Nan…30B-A3B"). */
+/** Compact human-readable model badge for telemetry footer. */
 export function shortModel(modelId?: string | null): string {
   if (!modelId) return "";
+  const lower = modelId.toLowerCase();
+  if (lower.includes("super-vl")) return "Super-VL 120B";
+  if (lower.includes("nano")) return "Nano 30B";
+  if (lower.includes("ultra")) return "Ultra 550B";
+  if (lower.includes("super-120b")) return "Super 120B";
+  if (lower.includes("tavily")) return "Tavily Guidelines";
   const tail = modelId.split("/").pop() ?? modelId;
-  return tail.length <= 18 ? tail : `${tail.slice(0, 9)}…${tail.slice(-5)}`;
+  return tail.length <= 16 ? tail : `${tail.slice(0, 10)}…`;
 }
 
 export function pct(v: number | null | undefined): string {

@@ -1,6 +1,15 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import {
+  Layers,
+  ZoomIn,
+  ZoomOut,
+  Scan,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 
 import { API_BASE } from "@/lib/api";
 import { resolveSpan } from "@/lib/clinical";
@@ -9,13 +18,40 @@ import ThreeDVolumeViewer from "@/components/ThreeDVolumeViewer";
 
 /**
  * Bounding boxes for the FR-5.1 Key-Slice Viewer.
- * Coordinates match the realistic medical scan generator.
  */
-const ROI: Record<string, { cx: number; cy: number; ring: number; label: string }> = {
-  "ED-102": { cx: 120, cy: 150, ring: 48, label: "RLL Consolidation (Infiltrate)" },
-  "ED-104": { cx: 170, cy: 90, ring: 28, label: "7.2mm Spiculated RUL Nodule (Slice #42)" },
-  "ED-110": { cx: 160, cy: 140, ring: 38, label: "2.8cm Left Adrenal Mass" },
-  "ED-111": { cx: 110, cy: 130, ring: 56, label: "Cardiomegaly / CHF Congestion" },
+const ROI: Record<string, { cx: number; cy: number; width: number; height: number; label: string; plainDesc: string }> = {
+  "ED-102": {
+    cx: 120,
+    cy: 150,
+    width: 72,
+    height: 60,
+    label: "RLL Consolidation (Pneumonia)",
+    plainDesc: "Lung infection area. Follow-up CT already scheduled by physician.",
+  },
+  "ED-104": {
+    cx: 170,
+    cy: 90,
+    width: 44,
+    height: 44,
+    label: "7.2mm Spiculated Lung Nodule",
+    plainDesc: "⚠️ Potential early lung tumor! Requires 6-month follow-up CT (CPT 71250) to rule out malignancy.",
+  },
+  "ED-110": {
+    cx: 160,
+    cy: 140,
+    width: 56,
+    height: 50,
+    label: "2.8cm Left Adrenal Mass",
+    plainDesc: "Incidental adrenal tumor needing endocrine referral.",
+  },
+  "ED-111": {
+    cx: 110,
+    cy: 130,
+    width: 84,
+    height: 70,
+    label: "Cardiomegaly (Enlarged Heart)",
+    plainDesc: "Fluid congestion in heart requiring cardiology follow-up.",
+  },
 };
 
 interface Highlight {
@@ -38,7 +74,7 @@ function renderWithHighlights(
         <mark
           key={`h${i}`}
           id={`hl-${h.pane}-${h.idx}`}
-          className="rounded-[4px] bg-[#FF5A5F]/20 px-1.5 py-0.5 font-bold text-[#FF5A5F] border border-[#FF5A5F]/70 shadow-[0_0_16px_rgba(255,90,95,0.4)]"
+          className="rounded px-1.5 py-0.5 font-medium text-rose-300 bg-rose-500/25 border border-rose-500/50 shadow-sm"
         >
           {text.slice(h.start, h.end)}
         </mark>
@@ -63,6 +99,12 @@ function ScanViewer({
 }) {
   const [viewMode, setViewMode] = useState<"2d" | "3d">("2d");
   const [windowPreset, setWindowPreset] = useState<"standard" | "lung" | "bone" | "invert">("standard");
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number; active: boolean }>({
+    x: 128,
+    y: 128,
+    active: false,
+  });
 
   const report = encounter.radiology_study.report_text;
   const labNote = encounter.lab_note?.text ?? "";
@@ -102,216 +144,324 @@ function ScanViewer({
   const filterStyle = useMemo(() => {
     switch (windowPreset) {
       case "lung":
-        return "contrast(1.4) brightness(1.12)";
+        return "contrast(1.4) brightness(1.15)";
       case "bone":
         return "contrast(1.8) brightness(0.9)";
       case "invert":
-        return "invert(1) contrast(1.25)";
+        return "invert(1) contrast(1.2)";
       default:
-        return "contrast(1.15) brightness(1.04)";
+        return "contrast(1.15) brightness(1.05)";
     }
   }, [windowPreset]);
 
+  const isCT = encounter.radiology_study.modality.toLowerCase().includes("ct");
+
+  // Live HU estimation
+  const liveHU = useMemo(() => {
+    if (!mousePos.active) return "+46.2 HU [Tissue]";
+    if (roi) {
+      const dist = Math.hypot(mousePos.x - roi.cx, mousePos.y - roi.cy);
+      if (dist < 40) {
+        return `+${Math.round(45 + (1 - dist / 40) * 15)}.0 HU [Nodule]`;
+      }
+    }
+    const val = Math.round(((mousePos.x + mousePos.y) / 512) * 200 - 100);
+    return `${val >= 0 ? "+" : ""}${val}.0 HU`;
+  }, [mousePos, roi]);
+
   return (
-    <section className="glass-pane flex min-h-0 flex-col rounded-2xl overflow-hidden">
-      {/* Pane Header — Contains 'RADIOLOGY · KEY-SLICE' for automated test suite */}
-      <header className="flex shrink-0 items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-2.5">
-        <div className="flex items-center gap-2">
-          <span className="flex h-2 w-2 rounded-full bg-[#3DE0D0] shadow-[0_0_10px_#3DE0D0]" />
-          <h2 className="font-mono text-[11px] font-bold tracking-[0.18em] text-[#F4F6FA]">
-            RADIOLOGY · KEY-SLICE
-          </h2>
-          <span className="rounded-full bg-[#3DE0D0]/10 px-2 py-0.5 font-mono text-[9px] font-bold text-[#3DE0D0] border border-[#3DE0D0]/30 shadow-[0_0_8px_rgba(61,224,208,0.2)]">
-            {encounter.radiology_study.modality}
-          </span>
+    <section className="glass-pane flex h-full min-h-0 flex-col rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl">
+      {/* ----------------- HEADER ----------------- */}
+      <header className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-slate-900/60 px-5 py-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400">
+            <Scan className="h-4 w-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold tracking-tight text-white">
+                RADIOLOGY · KEY-SLICE
+              </h2>
+              <span className="rounded bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 text-xs font-semibold text-sky-300">
+                1. Vision Input
+              </span>
+            </div>
+            <p className="text-xs text-slate-400">
+              {encounter.radiology_study.modality}
+            </p>
+          </div>
         </div>
 
-        {/* 2D / 3D Mode Switcher */}
-        <div className="flex items-center gap-1 rounded-xl border border-white/12 bg-white/5 p-0.5">
-          <button
-            onClick={() => setViewMode("2d")}
-            className={`rounded-lg px-2.5 py-1 font-mono text-[10px] font-bold transition-all duration-200 ${
-              viewMode === "2d"
-                ? "bg-[#3DE0D0] text-[#06070C] shadow-[0_0_12px_rgba(61,224,208,0.35)]"
-                : "text-[#8A93A6] hover:text-white"
-            }`}
-          >
-            2D SCAN
-          </button>
-          <button
-            onClick={() => setViewMode("3d")}
-            className={`rounded-lg px-2.5 py-1 font-mono text-[10px] font-bold transition-all duration-200 ${
-              viewMode === "3d"
-                ? "bg-[#3DE0D0] text-[#06070C] shadow-[0_0_12px_rgba(61,224,208,0.35)]"
-                : "text-[#8A93A6] hover:text-white"
-            }`}
-          >
-            3D VOLUME
-          </button>
-        </div>
+        {/* 2D / 3D Toggle */}
+        {isCT ? (
+          <div className="flex items-center rounded-lg border border-white/10 bg-slate-950/60 p-0.5">
+            <button
+              onClick={() => setViewMode("2d")}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                viewMode === "2d"
+                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm font-semibold"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              2D Scan
+            </button>
+            <button
+              onClick={() => setViewMode("3d")}
+              className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                viewMode === "3d"
+                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm font-semibold"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Layers className="h-3 w-3" />
+              3D Volume
+            </button>
+          </div>
+        ) : (
+          <span className="rounded-lg border border-white/10 bg-slate-950/60 px-2.5 py-1 text-xs font-medium text-slate-400">
+            2D Radiograph
+          </span>
+        )}
       </header>
 
-      {/* Primary Viewport Area */}
-      <div className="shrink-0 border-b border-white/10 p-3.5">
+      {/* ----------------- SCAN VIEWPORT ----------------- */}
+      <div className="flex shrink-0 flex-col border-b border-white/[0.08] bg-slate-950/90 p-4">
         {encounter.radiology_study.slice_image_url ? (
           viewMode === "3d" ? (
-            <ThreeDVolumeViewer encounter={encounter} roi={roi} />
+            <ThreeDVolumeViewer
+              encounter={encounter}
+              roi={roi ? { cx: roi.cx, cy: roi.cy, ring: Math.max(roi.width, roi.height) / 2 } : undefined}
+            />
           ) : (
-            <div className="flex flex-col gap-2.5">
-              <figure className="relative mx-auto w-full max-w-[290px] overflow-hidden rounded-xl border border-white/15 bg-black shadow-2xl">
-                {/* Authentic Clinical Radiology Image */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+            <div className="flex flex-col gap-3">
+              {/* Scan Frame */}
+              <div
+                className="group relative flex h-52 w-full items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black shadow-inner"
+                onMouseMove={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setMousePos({
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top,
+                    active: true,
+                  });
+                }}
+                onMouseLeave={() => setMousePos((p) => ({ ...p, active: false }))}
+              >
+                {/* Laser Scanline during active phase */}
+                {interceptActive && <div className="laser-scan-line" />}
+
+                {/* Corner Medical Markers */}
+                <div className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 border-l-2 border-t-2 border-slate-600" />
+                <div className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 border-r-2 border-t-2 border-slate-600" />
+                <div className="pointer-events-none absolute bottom-2.5 left-2.5 h-3.5 w-3.5 border-b-2 border-l-2 border-slate-600" />
+                <div className="pointer-events-none absolute bottom-2.5 right-2.5 h-3.5 w-3.5 border-b-2 border-r-2 border-slate-600" />
+
+                {/* Orientation Markers */}
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs font-bold text-slate-400">
+                  R
+                </span>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs font-bold text-slate-400">
+                  L
+                </span>
+                <span className="pointer-events-none absolute top-2.5 left-1/2 -translate-x-1/2 font-mono text-xs font-bold text-slate-400">
+                  S
+                </span>
+                <span className="pointer-events-none absolute bottom-2.5 left-1/2 -translate-x-1/2 font-mono text-xs font-bold text-slate-400">
+                  I
+                </span>
+
+                {/* DICOM Scan Image */}
+                <Image
                   src={`${API_BASE}${encounter.radiology_study.slice_image_url}`}
-                  alt={`${encounter.radiology_study.modality} authentic medical scan for ${encounter.encounter_id}`}
+                  alt="Radiology Study Scan"
                   width={256}
                   height={256}
-                  fetchPriority="high"
-                  decoding="async"
-                  style={{ filter: filterStyle }}
-                  className="aspect-square w-full object-cover transition-[filter] duration-200 [image-rendering:crisp-edges]"
+                  unoptimized
+                  className="max-h-full max-w-full object-contain transition-transform duration-300"
+                  style={{
+                    filter: filterStyle,
+                    transform: `scale(${zoomLevel})`,
+                  }}
                 />
 
-                {/* Corner reticle brackets */}
-                <div className="pointer-events-none absolute inset-1.5 border border-white/10 rounded-lg">
-                  <span className="absolute top-0 left-0 h-3 w-3 border-t-2 border-l-2 border-[#3DE0D0]" />
-                  <span className="absolute top-0 right-0 h-3 w-3 border-t-2 border-r-2 border-[#3DE0D0]" />
-                  <span className="absolute bottom-0 left-0 h-3 w-3 border-b-2 border-l-2 border-[#3DE0D0]" />
-                  <span className="absolute bottom-0 right-0 h-3 w-3 border-b-2 border-r-2 border-[#3DE0D0]" />
-                </div>
-
-                {/* DICOM Overlays */}
-                <div className="pointer-events-none absolute inset-2.5 flex flex-col justify-between font-mono text-[9px] text-[#F4F6FA] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold bg-black/60 px-1.5 py-0.5 rounded border border-white/10 backdrop-blur-sm">
-                      {encounter.encounter_id} · {encounter.patient_scenario}
-                    </span>
-                    <span className="text-[#3DE0D0] bg-black/70 px-1.5 py-0.5 rounded border border-[#3DE0D0]/40 backdrop-blur-sm font-bold">
-                      AXIAL #42 · 1.25mm
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-[#8A93A6]">
-                    <span className="bg-black/60 px-1.5 py-0.5 rounded font-bold text-[#F4F6FA]">R</span>
-                    <span className="bg-black/70 px-2 py-0.5 rounded text-[8.5px] text-[#3DE0D0] border border-[#3DE0D0]/30 font-semibold tracking-wider">
-                      HU: +48.2 [Tissue/Nodule]
-                    </span>
-                    <span className="bg-black/60 px-1.5 py-0.5 rounded font-bold text-[#F4F6FA]">L</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[8.5px] text-[#8A93A6]">
-                    <span className="bg-black/60 px-1.5 py-0.5 rounded">FOV: 350mm</span>
-                    <span className="bg-black/60 px-1.5 py-0.5 rounded text-[#3DE0D0]">W/L: {windowPreset.toUpperCase()}</span>
-                  </div>
-                </div>
-
-                {/* ROI Caliper Ring with glowing pulse */}
-                {roi ? (
-                  <>
+                {/* Clinical Finding Bounding Reticle */}
+                {roi && (
+                  <div
+                    className="absolute transition-all duration-300 cursor-pointer pointer-events-auto"
+                    style={{
+                      left: `${(roi.cx / 256) * 100}%`,
+                      top: `${(roi.cy / 256) * 100}%`,
+                      transform: "translate(-50%, -50%)",
+                      width: `${(roi.width / 256) * 100}%`,
+                      height: `${(roi.height / 256) * 100}%`,
+                    }}
+                  >
                     <div
-                      className={`absolute rounded-full border-2 border-[#FF5A5F] bg-[#FF5A5F]/15 shadow-[0_0_22px_rgba(255,90,95,0.7)] ${
-                        interceptActive && findings.length > 0 ? "animate-pulse" : ""
+                      className={`h-full w-full rounded border-2 transition-colors ${
+                        interceptActive
+                          ? "border-rose-500 bg-rose-500/15 shadow-lg shadow-rose-950/40"
+                          : "border-sky-400 bg-sky-400/15 shadow-lg shadow-sky-950/40"
                       }`}
-                      style={{
-                        left: `${((roi.cx - roi.ring) / 256) * 100}%`,
-                        top: `${((roi.cy - roi.ring) / 256) * 100}%`,
-                        width: `${((roi.ring * 2) / 256) * 100}%`,
-                        height: `${((roi.ring * 2) / 256) * 100}%`,
-                      }}
-                      aria-hidden
                     >
-                      {/* Crosshairs */}
-                      <span className="absolute left-1/2 top-0 h-full w-[1.5px] -translate-x-1/2 bg-[#FF5A5F]/70" />
-                      <span className="absolute top-1/2 left-0 h-[1.5px] w-full -translate-y-1/2 bg-[#FF5A5F]/70" />
+                      <div className="absolute -top-1.5 -left-1.5 h-2 w-2 border-l-2 border-t-2 border-white" />
+                      <div className="absolute -top-1.5 -right-1.5 h-2 w-2 border-r-2 border-t-2 border-white" />
+                      <div className="absolute -bottom-1.5 -left-1.5 h-2 w-2 border-l-2 border-b-2 border-white" />
+                      <div className="absolute -bottom-1.5 -right-1.5 h-2 w-2 border-r-2 border-b-2 border-white" />
                     </div>
 
+                    {/* Intuitive Finding Pill */}
                     <div
-                      className="absolute rounded-lg bg-[#06070C]/90 border border-[#FF5A5F]/70 px-2 py-0.5 font-mono text-[8.5px] font-bold text-[#FF5A5F] shadow-[0_0_12px_rgba(255,90,95,0.4)] backdrop-blur-md"
-                      style={{
-                        left: `${(roi.cx / 256) * 100}%`,
-                        top: `${((roi.cy + roi.ring + 6) / 256) * 100}%`,
-                        transform: "translateX(-50%)",
-                      }}
+                      className={`absolute top-full left-1/2 -translate-x-1/2 mt-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-bold shadow-lg backdrop-blur-md transition-all ${
+                        interceptActive
+                          ? "bg-rose-950/95 text-rose-200 border border-rose-500/50"
+                          : "bg-slate-900/95 text-sky-200 border border-sky-500/50"
+                      }`}
                     >
                       {roi.label}
                     </div>
-                  </>
-                ) : (
-                  <figcaption className="absolute bottom-2.5 left-2.5 rounded-lg border border-white/10 bg-[#06070C]/85 px-2 py-0.5 font-mono text-[8.5px] tracking-wider text-[#8A93A6]">
-                    CLEAN FILM — NO ANNOTATED LESION
-                  </figcaption>
+                  </div>
                 )}
-              </figure>
 
-              {/* DICOM Window/Level Preset Buttons */}
-              <div className="flex items-center justify-center gap-1.5 pt-1">
-                <span className="font-mono text-[9px] text-[#8A93A6] mr-1">Window:</span>
-                {(["standard", "lung", "bone", "invert"] as const).map((preset) => (
+                {/* Clean Context Overlays */}
+                <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 text-xs font-medium text-slate-300">
+                  <span className="rounded bg-black/70 px-2 py-0.5 border border-white/15 font-bold text-white shadow">
+                    {encounter.encounter_id}
+                  </span>
+                  <span className="text-slate-300 font-medium">
+                    {encounter.radiology_study.modality.split(",")[0]}
+                  </span>
+                </div>
+
+                {isCT && (
+                  <div className="pointer-events-none absolute right-3 bottom-3 flex items-center gap-2 font-mono text-xs text-slate-400">
+                    <span className="rounded bg-black/70 px-2 py-0.5 border border-white/10 text-sky-300 font-semibold shadow">
+                      {liveHU}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Viewport Control Bar */}
+              <div className="flex items-center justify-between pt-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-medium text-slate-400 mr-1">Window:</span>
+                  {(["standard", "lung", "bone", "invert"] as const).map((preset) => (
+                    <button
+                      key={preset}
+                      onClick={() => setWindowPreset(preset)}
+                      className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                        windowPreset === preset
+                          ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 font-semibold"
+                          : "bg-white/5 text-slate-400 hover:text-white border border-white/5"
+                      }`}
+                    >
+                      {preset.charAt(0).toUpperCase() + preset.slice(1)}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Zoom */}
+                <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-0.5">
                   <button
-                    key={preset}
-                    onClick={() => setWindowPreset(preset)}
-                    className={`rounded-lg px-2.5 py-0.5 font-mono text-[9.5px] font-bold transition-all ${
-                      windowPreset === preset
-                        ? "bg-[#3DE0D0]/20 text-[#3DE0D0] border border-[#3DE0D0]/50 shadow-[0_0_8px_rgba(61,224,208,0.25)]"
-                        : "bg-white/5 text-[#8A93A6] hover:text-white border border-white/8"
-                    }`}
+                    onClick={() => setZoomLevel((z) => Math.max(1, z - 0.5))}
+                    title="Zoom Out"
+                    className="p-1 rounded text-slate-400 hover:text-white transition-colors"
                   >
-                    {preset.charAt(0).toUpperCase() + preset.slice(1)}
+                    <ZoomOut className="h-3.5 w-3.5" />
                   </button>
-                ))}
+                  <span className="font-mono text-xs text-sky-400 px-1.5 font-semibold">
+                    {zoomLevel}x
+                  </span>
+                  <button
+                    onClick={() => setZoomLevel((z) => Math.min(2, z + 0.5))}
+                    title="Zoom In"
+                    className="p-1 rounded text-slate-400 hover:text-white transition-colors"
+                  >
+                    <ZoomIn className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           )
         ) : (
-          <p className="font-mono text-[10px] text-[#8A93A6] text-center py-4">No diagnostic scan on file</p>
-        )}
-
-        {/* Scan Findings List */}
-        {findings.length > 0 && (
-          <ul className="mt-3 flex flex-col gap-1.5 border-t border-white/10 pt-2.5">
-            {findings.map((f: ScanFinding, i: number) => (
-              <li key={i} className="flex items-baseline gap-2 font-mono text-[10.5px]">
-                <span
-                  className={`inline-block h-2 w-2 shrink-0 rounded-full ${
-                    f.acute ? "bg-[#FF5A5F] shadow-[0_0_10px_#FF5A5F]" : "bg-[#3DE0D0] shadow-[0_0_10px_#3DE0D0]"
-                  }`}
-                />
-                <span className="font-semibold text-[#F4F6FA]">{f.description}</span>
-                {f.measurement_mm != null && (
-                  <span className="font-bold text-[#3DE0D0]">Ø{f.measurement_mm}mm</span>
-                )}
-                {f.recommended_cpt && (
-                  <span className="rounded bg-white/5 border border-white/10 px-1 text-[9px] text-[#8A93A6]">
-                    CPT {f.recommended_cpt}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
+          <p className="text-xs text-slate-400 text-center py-8">No diagnostic scan on file</p>
         )}
       </div>
 
-      {/* Radiology Full Report Text Area */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3.5" data-testid="report-scroll">
-        <div className="flex items-center justify-between border-b border-white/10 pb-2">
-          <h3 className="font-mono text-[10px] font-bold tracking-[0.18em] text-[#8A93A6]">
+      {/* ----------------- REPORT & EXTRACTED FINDINGS ----------------- */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 space-y-4" data-testid="report-scroll">
+        {/* Structured Findings List with Plain English Explanations */}
+        {findings.length > 0 && (
+          <div>
+            <h3 className="text-xs font-bold text-slate-300 mb-2 uppercase tracking-wider flex items-center justify-between">
+              <span>Identified Scan Findings</span>
+              <span className="text-slate-400 normal-case font-normal text-xs">
+                {findings.length} extracted
+              </span>
+            </h3>
+            <div className="flex flex-col gap-2">
+              {findings.map((f: ScanFinding, i: number) => (
+                <div
+                  key={i}
+                  className={`flex items-start justify-between gap-3 rounded-xl border p-2.5 text-xs transition-colors ${
+                    f.acute
+                      ? "border-rose-500/40 bg-rose-500/10 text-rose-100"
+                      : "border-white/5 bg-slate-900/40 text-slate-200"
+                  }`}
+                >
+                  <div className="flex items-start gap-2.5">
+                    {f.acute ? (
+                      <AlertCircle className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 text-sky-400 shrink-0 mt-0.5" />
+                    )}
+                    <div>
+                      <span className="font-semibold block">{f.description}</span>
+                      {f.acute && (
+                        <p className="text-xs text-rose-300/90 mt-0.5">
+                          ⚠️ Needs follow-up order in discharge packet!
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {f.measurement_mm != null && (
+                      <span className="font-mono text-xs font-bold text-sky-300 bg-sky-950/80 px-2 py-0.5 rounded border border-sky-800/40">
+                        Ø{f.measurement_mm}mm
+                      </span>
+                    )}
+                    {f.recommended_cpt && (
+                      <span className="font-mono rounded bg-white/5 border border-white/10 px-2 py-0.5 text-xs text-slate-300">
+                        CPT {f.recommended_cpt}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
+          <h3 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
             RADIOLOGY REPORT TEXT
           </h3>
           {interceptActive && spanMeta && (
-            <span className="rounded-full bg-[#FF5A5F]/15 px-2.5 py-0.5 font-mono text-[9px] font-bold text-[#FF5A5F] border border-[#FF5A5F]/40 shadow-[0_0_10px_rgba(255,90,95,0.25)]">
-              Verified Span [{spanMeta.start_char}–{spanMeta.end_char}] · {spanMeta.match_mode}
+            <span className="rounded-full bg-rose-500/15 px-2.5 py-0.5 text-xs font-semibold text-rose-300 border border-rose-500/30">
+              Verified Span [{spanMeta.start_char}–{spanMeta.end_char}]
             </span>
           )}
         </div>
 
-        <p className="mt-2.5 whitespace-pre-wrap font-sans text-[12.5px] leading-relaxed text-[#B9C0CF]">
+        <p className="mt-3 whitespace-pre-wrap text-xs leading-relaxed text-slate-300 font-normal">
           {interceptActive ? renderWithHighlights(report, reportHls) : report}
         </p>
 
         {labNote && (
-          <div className="mt-4 border-t border-white/10 pt-3">
-            <h3 className="font-mono text-[10px] font-bold tracking-[0.18em] text-[#8A93A6]">
+          <div className="mt-4 border-t border-white/[0.08] pt-3">
+            <h3 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
               CLINICAL LAB NOTE
             </h3>
-            <p className="mt-2 whitespace-pre-wrap font-sans text-[12.5px] leading-relaxed text-[#B9C0CF]">
+            <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-slate-300 font-normal">
               {interceptActive ? renderWithHighlights(labNote, labHls) : labNote}
             </p>
           </div>

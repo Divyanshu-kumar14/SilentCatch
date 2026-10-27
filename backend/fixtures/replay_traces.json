@@ -8,13 +8,238 @@
     "vision": {
       "ED-104": {
         "meta": {
-          "model_id": "nvidia/Nemotron-3.5-Super-VL-120B-A12B"
+          "model_id": "nvidia/Nemotron-3.5-Super-VL"
         },
         "payload": {
-          "findings": [],
+          "findings": [
+            {
+              "description": "Acute minimally displaced fracture of the right 7th lateral rib",
+              "location": "right 7th lateral rib",
+              "measurement_mm": null,
+              "acute": true,
+              "verbatim_quote": "Acute minimally displaced fracture of the right 7th lateral rib.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "No pneumothorax",
+              "location": "thorax",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "No pneumothorax.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Incidental 7.2 mm spiculated solid noncalcified nodule in the right upper lobe",
+              "location": "right upper lobe",
+              "measurement_mm": 7.2,
+              "acute": false,
+              "verbatim_quote": "Incidental 7.2 mm spiculated solid noncalcified nodule in the right upper lobe (Series 3, Image 42).",
+              "recommended_cpt": null
+            }
+          ],
           "vision_confidence": "HIGH",
           "source": "vl_live",
           "note": ""
+        }
+      },
+      "ED-101": {
+        "meta": {
+          "model_id": "nvidia/Nemotron-3.5-Super-VL"
+        },
+        "payload": {
+          "findings": [
+            {
+              "description": "No acute fracture or dislocation",
+              "location": "right ankle",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "No acute fracture or dislocation.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "No incidental osseous lesion",
+              "location": "right ankle",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "No incidental osseous lesion.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Mild lateral soft tissue swelling",
+              "location": "right lateral ankle",
+              "measurement_mm": null,
+              "acute": true,
+              "verbatim_quote": "Mild lateral soft tissue swelling.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Right lateral ankle soft tissue sprain, grade II",
+              "location": "right lateral ankle",
+              "measurement_mm": null,
+              "acute": true,
+              "verbatim_quote": "Right lateral ankle soft tissue sprain, grade II. No fracture.",
+              "recommended_cpt": null
+            }
+          ],
+          "vision_confidence": "LOW",
+          "source": "vl_live",
+          "note": ""
+        }
+      },
+      "ED-102": {
+        "meta": {
+          "model_id": "nvidia/Nemotron-3.5-Super-VL"
+        },
+        "payload": {
+          "findings": [
+            {
+              "description": "Dense right lower lobe consolidation consistent with pneumonia",
+              "location": "right lower lobe",
+              "measurement_mm": null,
+              "acute": true,
+              "verbatim_quote": "Dense right lower lobe consolidation consistent with pneumonia.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Incidental 6 mm solid noncalcified nodule",
+              "location": "right middle lobe",
+              "measurement_mm": 6.0,
+              "acute": false,
+              "verbatim_quote": "Incidental 6 mm solid noncalcified nodule in the right middle lobe; per report review, follow-up chest CT in 6 months is already scheduled and documented in this patient's packet.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "No pneumothorax",
+              "location": null,
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "No pneumothorax.",
+              "recommended_cpt": null
+            }
+          ],
+          "vision_confidence": "HIGH",
+          "source": "vl_live",
+          "note": ""
+        }
+      },
+      "ED-103": {
+        "meta": {
+          "model_id": "nvidia/Nemotron-3.5-Super-VL"
+        },
+        "payload": {
+          "findings": [
+            {
+              "description": "3 mm distal left ureteral calculus no longer visualized",
+              "location": "left distal ureter",
+              "measurement_mm": 3.0,
+              "acute": false,
+              "verbatim_quote": "3 mm distal left ureteral calculus no longer visualized",
+              "recommended_cpt": null
+            },
+            {
+              "description": "previously noted mild hydronephrosis resolved",
+              "location": "left kidney",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "previously noted mild hydronephrosis resolved",
+              "recommended_cpt": null
+            },
+            {
+              "description": "No residual obstructing stone",
+              "location": "left distal ureter",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "No residual obstructing stone",
+              "recommended_cpt": null
+            },
+            {
+              "description": "No incidental masses or lesions",
+              "location": "abdomen/pelvis",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "No incidental masses or lesions",
+              "recommended_cpt": null
+            }
+          ],
+          "vision_confidence": "HIGH",
+          "source": "vl_live",
+          "note": ""
+        }
+      }
+    },
+    "gate": {
+      "ED-104": {
+        "meta": {
+          "model_id": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
+        },
+        "payload": {
+          "action": "ESCALATE",
+          "reasons": [
+            "Incidental 7.2 mm spiculated solid nodule in right upper lobe requires documented follow-up imaging or referral; no follow-up plan mentioned in discharge packet",
+            "Kinetic flags indicate EGFR decline trend; omission of follow-up for nodule contradicts standard oncologic surveillance",
+            "Discharge packet lacks any mention of pulmonary nodule management or referral to oncology/pulmonology",
+            "deterministic override: unaddressed 7.2mm finding needs follow-up",
+            "deterministic override: creatinine_mg_dl moved 87.1% with ['KINETIC_AKI_STAGE_1']",
+            "deterministic override: egfr_ml_min moved 44.2% with ['KINETIC_EGFR_DECLINE']"
+          ],
+          "confidence": 0.95,
+          "source": "nano_live"
+        }
+      },
+      "ED-101": {
+        "meta": {
+          "model_id": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
+        },
+        "payload": {
+          "action": "SILENT_PASS",
+          "reasons": [
+            "No acute fracture or dislocation identified",
+            "No incidental osseous lesion identified",
+            "Mild lateral soft tissue swelling is non-acute and consistent with sprain",
+            "Sprain diagnosis explicitly states 'No fracture'",
+            "No recommended CPT codes indicate no billing or procedural concerns",
+            "Prescription of Ibuprofen is appropriate for grade II sprain",
+            "No kinetic flags or acute lab trends present",
+            "Discharge summary lacks contradictions or escalation triggers"
+          ],
+          "confidence": 0.99,
+          "source": "nano_live"
+        }
+      },
+      "ED-102": {
+        "meta": {
+          "model_id": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
+        },
+        "payload": {
+          "action": "ESCALATE",
+          "reasons": [
+            "Dense right lower lobe consolidation consistent with pneumonia is acute and requires treatment; amoxicillin-clavulanate is appropriate first-line therapy.",
+            "Incidental 6 mm solid noncalcified nodule is non-acute; follow-up CT in 6 months is already scheduled and documented, so no immediate action needed.",
+            "No pneumothorax is normal and requires no intervention.",
+            "No kinetic flags or contradictions present; all findings are either resolved, benign, or appropriately tracked.",
+            "deterministic override: unaddressed 6.0mm finding needs follow-up"
+          ],
+          "confidence": 0.99,
+          "source": "nano_live"
+        }
+      },
+      "ED-103": {
+        "meta": {
+          "model_id": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
+        },
+        "payload": {
+          "action": "SILENT_PASS",
+          "reasons": [
+            "No acute clinical findings or contradictions identified",
+            "Incidental finding of 3 mm left ureteral calculus resolved without follow-up requirement",
+            "Mild hydronephrosis previously noted and now resolved",
+            "No residual obstructing stone or incidental masses",
+            "No kinetic flags or acute lab trends requiring escalation",
+            "Prescribed medications are appropriate (tamsulosin for stone passage, acetaminophen for pain)",
+            "CPT 99213 aligns with established discharge complexity"
+          ],
+          "confidence": 0.99,
+          "source": "nano_live"
         }
       }
     }

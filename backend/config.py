@@ -14,6 +14,13 @@ import logging
 import os
 from typing import Final
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
 logger = logging.getLogger(__name__)
 
 NEBIUS_BASE_URL: Final[str] = os.getenv(
@@ -38,7 +45,7 @@ VISION_IMAGE_MAX_EDGE_PX: Final[int] = 768
 # (IDs verified against NVIDIA/Nebius public naming, HF-aligned, Oct 2026.)
 DEFAULT_MODEL_IDS: Final[dict[str, str]] = {
     # Stage 1: annotated-slice + chart extraction
-    "vision": "nvidia/Nemotron-3.5-Super-VL-120B-A12B",
+    "vision": "nvidia/Nemotron-3.5-Super-VL",
     # Stage 2: sub-second SILENT_PASS gate (thinking OFF)
     "gate": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
     # Stage 4: deep contradiction synthesis

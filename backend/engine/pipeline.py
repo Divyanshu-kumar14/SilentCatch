@@ -256,7 +256,11 @@ def run_audit(  # noqa: C901 — a guarded linear stream read top to bottom
                 transport=stage_transport(),
                 model_id=models.get("gate", ""),
             )
-            bundle, search_trace = guideline_search.search(queries, http_post=search_post)
+            bundle, search_trace = guideline_search.search(
+                queries,
+                http_post=search_post,
+                allow_live=stage_transport() is not None,
+            )
             _attr(query_trace, ledger)
             traces.append(query_trace)
             traces.append(search_trace)

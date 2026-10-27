@@ -170,7 +170,10 @@ def extract_findings(
         normalized = normalize_image_png(image_png)
         try:
             raw, usage = transport(
-                model_id, _vl_messages(normalized, report_text), timeout_s=timeout_s
+                model_id,
+                _vl_messages(normalized, report_text),
+                timeout_s=timeout_s,
+                extra_body={"chat_template_kwargs": {"enable_thinking": False}},
             )
             prompt_tokens = int(usage.get("prompt_tokens", 0))
             completion_tokens = int(usage.get("completion_tokens", 0))
@@ -200,13 +203,13 @@ def extract_findings(
 
             result = parse_llm_json(raw, VisionResult, retry_call=repair)
             result.source = "vl_live"
-        except LlmUnverifiableError:
-            logger.exception("VL output unverifiable after repair — seed fallback")
+        except (LlmUnverifiableError, TimeoutError, Exception) as exc:
+            logger.warning("VL stage failed (%s) — seed fallback", exc)
             result = VisionResult(
                 findings=parse_report_sentences(report_text),
                 vision_confidence="LOW",
                 source="vl_seed",
-                note="vl_output_unverifiable_fallback",
+                note=f"vl_fallback: {type(exc).__name__}",
             )
 
     if image_png is not None and vision_cache is not None:

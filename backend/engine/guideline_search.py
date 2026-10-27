@@ -225,6 +225,7 @@ def search(
     *,
     http_post: HttpPostFn | None = None,
     kind_hint: FindingKind | None = None,
+    allow_live: bool = True,
 ) -> tuple[GuidelineResult, StageTrace]:
     """Stage-3b: fetch guideline evidence. `http_post=None` -> snapshot only."""
     started = time.perf_counter()
@@ -232,7 +233,7 @@ def search(
     degraded = False
     bundles: list[GuidelineBundle] = []
 
-    if http_post is None and TAVILY_API_KEY is not None:
+    if http_post is None and allow_live and TAVILY_API_KEY is not None:
         def http_post(query: str) -> tuple[list[dict], dict]:  # type: ignore[misc]
             with httpx.Client(timeout=TAVILY_TIMEOUT_S) as client:
                 response = client.post(

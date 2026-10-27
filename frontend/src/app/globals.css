@@ -2,40 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
-/* SilentCatch Neon Glass 3D Dark Clinical Cockpit */
+/* SilentCatch Modern Precision Clinical Cockpit */
 :root {
-  --bg: #06070C;
-  --bg-radial: radial-gradient(ellipse at 50% 18%, #141829 0%, #06070C 75%);
-  --pane: rgba(14, 18, 28, 0.82);
-  --pane-raised: rgba(22, 28, 44, 0.9);
-  --border: rgba(255, 255, 255, 0.12);
-  --border-strong: rgba(255, 255, 255, 0.22);
-  --text: #F4F6FA;
-  --text-dim: #B9C0CF;
-  --text-faint: #8A93A6;
-  --cyan: #3DE0D0;
-  --cyan-dim: #1ea396;
-  --red: #FF5A5F;
-  --red-dim: #c93b40;
-  --amber: #FFB84D;
-  --amber-dim: #c7882d;
-  --green: #3DE0D0;
-  --green-dim: #1ea396;
+  --bg: #090B10;
+  --surface: #0F131C;
+  --surface-raised: #151B27;
+  --surface-subtle: #1C2433;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-focus: rgba(56, 189, 248, 0.4);
+  --text-primary: #FFFFFF;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --text-dim: #64748B;
+  
+  --emerald: #10B981;
+  --emerald-bg: rgba(16, 185, 129, 0.12);
+  --emerald-border: rgba(16, 185, 129, 0.3);
+  
+  --rose: #F43F5E;
+  --rose-bg: rgba(244, 63, 94, 0.12);
+  --rose-border: rgba(244, 63, 94, 0.3);
+  
+  --amber: #F59E0B;
+  --amber-bg: rgba(245, 158, 11, 0.12);
+  --amber-border: rgba(245, 158, 11, 0.3);
+  
+  --sky: #38BDF8;
+  --sky-bg: rgba(56, 189, 248, 0.12);
+  --sky-border: rgba(56, 189, 248, 0.3);
 }
 
 body {
-  color: var(--text);
-  background: var(--bg);
-  background-image: var(--bg-radial);
-  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text-primary);
+  background-color: var(--bg);
+  background-image: radial-gradient(circle at 50% 0%, rgba(30, 41, 59, 0.35) 0%, rgba(9, 11, 16, 1) 80%);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
   overflow: hidden;
   user-select: none;
   -webkit-font-smoothing: antialiased;
-  background-size: 32px 32px;
-  background-image: 
-    linear-gradient(to right, rgba(99, 253, 236, 0.02) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(99, 253, 236, 0.02) 1px, transparent 1px),
-    var(--bg-radial);
 }
 
 /* Custom sleek medical scrollbars */
@@ -44,96 +49,115 @@ body {
   height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(6, 7, 12, 0.6);
+  background: rgba(9, 11, 16, 0.8);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.14);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3DE0D0;
+  background: rgba(255, 255, 255, 0.28);
 }
 
-/* Glassmorphism panel styling */
+/* Precision panel styling - no zero-offset neon glow */
 .glass-pane {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  background: linear-gradient(180deg, rgba(17, 22, 33, 0.88) 0%, rgba(13, 17, 26, 0.94) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
 
 .glass-pane-raised {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035));
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: linear-gradient(180deg, rgba(23, 30, 45, 0.92) 0%, rgba(16, 21, 32, 0.96) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
-/* Progressive-release red lines: marching dashes flow source → target */
+/* DICOM Scan laser line animation */
+@keyframes laser-sweep {
+  0% {
+    top: 0%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+.laser-scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #38BDF8, #818CF8, #38BDF8, transparent);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+  animation: laser-sweep 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* High-urgency red-line marching flow */
 @keyframes dash-flow {
   to {
     stroke-dashoffset: -24;
   }
 }
 .redline-path {
-  stroke-dasharray: 8 12;
-  animation: dash-flow 0.65s linear infinite;
+  stroke-dasharray: 6 8;
+  animation: dash-flow 0.8s linear infinite;
 }
 
-@keyframes roi-pulse {
+/* Pulse animation for clinical alarms */
+@keyframes alarm-pulse {
   0%, 100% {
-    opacity: 0.95;
+    opacity: 1;
     transform: scale(1);
-    box-shadow: 0 0 20px rgba(255, 90, 95, 0.7);
   }
   50% {
-    opacity: 0.45;
-    transform: scale(0.97);
-    box-shadow: 0 0 6px rgba(255, 90, 95, 0.25);
+    opacity: 0.75;
+    transform: scale(0.98);
   }
 }
-.roi-pulse {
-  animation: roi-pulse 1.8s ease-in-out infinite;
+.alarm-pulse {
+  animation: alarm-pulse 2s ease-in-out infinite;
 }
 
-@keyframes safe-flash {
-  0% {
-    background-color: rgba(61, 224, 208, 0.35);
-    border-color: rgba(61, 224, 208, 0.9);
-  }
-  100% {
-    background-color: rgba(61, 224, 208, 0);
-    border-color: rgba(61, 224, 208, 0.4);
-  }
-}
-.safe-flash {
-  animation: safe-flash 1.6s cubic-bezier(0.16, 1, 0.3, 1) 1;
-}
-
-@keyframes stage-sweep {
+/* Sequential pipeline shimmer */
+@keyframes pipeline-beam {
   0% {
     transform: translateX(-100%);
   }
   100% {
-    transform: translateX(350%);
+    transform: translateX(200%);
   }
 }
-.stage-sweep::after {
+.pipeline-beam-glow {
+  position: relative;
+  overflow: hidden;
+}
+.pipeline-beam-glow::after {
   content: "";
   position: absolute;
   inset-block: 0;
-  width: 35%;
-  background: linear-gradient(90deg, transparent, rgba(61, 224, 208, 0.3), transparent);
-  animation: stage-sweep 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  width: 50%;
+  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.25), transparent);
+  animation: pipeline-beam 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .laser-scan-line,
   .redline-path,
-  .roi-pulse,
-  .safe-flash,
-  .stage-sweep::after {
+  .alarm-pulse,
+  .pipeline-beam-glow::after {
     animation: none;
   }
 }

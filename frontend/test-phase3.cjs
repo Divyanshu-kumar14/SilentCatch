@@ -34,8 +34,8 @@ async function run() {
   console.log("2. Switching to ED-104 (trauma patient with 2 cross-modal contradictions)...");
   await page.click('button:has-text("ED-104")');
 
-  // Wait for CRITICAL INTERCEPT
-  await page.waitForSelector("text=SAFETY INTERLOCK: CRITICAL INTERCEPT", { timeout: 10000 });
+  // Wait for CRITICAL INTERCEPT (live Nebius inference can take up to 30s)
+  await page.waitForSelector("text=SAFETY INTERLOCK: CRITICAL INTERCEPT", { timeout: 35000 });
   console.log("✓ ED-104 stream completed: CRITICAL_INTERCEPT detected");
 
   // Verify all 4 stages completed
@@ -84,22 +84,17 @@ async function run() {
   // ---------------- APPLY SAFE PATCH & RE-VERIFY (FR-5.2) ----------------
   console.log("3. Testing 1-click 'Apply Safe Patch & Re-Verify' loop...");
   // Apply patch on first card (nodule -> add CPT 71250)
-  const applyBtn1 = await page.$("button:has-text('Apply Safe Patch & Re-Verify')");
-  assert(applyBtn1, "Apply Safe Patch button missing!");
-  await applyBtn1.click();
+  await page.waitForSelector("button:has-text('Apply Safe Patch & Re-Verify')", { timeout: 15000 });
+  await page.click("button:has-text('Apply Safe Patch & Re-Verify')");
   console.log("  Clicked patch 1: added CPT 71250 to follow-up orders");
-  await page.waitForTimeout(1500);
 
-  // Apply patch on second card (ketorolac swap -> acetaminophen)
-  const applyBtn2 = await page.$("button:has-text('Apply Safe Patch & Re-Verify')");
-  if (applyBtn2) {
-    await applyBtn2.click();
-    console.log("  Clicked patch 2: discontinued Ketorolac and swapped renal-safe analgesic");
-    await page.waitForTimeout(1500);
-  }
+  // Wait for the intermediate re-audit to complete and show the remaining card
+  await page.waitForSelector("button:has-text('Apply Safe Patch & Re-Verify')", { timeout: 50000 });
+  await page.click("button:has-text('Apply Safe Patch & Re-Verify')");
+  console.log("  Clicked patch 2: discontinued Ketorolac and swapped renal-safe analgesic");
 
   // Verify re-audit reached SILENT_PASS and VERIFIED SAFE banner appeared
-  await page.waitForSelector("text=VERIFIED SAFE", { timeout: 10000 });
+  await page.waitForSelector("text=VERIFIED SAFE", { timeout: 50000 });
   const bannerText = await page.textContent("div[aria-live='polite']");
   assert(bannerText.includes("VERIFIED SAFE"), "Missing VERIFIED SAFE banner");
   console.log(`✓ Safety interlock loop closed: ${bannerText.trim()}`);
@@ -112,14 +107,14 @@ async function run() {
 
   // ED-102: Pneumonia with 6mm nodule that ALREADY has follow-up CT scheduled
   await page.click('button:has-text("ED-102")');
-  await page.waitForSelector("text=FLIGHT-CHECK CLEAR · SILENT PASS", { timeout: 8000 });
+  await page.waitForSelector("text=FLIGHT-CHECK CLEAR · SILENT PASS", { timeout: 35000 });
   const ed102Cards = await page.$$("article:has-text('CRITICAL')");
   assert.equal(ed102Cards.length, 0, "ED-102 should have 0 critical cards (nodule already has CT scheduled)");
   console.log("✓ ED-102 (nodule with CT already scheduled): SILENT_PASS, 0 alert modal");
 
   // ED-103: Renal colic with recovering creatinine slope (declining -> no AKI)
   await page.click('button:has-text("ED-103")');
-  await page.waitForSelector("text=FLIGHT-CHECK CLEAR · SILENT PASS", { timeout: 8000 });
+  await page.waitForSelector("text=FLIGHT-CHECK CLEAR · SILENT PASS", { timeout: 35000 });
   const ed103Cards = await page.$$("article:has-text('CRITICAL')");
   assert.equal(ed103Cards.length, 0, "ED-103 should have 0 critical cards (recovering kidney slope)");
   console.log("✓ ED-103 (recovering kidney slope): SILENT_PASS, 0 alert modal");
@@ -127,7 +122,7 @@ async function run() {
   // ---------------- JUDGE SANDBOX: LIVE EDIT & BOUNDS (FR-5.3) ----------------
   console.log("5. Testing Judge Sandbox: client-side bounds validation and instant slope recalc...");
   await page.click('button:has-text("ED-101")');
-  await page.waitForSelector("text=FLIGHT-CHECK CLEAR · SILENT PASS", { timeout: 8000 });
+  await page.waitForSelector("text=FLIGHT-CHECK CLEAR · SILENT PASS", { timeout: 35000 });
 
   const creatInputs = await page.$$('input[aria-label*="Creatinine"]');
   assert(creatInputs.length >= 2, "Creatinine sandbox input fields not found");

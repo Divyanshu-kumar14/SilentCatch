@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
+import { Clock, Cpu, Coins } from "lucide-react";
 
 import { shortModel } from "@/lib/clinical";
 import type { Phase, RunStartEvent, StageTrace } from "@/lib/types";
@@ -18,18 +19,18 @@ const STAGE_CONFIG: ReadonlyArray<{
 
 function TelemetryBar({
   phase,
-  _runStart,
+  runStart,
   traces,
   activeStage,
 }: {
   phase: Phase;
-  _runStart?: RunStartEvent | null;
+  runStart?: RunStartEvent | null;
   traces: StageTrace[];
   activeStage: string | null;
 }) {
   const isRunning = phase === "running";
 
-  // Single-pass aggregate totals with useMemo
+  // Aggregate totals
   const { totalLatency, totalTokens, totalCost } = useMemo(() => {
     let latency = 0;
     let tokens = 0;
@@ -43,55 +44,65 @@ function TelemetryBar({
   }, [traces]);
 
   return (
-    <footer className="flex h-11 shrink-0 items-center justify-between border-t border-white/10 bg-[#0A0D16]/95 px-4 font-mono text-[10px] backdrop-blur-xl">
+    <footer className="relative z-50 flex h-12 shrink-0 items-center justify-between border-t border-white/[0.08] bg-slate-950/95 px-5 backdrop-blur-xl">
       {/* ---------------- 4 pipeline stages ---------------- */}
       <div className="flex items-center gap-2">
-        {STAGE_CONFIG.map((cfg) => {
+        {STAGE_CONFIG.map((cfg, index) => {
           const trace = traces.find((t) => t.stage === cfg.id);
           const isActive = activeStage === cfg.id;
           const isDone = Boolean(trace);
 
           return (
-            <div
-              key={cfg.id}
-              className={`flex items-center gap-1.5 rounded-xl border px-3 py-1 transition-all duration-200 ${
-                isActive
-                  ? "border-[#3DE0D0] bg-[#3DE0D0]/20 text-[#3DE0D0] shadow-[0_0_14px_rgba(61,224,208,0.35)]"
-                  : isDone
-                    ? "border-white/12 bg-white/[0.04] text-[#F4F6FA]"
-                    : "border-white/6 bg-white/[0.015] text-[#8A93A6]"
-              }`}
-            >
-              <span
-                className={`inline-block h-2 w-2 rounded-full ${
+            <div key={cfg.id} className="flex items-center">
+              <div
+                className={`flex items-center gap-2 rounded-lg border px-3 py-1 transition-all ${
                   isActive
-                    ? "bg-[#3DE0D0] animate-ping"
+                    ? "border-sky-500 bg-sky-500/20 text-sky-200 shadow-md shadow-sky-500/20"
                     : isDone
-                      ? "bg-[#3DE0D0] shadow-[0_0_8px_#3DE0D0]"
-                      : "bg-[#8A93A6]/40"
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                      : "border-white/5 bg-white/[0.02] text-slate-400"
                 }`}
-              />
-              <span className="font-bold">{cfg.label}</span>
+              >
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    isActive
+                      ? "bg-sky-400 animate-ping"
+                      : isDone
+                        ? "bg-emerald-400"
+                        : "bg-slate-600"
+                  }`}
+                />
+                <span className="text-xs font-semibold">{cfg.label}</span>
 
-              {trace ? (
-                <div className="flex items-center gap-1.5 text-[9px] text-[#8A93A6]">
-                  {trace.model_id && (
-                    <span className="text-[#8A93A6]">{shortModel(trace.model_id)}</span>
-                  )}
-                  <span className="text-[#F4F6FA] font-bold">{trace.latency_ms}ms</span>
-                  {trace.prompt_tokens > 0 && (
-                    <span className="text-[#8A93A6]">
-                      {trace.prompt_tokens + trace.completion_tokens}tok
-                    </span>
-                  )}
-                  {trace.replayed && (
-                    <span className="rounded-full bg-[#FFB84D]/15 border border-[#FFB84D]/40 px-1.5 text-[8px] font-bold text-[#FFB84D]">
-                      REPLAY
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <span className="text-[9px] text-[#8A93A6]">{cfg.role}</span>
+                {trace ? (
+                  <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-300">
+                    {trace.model_id && (
+                      <span className="text-slate-400">{shortModel(trace.model_id)}</span>
+                    )}
+                    <span className="font-semibold text-white">{trace.latency_ms}ms</span>
+                    {trace.prompt_tokens > 0 && (
+                      <span className="text-slate-400">
+                        {trace.prompt_tokens + trace.completion_tokens}tok
+                      </span>
+                    )}
+                    {trace.replayed && (
+                      <span className="rounded bg-amber-500/20 border border-amber-500/40 px-1 text-[10px] font-semibold text-amber-300">
+                        REPLAY
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-[11px] text-slate-500">{cfg.role}</span>
+                )}
+              </div>
+
+              {/* Connecting line between stages */}
+              {index < STAGE_CONFIG.length - 1 && (
+                <div
+                  className={`mx-1.5 h-0.5 w-3 rounded transition-colors ${
+                    isDone ? "bg-emerald-500/40" : "bg-white/10"
+                  }`}
+                />
               )}
             </div>
           );
@@ -99,37 +110,40 @@ function TelemetryBar({
       </div>
 
       {/* ---------------- right totals & spend ---------------- */}
-      <div className="flex items-center gap-4 text-[10px]">
-        {_runStart?.mode_note && (
-          <span className="text-[9px] text-[#8A93A6] max-w-36 truncate" title={_runStart.mode_note}>
-            {_runStart.mode_note}
+      <div className="flex items-center gap-5 text-xs">
+        {runStart?.mode_note && (
+          <span className="text-slate-400 max-w-44 truncate" title={runStart.mode_note}>
+            {runStart.mode_note}
           </span>
         )}
         {isRunning && (
-          <span className="flex items-center gap-1.5 font-mono text-[10px] font-bold text-[#3DE0D0] animate-pulse">
-            <span className="h-2 w-2 rounded-full bg-[#3DE0D0] animate-ping" />
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-sky-400">
+            <span className="h-2 w-2 rounded-full bg-sky-400 animate-ping" />
             STREAMING PIPELINE…
           </span>
         )}
         {traces.length > 0 && (
-          <>
-            <div className="flex items-center gap-1 text-[#8A93A6]">
+          <div className="flex items-center gap-4 border-l border-white/10 pl-4 font-mono text-xs">
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <Clock className="h-3.5 w-3.5 text-sky-400" />
               <span>Latency:</span>
-              <span className="font-bold text-[#F4F6FA]">{totalLatency}ms</span>
+              <span className="font-semibold text-white">{totalLatency}ms</span>
             </div>
 
-            <div className="flex items-center gap-1 text-[#8A93A6]">
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <Cpu className="h-3.5 w-3.5 text-sky-400" />
               <span>Tokens:</span>
-              <span className="font-bold text-[#F4F6FA]">{totalTokens}</span>
+              <span className="font-semibold text-white">{totalTokens}</span>
             </div>
 
-            <div className="flex items-center gap-1 text-[#8A93A6]">
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <Coins className="h-3.5 w-3.5 text-emerald-400" />
               <span>Audit Cost:</span>
-              <span className={`font-bold ${totalCost > 0 ? "text-[#3DE0D0]" : "text-[#F4F6FA]"}`}>
+              <span className="font-semibold text-emerald-300">
                 ${totalCost.toFixed(4)}
               </span>
             </div>
-          </>
+          </div>
         )}
       </div>
     </footer>

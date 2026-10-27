@@ -209,30 +209,30 @@ export default function ThreeDVolumeViewer({ encounter, roi }: ThreeDProps) {
   }, [encounter, roi, autoRotate]);
 
   return (
-    <div className="relative flex h-[280px] w-full flex-col overflow-hidden rounded-xl border border-white/15 bg-[#06070C] shadow-2xl">
+    <div className="relative flex h-[280px] w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-950 shadow-2xl">
       {/* 3D WebGL Canvas */}
       <div ref={mountRef} className="h-full w-full cursor-grab active:cursor-grabbing" />
 
       {/* Floating HUD Controls */}
       <div className="pointer-events-none absolute inset-x-2 top-2 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 rounded-full border border-[#3DE0D0]/40 bg-[#06070C]/80 px-2.5 py-0.5 text-[9.5px] font-mono font-bold text-[#3DE0D0] backdrop-blur-md shadow-[0_0_12px_rgba(61,224,208,0.2)]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#3DE0D0] animate-pulse" />
+        <div className="flex items-center gap-1.5 rounded-full border border-sky-500/30 bg-slate-900/90 px-2.5 py-0.5 text-[10px] font-mono font-bold text-sky-400 backdrop-blur-md">
+          <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
           <span>3D VOLUMETRIC CT · {encounter.radiology_study.modality}</span>
         </div>
 
         <button
           onClick={() => setAutoRotate(!autoRotate)}
-          className="pointer-events-auto rounded-lg border border-white/15 bg-[#06070C]/80 px-2.5 py-1 text-[9.5px] font-mono font-bold text-[#8A93A6] hover:text-white transition-colors backdrop-blur-md"
+          className="pointer-events-auto rounded-lg border border-white/15 bg-slate-900/90 px-2.5 py-1 text-[10px] font-mono font-bold text-slate-400 hover:text-white transition-colors backdrop-blur-md"
         >
           {autoRotate ? "PAUSE SPIN" : "AUTO SPIN"}
         </button>
       </div>
 
       {/* Slice Level Slider & 3D Indicator */}
-      <div className="pointer-events-auto absolute inset-x-2.5 bottom-2 flex items-center justify-between gap-3 rounded-lg border border-white/12 bg-[#06070C]/85 px-3 py-1.5 backdrop-blur-md">
+      <div className="pointer-events-auto absolute inset-x-2.5 bottom-2 flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-900/90 px-3 py-1.5 backdrop-blur-md">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[9.5px] text-[#8A93A6]">Slice:</span>
-          <span className="font-mono text-[10.5px] font-bold text-[#3DE0D0]">#{sliceLevel}</span>
+          <span className="font-mono text-[10px] text-slate-400">Slice:</span>
+          <span className="font-mono text-xs font-bold text-sky-400">#{sliceLevel}</span>
         </div>
         <input
           type="range"
@@ -240,9 +240,9 @@ export default function ThreeDVolumeViewer({ encounter, roi }: ThreeDProps) {
           max={80}
           value={sliceLevel}
           onChange={(e) => setSliceLevel(Number(e.target.value))}
-          className="h-1 w-32 cursor-pointer appearance-none rounded-lg bg-white/20 accent-[#3DE0D0]"
+          className="h-1 w-32 cursor-pointer appearance-none rounded-lg bg-white/20 accent-sky-400"
         />
-        <div className="font-mono text-[8.5px] text-[#8A93A6]">
+        <div className="font-mono text-[10px] text-slate-500">
           Orbit: Click & Drag · Zoom: Scroll
         </div>
       </div>
