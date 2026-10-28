@@ -11,8 +11,12 @@ Three configurations are compared on the same synthetic encounters:
 Two execution modes are deliberately separate:
 
   * replay (default) — no provider calls are made even when API keys exist.
-    Deterministic/replay outputs are labelled per case. Ultra/tiered cases that
-    depend on expected-label seeds are *not scored* as model performance.
+    Classification metrics ARE computed, but they score deterministic fixture
+    routing, not provider inference. Every scored value carries a
+    ``score_source`` label: ``fixture_deterministic`` when the pipeline reached
+    the outcome without expected-label seeds, or ``fixture_seeded`` when stage-4
+    candidates were loaded from the fixture expectations. Seeded predictions are
+    fixture-wiring checks, never model outputs.
   * live (``--live``) — every scored prediction must come from the documented
     live path. A timeout, schema failure, or deterministic fallback makes that
     case incomplete instead of crediting a fixture answer as model success.
@@ -61,6 +65,7 @@ from backend.engine import (
 )
 from backend.engine.telemetry import (
     PRICING_ASSUMPTIONS_VERSION,
+    TOKEN_COSTS_USD_PER_MTOK,
     SpendLedger,
     day_cost,
     estimate_cost,
@@ -72,6 +77,25 @@ from backend.schemas import Encounter, FindingKind, FindingSpec
 
 RESULTS_PATH = Path(__file__).resolve().parent / "results_latest.json"
 SCHEMA_VERSION = 2
+
+# Design latency budgets from the README "Stage Details" table. Replay cases
+# execute locally in microseconds, so those timings are never reported as
+# inference latency.
+STAGE_LATENCY_TARGETS_MS: dict[str, float] = {
+    "vision": 400.0,
+    "gate": 250.0,
+    "guideline": 300.0,
+    "reasoning": 600.0,
+}
+
+# Per-discharge token budgets used ONLY for public-rate replay cost estimates.
+# They are documented design assumptions, not measured provider usage.
+REPLAY_TOKEN_BUDGETS: dict[str, dict[str, int]] = {
+    "nano_only": {"gate": 200},
+    "ultra_only": {"gate": 200, "reasoning": 800},
+    "tiered_router_safe": {"vision": 600, "gate": 200},
+    "tiered_router_critical": {"vision": 600, "gate": 200, "reasoning": 800},
+}
 
 CONFIG_NAMES = {
     "nano_only": "Nemotron 3 Nano-30B Only",
@@ -118,8 +142,9 @@ DISCLAIMERS = [
     "Synthetic encounters only: 12 development fixtures (8 expected-safe, 4 expected-contradiction).",
     "Results apply only to the listed cases; they do not establish clinical sensitivity or real-world safety.",
     "This is an experimental prototype, not a validated clinical decision-support device.",
-    "Replay results are deterministic/local and must not be read as model inference performance.",
-    "Cost values are public-rate estimates from actual token usage, not provider invoices.",
+    "Replay metrics score deterministic fixture routing, not model inference; fixture-seeded stage-4 cases are labelled fixture_seeded.",
+    "Latency values are design targets from the Stage Details table, not measured inference latency.",
+    "Cost values are public-rate estimates from documented token budgets, not provider invoices.",
 ]
 
 
@@ -147,6 +172,9 @@ class CaseResult(BaseModel):
     flagged: bool | None = None
     evaluable: bool = False
     scored: bool = False
+    # Provenance of a scored value: live inference, deterministic fixture
+    # routing, or fixture-seeded replay (expected labels became stage-4 input).
+    score_source: Literal["live_inference", "fixture_deterministic", "fixture_seeded"] | None = None
     status: str = "failed"
     prediction_source: str = "none"
     case_mode: str = "REPLAYED"
@@ -174,6 +202,7 @@ class ConfigSummary(BaseModel):
     total_cases: int = 0
     evaluable_cases: int = 0
     scored_cases: int = 0
+    score_source: str | None = None
     incomplete_cases: int = 0
     failed_cases: int = 0
     fallback_affected_cases: int = 0
@@ -198,6 +227,7 @@ class ConfigSummary(BaseModel):
     p95_latency_ms: float | None = None
     latency_n: int = 0
     latency_scope: str = "unavailable"
+    estimated_latency_ms: dict[str, float] | None = None
     cost_per_1k_discharges_usd: float | None = None
     cost_per_discharge_avg_usd: float | None = None
     cost_type: str = "unavailable"
@@ -212,6 +242,7 @@ class BenchmarkMeta(BaseModel):
     mode: str
     environment: str  # backward-compatible alias for mode
     requested_mode: str
+    scoring_basis: str = "unscored"
     git_commit: str | None = None
     total_encounters: int
     positive_cases: int
@@ -382,16 +413,74 @@ def _rate(numerator: int, denominator: int) -> float | None:
 
 
 def _case_scored(case: CaseResult, live_requested: bool) -> bool:
-    """Only live runs may contribute model-performance metrics.
+    """Score evaluable predictions while keeping provenance explicit.
 
-    Replay outputs (deterministic algorithms or expected-label seeds) are useful
-    functional checks but must never be presented as model accuracy.
+    Replay is scored as a deterministic fixture-routing check. Live runs only
+    score predictions that actually came from the provider path.
     """
-    if not live_requested:
+    if not case.evaluable or case.predicted_outcome not in {"CRITICAL_INTERCEPT", "SILENT_PASS"}:
         return False
-    if case.prediction_source in {"none", "fixture_seed"}:
-        return False
-    return case.case_mode == "LIVE"
+    if live_requested:
+        if case.prediction_source in {"none", "fixture_seed"}:
+            return False
+        return case.case_mode == "LIVE"
+    return case.case_mode == "REPLAYED"
+
+
+def _score_source_for(case: CaseResult, live_requested: bool) -> str | None:
+    if not case.scored:
+        return None
+    if live_requested:
+        return "live_inference"
+    if case.prediction_source == "fixture_seed":
+        return "fixture_seeded"
+    return "fixture_deterministic"
+
+
+def _apply_scoring(case: CaseResult, live_requested: bool) -> None:
+    case.scored = _case_scored(case, live_requested)
+    case.score_source = _score_source_for(case, live_requested)
+
+
+def _replay_token_budget(config_key: str, expected_contradiction: bool) -> dict[str, int]:
+    if config_key == "tiered_router":
+        budget_key = "tiered_router_critical" if expected_contradiction else "tiered_router_safe"
+    else:
+        budget_key = config_key
+    return dict(REPLAY_TOKEN_BUDGETS[budget_key])
+
+
+def _estimate_replay_cost(config_key: str, expected_contradiction: bool) -> float:
+    """Public-rate estimate from documented token budgets (not an invoice)."""
+    budget = _replay_token_budget(config_key, expected_contradiction)
+    return sum(
+        tokens * TOKEN_COSTS_USD_PER_MTOK[role][0] / 1_000_000.0
+        for role, tokens in budget.items()
+    )
+
+
+def _estimated_latency(config_key: str) -> dict[str, float]:
+    """Design-target latency map; not a measurement."""
+    if config_key == "nano_only":
+        stages = {"gate": STAGE_LATENCY_TARGETS_MS["gate"]}
+    elif config_key == "ultra_only":
+        stages = {
+            "guideline": STAGE_LATENCY_TARGETS_MS["guideline"],
+            "reasoning": STAGE_LATENCY_TARGETS_MS["reasoning"],
+        }
+    else:
+        stages = dict(STAGE_LATENCY_TARGETS_MS)
+
+    if config_key == "tiered_router":
+        # Clean discharges return after the gate; contradictions run all stages.
+        fast_path = STAGE_LATENCY_TARGETS_MS["vision"] + STAGE_LATENCY_TARGETS_MS["gate"]
+    else:
+        fast_path = sum(stages.values())
+    return {
+        **stages,
+        "fast_path_ms": round(fast_path, 3),
+        "critical_path_ms": round(sum(stages.values()), 3),
+    }
 
 
 def _finish_case(
@@ -456,7 +545,7 @@ def _finish_case(
         error=error,
         notes=notes,
     )
-    case.scored = _case_scored(case, live_requested)
+    _apply_scoring(case, live_requested)
     return case
 
 
@@ -580,7 +669,9 @@ def evaluate_ultra_only(
     mode = _source_mode(sources, options.live)
     prediction_source = _prediction_source(ultra_trace)
     if prediction_source == "fixture_seed":
-        notes.append("Replay was seeded from expected fixtures; not scored as model performance.")
+        notes.append(
+            "Replay was seeded from expected fixtures; labelled fixture_seeded, not model performance."
+        )
     if ultra_trace.source == "live_rejected":
         notes.append("Ultra proposed candidates, but deterministic verification rejected all of them.")
 
@@ -696,24 +787,49 @@ def _summarize_config(
     tn = sum(1 for case in scored if not case.expected_contradiction and not case.flagged)
     fn = sum(1 for case in scored if case.expected_contradiction and not case.flagged)
 
-    latencies = [case.latency_ms for case in scored if case.latency_ms is not None]
-    median, p95, n = _latency_stats(latencies)
-    latency_scope = (
-        "live_end_to_end" if scored and all(case.case_mode == "LIVE" for case in scored)
-        else "local_replay" if scored and all(case.case_mode == "REPLAYED" for case in scored)
-        else "mixed" if scored
-        else "unavailable"
-    )
+    score_sources = {case.score_source for case in scored if case.score_source}
+    if not scored:
+        score_source = None
+    elif live_requested:
+        score_source = "live_inference"
+    elif "fixture_seeded" in score_sources:
+        score_source = "fixture_seeded"
+    else:
+        score_source = "fixture_deterministic"
 
-    costs = [case.cost_usd for case in scored]
-    cost_known = [cost for cost in costs if cost is not None]
-    cost_type = (
-        "not_applicable_replay" if scored and all(case.cost_type == "not_applicable_replay" for case in scored)
-        else "estimated_from_actual_tokens" if scored and all(case.cost_type == "estimated_from_actual_tokens" for case in scored)
-        else "partial_estimated_from_actual_tokens" if cost_known
-        else "unavailable"
-    )
-    avg_cost = round(sum(cost_known) / len(scored), 9) if scored and len(cost_known) == len(scored) else None
+    estimated_latency: dict[str, float] | None = None
+    if live_requested:
+        latencies = [case.latency_ms for case in scored if case.latency_ms is not None]
+        median, p95, n = _latency_stats(latencies)
+        latency_scope = (
+            "live_end_to_end" if scored and all(case.case_mode == "LIVE" for case in scored)
+            else "local_replay" if scored and all(case.case_mode == "REPLAYED" for case in scored)
+            else "mixed" if scored
+            else "unavailable"
+        )
+
+        costs = [case.cost_usd for case in scored]
+        cost_known = [cost for cost in costs if cost is not None]
+        cost_type = (
+            "not_applicable_replay" if scored and all(case.cost_type == "not_applicable_replay" for case in scored)
+            else "estimated_from_actual_tokens" if scored and all(case.cost_type == "estimated_from_actual_tokens" for case in scored)
+            else "partial_estimated_from_actual_tokens" if cost_known
+            else "unavailable"
+        )
+        avg_cost = round(sum(cost_known) / len(scored), 9) if scored and len(cost_known) == len(scored) else None
+    else:
+        # Replay cases execute locally in microseconds. Report design targets,
+        # never local timings, as latency.
+        median, p95, n = None, None, 0
+        latency_scope = "estimated_design_targets"
+        estimated_latency = _estimated_latency(key)
+        # Cost is a design estimate over every labelled case, independent of
+        # whether that case's prediction was fixture-seeded.
+        estimates = [
+            _estimate_replay_cost(key, case.expected_contradiction) for case in cases
+        ]
+        avg_cost = round(sum(estimates) / len(estimates), 9) if estimates else None
+        cost_type = "estimated_public_rates" if estimates else "unavailable"
     per_1k = round(avg_cost * 1000.0, 4) if avg_cost is not None else None
 
     notes: list[str] = []
@@ -732,7 +848,20 @@ def _summarize_config(
         notes.append(
             "Replay mode: no provider calls were made. "
             f"{replay_matches}/{replay_total} predicted/expected fixture checks match; "
-            "this is a functional check, not model accuracy."
+            "classification metrics score deterministic fixture routing, not model accuracy."
+        )
+        seeded_count = sum(1 for case in scored if case.score_source == "fixture_seeded")
+        if seeded_count:
+            notes.append(
+                f"{seeded_count}/{len(scored)} scored case(s) used fixture-seeded stage-4 "
+                "candidates; those predictions are fixture wiring, not model outputs."
+            )
+        notes.append(
+            "Cost is estimated from documented token budgets at public list rates; "
+            "not a provider invoice."
+        )
+        notes.append(
+            "Latency figures are design targets from the Stage Details table, not measurements."
         )
     else:
         replay_total = 0
@@ -742,7 +871,7 @@ def _summarize_config(
         notes.append(
             "No live-scored cases; run --live to measure model performance."
             if live_requested
-            else "Metrics are intentionally N/A in replay mode."
+            else "No evaluable predictions; metrics are N/A."
         )
 
     if live_requested and len(scored) < len(cases):
@@ -760,6 +889,7 @@ def _summarize_config(
         total_cases=len(cases),
         evaluable_cases=sum(1 for case in cases if case.evaluable),
         scored_cases=len(scored),
+        score_source=score_source,
         incomplete_cases=len(cases) - len(scored),
         failed_cases=sum(1 for case in cases if case.status in {"failed", "error"}),
         fallback_affected_cases=sum(1 for case in cases if case.fallback_affected),
@@ -782,6 +912,7 @@ def _summarize_config(
         p95_latency_ms=p95,
         latency_n=n,
         latency_scope=latency_scope,
+        estimated_latency_ms=estimated_latency,
         cost_per_1k_discharges_usd=per_1k,
         cost_per_discharge_avg_usd=avg_cost,
         cost_type=cost_type,
@@ -842,9 +973,7 @@ def run_benchmark(options: BenchmarkOptions | None = None) -> BenchmarkReport:
                 "CRITICAL_INTERCEPT" if case.expected_contradiction else "SILENT_PASS"
             )
             # Recompute scoring now that the label is known (scoring, not prediction).
-            case.scored = _case_scored(case, options.live)
-            if case.prediction_source == "fixture_seed":
-                case.scored = False
+            _apply_scoring(case, options.live)
 
     summary = {
         key: _summarize_config(key, cases, live_requested=options.live)
@@ -884,11 +1013,21 @@ def run_benchmark(options: BenchmarkOptions | None = None) -> BenchmarkReport:
                 detailed_cases.append(fallback)
 
     models = dict(options.model_ids)
+    pricing = pricing_snapshot()
+    pricing["replay_estimate_model"] = {
+        "token_budgets_per_discharge": REPLAY_TOKEN_BUDGETS,
+        "stage_latency_targets_ms": STAGE_LATENCY_TARGETS_MS,
+        "note": (
+            "Documented design assumptions used for replay cost/latency estimates. "
+            "They are not measured provider usage or inference latency."
+        ),
+    }
     meta = BenchmarkMeta(
         eval_date=time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
         mode=overall_mode,
         environment=overall_mode,
         requested_mode="live" if options.live else "replay",
+        scoring_basis="live_inference" if options.live else "fixture_deterministic",
         git_commit=_git_commit(),
         total_encounters=len(encounters),
         positive_cases=sum(1 for enc in encounters if labels[enc.encounter_id]),
@@ -901,7 +1040,7 @@ def run_benchmark(options: BenchmarkOptions | None = None) -> BenchmarkReport:
         case_ids=[enc.encounter_id for enc in encounters],
         models_resolved={role: models.get(role) for role in ("vision", "gate", "reasoning", "failsafe")},
         tavily_configured=bool(options.search_post is not None or TAVILY_API_KEY),
-        pricing=pricing_snapshot(),
+        pricing=pricing,
         disclaimers=DISCLAIMERS,
         limitations=[
             "Nano-only and Ultra-only baselines use report-derived findings, not image inference.",
@@ -952,8 +1091,8 @@ def _fmt_cost(value: float | None) -> str:
 
 def render_markdown_table(report: BenchmarkReport) -> str:
     lines = [
-        "| Configuration | Mode | Scored (pos/neg) | Replay check | TP/FP/TN/FN | Recall | Precision | Specificity | FPR | Median / p95 | Cost / 1k | Cost type |",
-        "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |",
+        "| Configuration | Mode | Basis | Scored (pos/neg) | Replay check | TP/FP/TN/FN | Recall | Precision | Specificity | FPR | Latency | Cost / 1k | Cost type |",
+        "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |",
     ]
     for key in ("nano_only", "ultra_only", "tiered_router"):
         row = report.summary.get(key)
@@ -966,12 +1105,17 @@ def render_markdown_table(report: BenchmarkReport) -> str:
             else "—"
         )
         matrix = f"{row.tp}/{row.fp}/{row.tn}/{row.fn}"
-        latency = f"{_fmt_ms(row.median_latency_ms)} / {_fmt_ms(row.p95_latency_ms)}"
+        if row.median_latency_ms is not None:
+            latency = f"{_fmt_ms(row.median_latency_ms)} / {_fmt_ms(row.p95_latency_ms)}"
+        elif row.estimated_latency_ms:
+            latency = f"est. {row.estimated_latency_ms.get('critical_path_ms', 0):.0f} ms"
+        else:
+            latency = "N/A"
         cost = _fmt_cost(row.cost_per_1k_discharges_usd)
         lines.append(
-            f"| {row.name} | {row.mode} | {support} | {replay} | {matrix} | {_fmt_pct(row.recall_pct)} | "
-            f"{_fmt_pct(row.precision_pct)} | {_fmt_pct(row.specificity_pct)} | {_fmt_pct(row.fpr_pct)} | "
-            f"{latency} | {cost} | {row.cost_type} |"
+            f"| {row.name} | {row.mode} | {row.score_source or '—'} | {support} | {replay} | {matrix} | "
+            f"{_fmt_pct(row.recall_pct)} | {_fmt_pct(row.precision_pct)} | {_fmt_pct(row.specificity_pct)} | "
+            f"{_fmt_pct(row.fpr_pct)} | {latency} | {cost} | {row.cost_type} |"
         )
     return "\n".join(lines)
 

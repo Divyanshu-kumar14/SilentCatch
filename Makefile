@@ -14,7 +14,8 @@ install:
 judge-demo:
 	docker compose up --build
 
-# Default benchmark is deterministic replay: no provider calls, no model accuracy.
+# Default benchmark is deterministic replay: no provider calls; fixture-routing
+# metrics with explicit score_source, public-rate cost estimates, design targets.
 benchmark:
 	./.venv/bin/python eval/benchmark.py --replay
 	$(MAKE) sync-benchmark-artifact

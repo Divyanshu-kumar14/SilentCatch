@@ -70,7 +70,7 @@ def _search_post(query: str):
     )
 
 
-def test_replay_makes_no_live_calls_and_scores_nothing(monkeypatch) -> None:
+def test_replay_scores_fixture_routing_without_live_calls(monkeypatch) -> None:
     monkeypatch.setattr(benchmark, "NEBIUS_API_KEY", "key-present-but-ignored")
 
     report = benchmark.run_benchmark(
@@ -85,16 +85,46 @@ def test_replay_makes_no_live_calls_and_scores_nothing(monkeypatch) -> None:
 
     assert report.meta.mode == "REPLAYED"
     assert report.meta.environment == "REPLAYED"
+    assert report.meta.scoring_basis == "fixture_deterministic"
     assert case.prediction_source == "fixture_seed"
-    assert case.scored is False
-    assert summary.scored_cases == 0
-    assert summary.recall_pct is None
-    assert summary.precision_pct is None
-    assert summary.cost_type == "unavailable"
+    # Scored as a fixture-routing check, with seeded provenance recorded.
+    assert case.scored is True
+    assert case.score_source == "fixture_seeded"
+    assert summary.scored_cases == 1
+    assert summary.score_source == "fixture_seeded"
+    assert summary.recall_pct == 100.0
+    # This subset has one positive case and no negatives, so FPR is undefined.
+    assert summary.fpr_pct is None
+    # Replay reports design targets, not microsecond local execution.
+    assert summary.median_latency_ms is None
+    assert summary.latency_scope == "estimated_design_targets"
+    assert summary.estimated_latency_ms is not None
+    assert summary.estimated_latency_ms["vision"] == 400.0
+    assert summary.cost_type == "estimated_public_rates"
+    assert summary.cost_per_1k_discharges_usd is not None
     assert summary.replay_check_total == 1
     assert summary.replay_check_matches == 1
     # No stage claims a provider call in replay mode.
     assert all(stage.source not in benchmark.LIVE_SOURCES for stage in case.stages)
+
+
+def test_replay_nano_scoring_is_deterministic_not_seeded() -> None:
+    report = benchmark.run_benchmark(
+        benchmark.BenchmarkOptions(
+            live=False,
+            encounter_ids=("ED-104",),
+            configs=("nano_only",),
+        )
+    )
+    case = report.cases[0]
+    summary = report.summary["nano_only"]
+
+    assert case.scored is True
+    assert case.score_source == "fixture_deterministic"
+    assert summary.score_source == "fixture_deterministic"
+    assert summary.recall_pct == 100.0
+    assert summary.latency_scope == "estimated_design_targets"
+    assert summary.median_latency_ms is None
 
 
 def test_nano_only_live_actually_invokes_transport() -> None:
