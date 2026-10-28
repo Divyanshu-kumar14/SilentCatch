@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import {
   useCallback,
   useEffect,
@@ -8,15 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  Volume2,
-  VolumeX,
-  RotateCcw,
-  Activity,
-  HelpCircle,
-  Info,
-  User,
-} from "lucide-react";
+import { Volume2, VolumeX, RotateCcw, HelpCircle } from "lucide-react";
 
 import { getEncounters, getHealthz, streamAudit } from "@/lib/api";
 import {
@@ -43,10 +36,11 @@ import DischargeEditor from "@/components/DischargeEditor";
 import LabSparkline from "@/components/LabSparkline";
 import ScanViewer from "@/components/ScanViewer";
 import TelemetryBar from "@/components/TelemetryBar";
+import { Mark } from "@/components/Mark";
 
 const BenchmarkView = dynamic(() => import("@/components/BenchmarkView"), {
   loading: () => (
-    <div className="flex h-full items-center justify-center text-xs text-slate-400">
+    <div className="flex h-full items-center justify-center text-[13px] text-muted">
       Loading benchmark suite…
     </div>
   ),
@@ -164,8 +158,8 @@ function RedlineOverlay({
           <path
             d={d}
             fill="none"
-            stroke="#F43F5E"
-            strokeOpacity={0.15}
+            stroke="#B0232A"
+            strokeOpacity={0.14}
             strokeWidth={6}
             strokeLinecap="round"
           />
@@ -173,7 +167,7 @@ function RedlineOverlay({
             className="redline-path"
             d={d}
             fill="none"
-            stroke="#F43F5E"
+            stroke="#B0232A"
             strokeWidth={2}
           />
         </g>
@@ -456,266 +450,239 @@ export default function Console() {
   } : null;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-bg text-slate-100 font-sans">
-      {/* ------------------------------------------------------ 1. TOP HEADER ------------------------------------------------------ */}
-      <header className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-slate-950/90 px-6 py-2.5 backdrop-blur-xl">
-        {/* Brand & Concept */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-sky-500 shadow-md shadow-indigo-500/20">
-              <Activity className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold tracking-tight text-white">
-                  SILENTCATCH
-                </h1>
-                <span className="rounded-md bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 text-xs font-semibold text-sky-400">
-                  Pre-Discharge Safety Interlock
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">
-                Pre-discharge collision interlock & clinical handoff verification
-              </p>
-            </div>
-          </div>
+    <div className="flex h-screen flex-col overflow-hidden bg-paper-deep text-ink">
+      {/* ───────────────────────────────── top bar ───────────────────────────────── */}
+      <header className="flex h-14 shrink-0 items-center justify-between gap-6 border-b border-edge bg-paper pl-4 pr-2.5">
+        <div className="flex min-w-0 items-center gap-6">
+          <Link
+            href="/"
+            className="flex shrink-0 items-center gap-2.5"
+            aria-label="SilentCatch home"
+          >
+            <span className="flex h-8 w-8 items-center justify-center bg-ink">
+              <Mark className="h-[18px] w-[18px]" tone="light" />
+            </span>
+            <h1 className="hidden text-[15px] font-semibold tracking-tight sm:block">
+              SilentCatch
+            </h1>
+          </Link>
 
-          {/* Navigation Pill (Cockpit vs Benchmarks) */}
-          <div className="flex items-center rounded-xl border border-white/10 bg-slate-900/80 p-0.5 ml-2">
-            <button
-              onClick={() => setViewTab("cockpit")}
-              className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                viewTab === "cockpit"
-                  ? "bg-sky-500 text-slate-950 font-bold shadow-sm"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              FLIGHT-CHECK
-            </button>
-            <button
-              onClick={() => setViewTab("benchmarks")}
-              className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                viewTab === "benchmarks"
-                  ? "bg-sky-500 text-slate-950 font-bold shadow-sm"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              MODEL BENCHMARKS
-            </button>
-          </div>
+          <nav className="flex h-14 items-stretch" aria-label="Console sections">
+            {(
+              [
+                ["cockpit", "Flight-check"],
+                ["benchmarks", "Benchmarks"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setViewTab(id)}
+                aria-current={viewTab === id ? "page" : undefined}
+                className={`relative whitespace-nowrap px-3 text-[13px] transition-colors ${
+                  viewTab === id ? "font-medium text-ink" : "text-muted hover:text-ink"
+                }`}
+              >
+                {label}
+                {viewTab === id && (
+                  <span className="absolute inset-x-3 bottom-0 h-[2px] bg-ink" aria-hidden />
+                )}
+              </button>
+            ))}
+          </nav>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-3">
-          {/* Judge / Non-Medical Explainer Toggle */}
+        <div className="flex items-center gap-1.5">
+          {/* Provenance is configuration, not a provider call. */}
+          <div
+            className="hidden items-center gap-2 pr-2 text-[12px] lg:flex"
+            title={healthz?.mode_note ?? "Backend health not loaded"}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                healthz?.live_capable ? "bg-safe" : "bg-warn"
+              }`}
+            />
+            <span className="font-medium text-ink-2">
+              {healthz?.live_capable ? "Live capable" : "Replay"}
+            </span>
+            <span className="text-faint">
+              tavily {healthz?.tavily_configured ? "live" : "snapshot"}
+            </span>
+          </div>
+
           <button
             onClick={() => setShowGuide(!showGuide)}
-            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all ${
+            aria-pressed={showGuide}
+            className={`hidden h-8 items-center gap-1.5 px-2 text-[12px] transition-colors sm:flex ${
               showGuide
-                ? "border-sky-500/40 bg-sky-500/15 text-sky-300"
-                : "border-white/10 bg-slate-900/60 text-slate-400 hover:text-white"
+                ? "text-ink underline decoration-signal decoration-1 underline-offset-4"
+                : "text-muted hover:text-ink"
             }`}
           >
-            <HelpCircle className="h-3.5 w-3.5 text-sky-400" />
-            <span>Judge Guide: {showGuide ? "ON" : "OFF"}</span>
+            <HelpCircle className="h-3.5 w-3.5" />
+            Guide
           </button>
 
-          {/* Run Audit */}
           {viewTab === "cockpit" && (
             <button
               onClick={handleRun}
               disabled={phase === "running"}
-              className="flex items-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-white/10 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-all active:scale-95"
+              aria-label="Run audit"
+              className="flex h-8 items-center gap-2 bg-ink px-3 text-[12px] font-medium text-sheet transition-colors hover:bg-ink-2 disabled:opacity-50"
             >
-              <RotateCcw className={`h-3.5 w-3.5 text-sky-400 ${phase === "running" ? "animate-spin" : ""}`} />
-              <span>Run Audit</span>
-              <kbd className="rounded bg-black/40 px-1.5 py-0.5 text-xs text-slate-400 border border-white/10">
+              <RotateCcw
+                className={`h-3.5 w-3.5 ${phase === "running" ? "animate-spin" : ""}`}
+              />
+              <span className="hidden sm:inline">Run audit</span>
+              <kbd className="ml-0.5 hidden border border-white/25 px-1 text-[10px] leading-4 text-sheet/70 sm:inline">
                 R
               </kbd>
             </button>
           )}
 
-          {/* Sound Mute */}
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
-            title={soundEnabled ? "Audio Alarms Enabled [M]" : "Audio Muted [M]"}
-            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition-all ${
-              soundEnabled
-                ? "border-sky-500/40 bg-sky-500/10 text-sky-300"
-                : "border-white/5 bg-slate-900/60 text-slate-400 hover:text-white"
-            }`}
+            title={soundEnabled ? "Audio alarms enabled [M]" : "Audio muted [M]"}
+            aria-label={soundEnabled ? "Mute audio" : "Enable audio"}
+            className="flex h-8 w-8 items-center justify-center text-muted transition-colors hover:text-ink"
           >
             {soundEnabled ? (
-              <Volume2 className="h-3.5 w-3.5 text-sky-400" />
+              <Volume2 className="h-4 w-4" />
             ) : (
-              <VolumeX className="h-3.5 w-3.5" />
+              <VolumeX className="h-4 w-4" />
             )}
-            <span>{soundEnabled ? "Sound ON" : "MUTED"}</span>
-            <kbd className="rounded bg-black/40 px-1 py-0.5 text-xs text-slate-500">
-              M
-            </kbd>
           </button>
-
-          {/* Live capability / replay status (configuration only, not a call) */}
-          <div
-            className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-medium ${
-              healthz?.live_capable
-                ? "border-sky-500/30 bg-sky-500/10 text-sky-300"
-                : "border-amber-500/30 bg-amber-500/10 text-amber-300"
-            }`}
-            title={healthz?.mode_note ?? "Backend health not loaded"}
-          >
-            <span
-              className={`h-2 w-2 rounded-full ${
-                healthz?.live_capable ? "bg-sky-400" : "bg-amber-400"
-              }`}
-            />
-            <span className="font-semibold">
-              {healthz?.live_capable ? "LIVE CAPABLE" : "REPLAY / OFFLINE"}
-            </span>
-            <span className="text-xs opacity-80">
-              tavily: {healthz?.tavily_configured ? "configured" : "snapshot"}
-            </span>
-          </div>
         </div>
       </header>
 
-      {/* ------------------------------------------------------ 2. JUDGE STORY & PATIENT SELECTOR STRIP ------------------------------------------------------ */}
+      {/* ─────────────────────────── case rail + guide ─────────────────────────── */}
       {viewTab === "cockpit" && (
-        <div className="shrink-0 border-b border-white/[0.08] bg-slate-950/70 px-6 py-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            {/* Patient Selector Tabs */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-1">
-                Patients:
-              </span>
-              {/* Primary 4 Benchmark Cases */}
+        <div className="shrink-0 border-b border-edge bg-paper-deep">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2">
+            <span className="label">Cases</span>
+
+            <div className="no-scrollbar flex min-w-0 flex-nowrap items-center gap-1 overflow-x-auto py-0.5">
               {fixtures.slice(0, 4).map((record) => {
                 const active = enc?.encounter_id === record.encounter_id;
                 const isED104 = record.encounter_id === "ED-104";
                 const isOrdered = record.encounter_id === "ED-102";
+                const status = isED104 ? "contradiction" : isOrdered ? "ordered" : "clean";
 
                 return (
                   <button
                     key={record.encounter_id}
                     onClick={() => selectEncounter(record)}
-                    className={`group relative flex items-center gap-2 rounded-xl border px-3 py-1.5 transition-all ${
+                    aria-pressed={active}
+                    className={`flex h-7 shrink-0 items-center gap-2 whitespace-nowrap border px-2.5 text-[12px] transition-colors ${
                       active
-                        ? isED104
-                          ? "border-rose-500 bg-rose-500/20 text-white shadow-md shadow-rose-950/40 ring-1 ring-rose-500/50"
-                          : "border-sky-500 bg-sky-500/20 text-white shadow-md shadow-sky-950/40 ring-1 ring-sky-500/50"
-                        : "border-white/10 bg-slate-900/60 text-slate-400 hover:border-white/20 hover:text-white"
+                        ? "border-ink bg-sheet font-medium text-ink"
+                        : "border-transparent text-muted hover:border-edge-2 hover:text-ink"
                     }`}
                   >
                     <span
-                      className={`h-2 w-2 rounded-full shrink-0 ${
-                        isED104
-                          ? "bg-rose-500"
-                          : isOrdered
-                            ? "bg-amber-400"
-                            : "bg-emerald-400"
+                      className={`h-1.5 w-1.5 shrink-0 ${
+                        status === "contradiction"
+                          ? "bg-signal"
+                          : status === "ordered"
+                            ? "bg-warn"
+                            : "bg-safe"
                       }`}
+                      aria-hidden
                     />
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-xs">
-                        {record.encounter_id}
-                      </span>
-                      {isED104 ? (
-                        <span className="rounded bg-rose-500 px-1.5 py-0.2 text-[10px] font-extrabold text-slate-950 uppercase tracking-tight">
-                          ⭐ JUDGE DEMO
-                        </span>
-                      ) : (
-                        <span
-                          className={`rounded px-1.5 py-0.2 text-[10px] font-semibold uppercase ${
-                            isOrdered
-                              ? "bg-amber-500/20 text-amber-300"
-                              : "bg-emerald-500/20 text-emerald-300"
-                          }`}
-                        >
-                          {isOrdered ? "ORDERED" : "CLEAR"}
-                        </span>
-                      )}
-                    </div>
+                    <span className="tabular">{record.encounter_id}</span>
+                    <span
+                      className={`text-[10px] uppercase tracking-[0.08em] ${
+                        status === "contradiction"
+                          ? "text-signal"
+                          : status === "ordered"
+                            ? "text-warn"
+                            : "text-faint"
+                      }`}
+                    >
+                      {status}
+                    </span>
                   </button>
                 );
               })}
 
-              {/* Overflow Archive Dropdown */}
               {fixtures.length > 4 && (
-                <div className="relative">
-                  <select
-                    value={fixtures.slice(4).some((f) => f.encounter_id === enc?.encounter_id) ? enc?.encounter_id : ""}
-                    onChange={(e) => {
-                      const found = fixtures.find((f) => f.encounter_id === e.target.value);
-                      if (found) selectEncounter(found);
-                    }}
-                    className={`rounded-xl border px-2.5 py-1.5 text-xs font-medium outline-none transition-all cursor-pointer ${
-                      fixtures.slice(4).some((f) => f.encounter_id === enc?.encounter_id)
-                        ? "border-sky-500 bg-sky-500/20 text-white font-bold"
-                        : "border-white/10 bg-slate-900/60 text-slate-400 hover:text-white hover:border-white/20"
-                    }`}
-                  >
-                    <option value="" disabled className="bg-slate-900 text-slate-400">
-                      + {fixtures.length - 4} More Cases…
+                <select
+                  value={
+                    fixtures.slice(4).some((f) => f.encounter_id === enc?.encounter_id)
+                      ? enc?.encounter_id
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const found = fixtures.find((f) => f.encounter_id === e.target.value);
+                    if (found) selectEncounter(found);
+                  }}
+                  aria-label="More cases"
+                  className={`h-7 cursor-pointer border bg-transparent px-2 text-[12px] outline-none ${
+                    fixtures.slice(4).some((f) => f.encounter_id === enc?.encounter_id)
+                      ? "border-ink bg-sheet font-medium text-ink"
+                      : "border-transparent text-muted hover:border-edge-2 hover:text-ink"
+                  }`}
+                >
+                  <option value="" disabled>
+                    +{fixtures.length - 4} more…
+                  </option>
+                  {fixtures.slice(4).map((f) => (
+                    <option key={f.encounter_id} value={f.encounter_id}>
+                      {f.encounter_id} · {f.chief_complaint || "Trauma case"}
                     </option>
-                    {fixtures.slice(4).map((f) => (
-                      <option key={f.encounter_id} value={f.encounter_id} className="bg-slate-900 text-slate-200">
-                        {f.encounter_id} · {f.chief_complaint || "Trauma Case"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  ))}
+                </select>
               )}
             </div>
 
-            {/* Current Patient Story in Plain English - Always Visible */}
             {patientStory && (
-              <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-slate-900/90 px-4 py-1.5 text-xs shadow-sm">
-                <div className="flex items-center gap-2 text-slate-300">
-                  <User className="h-4 w-4 text-sky-400 shrink-0" />
-                  <span className="font-bold text-white">{patientStory.name}:</span>
-                  <span className="text-slate-300">{patientStory.problem}</span>
-                </div>
-                <div className="h-3.5 w-px bg-white/10" />
-                <div className="flex items-center gap-1.5">
-                  <span className="text-slate-400">Status:</span>
-                  <span
-                    className={`font-bold ${
-                      patientStory.isCritical ? "text-rose-400" : "text-emerald-400"
-                    }`}
-                  >
-                    {patientStory.outcome}
-                  </span>
-                </div>
+              <div className="ml-auto hidden min-w-0 items-baseline gap-2.5 text-[12px] lg:flex">
+                <span className="font-medium text-ink">{patientStory.name}</span>
+                <span className="hidden max-w-[36ch] truncate text-muted xl:inline">
+                  {patientStory.problem}
+                </span>
+                <span
+                  className={`shrink-0 font-medium ${
+                    patientStory.isCritical ? "text-signal" : "text-safe"
+                  }`}
+                >
+                  {patientStory.outcome}
+                </span>
               </div>
             )}
           </div>
 
-          {/* Optional Judge Explainer Banner */}
           {showGuide && (
-            <div className="mt-2.5 rounded-xl border border-sky-500/20 bg-sky-950/30 p-2.5 text-xs text-sky-200 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-sky-400 shrink-0" />
-                <span>
-                  <strong>Judges Guide:</strong> Click <strong>ED-104 (⭐ Judge Demo)</strong> to run the synthetic
-                  fixture where a missed early lung nodule and a toxic painkiller prescription collide. The
-                  interlock outcome is produced by the audit stream (replay offline, live when configured).
-                </span>
-              </div>
+            <div className="flex items-start justify-between gap-4 border-t border-edge bg-warn-wash px-4 py-2 text-[12px] leading-[1.5] text-ink-2">
+              <p className="max-w-[110ch]">
+                <span className="font-medium text-ink">Guide.</span> Open{" "}
+                <button
+                  onClick={() => {
+                    const target = fixtures.find((f) => f.encounter_id === "ED-104");
+                    if (target) selectEncounter(target);
+                  }}
+                  className="font-medium text-signal underline underline-offset-2"
+                >
+                  ED-104
+                </button>{" "}
+                to see a missed 7.2 mm nodule and a toxic analgesic collide at the point of
+                signature. The verdict is produced by the audit stream — deterministic replay
+                offline, live when a provider is configured.
+              </p>
               <button
                 onClick={() => setShowGuide(false)}
-                className="text-xs text-sky-400 hover:text-white underline shrink-0 font-medium"
+                className="shrink-0 text-[12px] text-muted underline underline-offset-2 hover:text-ink"
               >
-                Got it, hide guide
+                Hide
               </button>
             </div>
           )}
         </div>
       )}
 
-      {/* ------------------------------------------------------ 3. MAIN WORKSTATION BODY ------------------------------------------------------ */}
+      {/* ────────────────────────────── workstation ────────────────────────────── */}
       {viewTab === "benchmarks" ? (
-        <main className="min-h-0 flex-1 overflow-y-auto">
+        <main className="min-h-0 flex-1 overflow-y-auto bg-paper">
           <BenchmarkView
             onSelectEncounter={(encounterId) => {
               const target = fixtures.find((f) => f.encounter_id === encounterId);
@@ -727,13 +694,16 @@ export default function Console() {
           />
         </main>
       ) : (
-        <main className="min-h-0 flex-1 p-5 overflow-hidden">
+        <main className="min-h-0 flex-1 overflow-hidden p-2.5">
           {err && (
-            <div className="mb-4 flex items-center justify-between rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2.5 text-xs text-rose-200">
+            <div
+              role="alert"
+              className="mb-2 flex items-center justify-between gap-4 border border-signal/30 bg-signal-wash px-3 py-2 text-[12px] text-signal-ink"
+            >
               <span>{err}</span>
               <button
                 onClick={() => setErr(null)}
-                className="text-xs font-bold text-rose-300 hover:underline"
+                className="shrink-0 font-medium underline underline-offset-2"
               >
                 Dismiss
               </button>
@@ -741,9 +711,8 @@ export default function Console() {
           )}
 
           {enc ? (
-            <div className="grid h-full grid-cols-12 gap-5 min-h-0">
-              {/* Column 1: Key-Slice & Radiology (4 cols) */}
-              <div className="col-span-4 h-full min-h-0">
+            <div className="sheet-surface grid h-full min-h-0 grid-cols-1 rounded-[10px] overflow-y-auto xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)_minmax(0,1.06fr)] xl:overflow-hidden">
+              <div className="min-h-[540px] border-b border-edge xl:min-h-0 xl:border-b-0 xl:border-r">
                 <ScanViewer
                   encounter={enc}
                   findings={findings}
@@ -752,8 +721,7 @@ export default function Console() {
                 />
               </div>
 
-              {/* Column 2: 48-Hour Lab Velocity (4 cols) */}
-              <div className="col-span-4 h-full min-h-0">
+              <div className="min-h-[540px] border-b border-edge xl:min-h-0 xl:border-b-0 xl:border-r">
                 <LabSparkline
                   slopes={slopes}
                   serialLabs={enc.serial_labs}
@@ -763,8 +731,7 @@ export default function Console() {
                 />
               </div>
 
-              {/* Column 3: Discharge Packet & Safety Interlock (4 cols) */}
-              <div className="col-span-4 h-full min-h-0">
+              <div className="min-h-[540px] xl:min-h-0">
                 <DischargeEditor
                   encounter={enc}
                   phase={phase}
@@ -779,14 +746,14 @@ export default function Console() {
               </div>
             </div>
           ) : (
-            <div className="flex h-full items-center justify-center text-xs text-slate-400">
+            <div className="flex h-full items-center justify-center text-[13px] text-muted">
               Loading encounters…
             </div>
           )}
         </main>
       )}
 
-      {/* ------------------------------------------------------ REDLINE OVERLAY ------------------------------------------------------ */}
+      {/* ─────────────────────────── redline overlay ─────────────────────────── */}
       {enc && (
         <RedlineOverlay
           verdicts={verdicts}
@@ -795,7 +762,7 @@ export default function Console() {
         />
       )}
 
-      {/* ------------------------------------------------------ 4. CONNECTED TELEMETRY FOOTER ------------------------------------------------------ */}
+      {/* ──────────────────────────── telemetry ──────────────────────────── */}
       <TelemetryBar
         phase={phase}
         runStart={runStart}

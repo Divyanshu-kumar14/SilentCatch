@@ -1,28 +1,10 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import {
-  ShieldCheck,
-  ShieldAlert,
-  Clock,
-  TrendingDown,
-  CheckCircle2,
-  Layers,
-  Award,
-  Search,
-  ChevronDown,
-  ChevronUp,
-  Sparkles,
-  ArrowUpRight,
-  Activity,
-  AlertTriangle,
-} from "lucide-react";
+import { Search, ChevronDown, ChevronUp, ArrowUpRight } from "lucide-react";
 
 import benchmarkData from "@/data/results_latest.json";
-import type {
-  BenchmarkCase,
-  BenchmarkReport,
-} from "@/lib/types";
+import type { BenchmarkCase, BenchmarkReport } from "@/lib/types";
 
 const report = benchmarkData as unknown as BenchmarkReport;
 
@@ -198,16 +180,32 @@ function sourceLabel(source: string | undefined): string {
   return source.replaceAll("_", " ");
 }
 
-function modeBadgeClass(mode: string): string {
-  if (mode === "LIVE") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
-  if (mode === "MIXED") return "border-amber-500/30 bg-amber-500/10 text-amber-300";
-  if (mode === "REPLAYED") return "border-sky-500/30 bg-sky-500/10 text-sky-300";
-  return "border-rose-500/30 bg-rose-500/10 text-rose-300";
+/** Mode is provenance, so it reads as a tone, not a badge. */
+function modeTone(mode: string): string {
+  if (mode === "LIVE") return "text-safe";
+  if (mode === "MIXED") return "text-warn";
+  if (mode === "REPLAYED") return "text-muted";
+  return "text-signal";
 }
 
 function caseAgreesWithFixture(c: BenchmarkCase): boolean | null {
   if (c.predicted_outcome == null) return null;
   return c.predicted_outcome === c.expected_outcome;
+}
+
+function outcomeTone(outcome: string | null): string {
+  if (outcome == null) return "text-faint";
+  return outcome === "CRITICAL_INTERCEPT" ? "text-signal" : "text-safe";
+}
+
+function outcomeLabel(outcome: string | null): string {
+  if (outcome == null) return "no prediction";
+  return outcome === "CRITICAL_INTERCEPT" ? "intercept" : "silent pass";
+}
+
+/** Drop the fixture-note prefix where the surrounding label already says it. */
+function stripPrefix(text: string, prefix: string): string {
+  return text.startsWith(prefix) ? text.slice(prefix.length).trim() : text;
 }
 
 // --------------------------------------------------------------------- component
@@ -250,323 +248,256 @@ export default function BenchmarkView({
     tiered.cost_per_1k_discharges_usd != null;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-6 py-6 text-slate-100 font-sans">
-      {/* ---------------- 1. HERO / PROVENANCE ---------------- */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-slate-900 via-slate-900 to-sky-950/40 p-6 shadow-2xl">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sky-400">
-              <Activity className="h-4 w-4" />
-              <span>Multi-Tier Model Evaluation · Synthetic Fixtures</span>
-            </div>
-            <h1 className="mt-1 text-xl font-bold tracking-tight text-white sm:text-2xl">
-              Architecture Benchmark & Replay Ledger
+    <div className="mx-auto max-w-[1440px] px-6 py-8 text-ink lg:px-10">
+      {/* ───────────────────────── provenance ───────────────────────── */}
+      <header className="border-b border-ink pb-6">
+        <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
+          <div className="max-w-[60ch]">
+            <p className="label">Evidence · synthetic fixtures</p>
+            <h1 className="mt-2 font-display text-[clamp(2.2rem,4.2vw,3.6rem)] leading-[0.98] tracking-[-0.03em]">
+              Architecture benchmark &amp; replay ledger
             </h1>
-            <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-300">
+            <p className="mt-3 text-[15px] leading-[1.6] text-ink-2">
               {isReplay
                 ? "This artifact was produced in replay mode. The pipeline re-ran local fixture traces; no provider calls were made. Replay agreement is a functional check, not model accuracy."
                 : `This artifact was produced in ${meta.mode.toLowerCase()} mode. Metrics cover only the ${meta.total_encounters} listed synthetic fixtures and do not establish clinical sensitivity or real-world safety.`}
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <div
-              className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold ${modeBadgeClass(
-                meta.mode
-              )}`}
+          <dl className="grid w-full shrink-0 grid-cols-2 gap-x-8 gap-y-4 sm:w-auto sm:grid-cols-4 sm:gap-y-3">
+            <div>
+              <dt className="label">Executed mode</dt>
+              <dd className={`mt-1 text-[13px] font-medium ${modeTone(meta.mode)}`}>
+                {meta.mode}
+                <span className="ml-2 text-[11px] font-normal text-faint">
+                  requested {meta.requested_mode}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt className="label">Fixtures</dt>
+              <dd className="mt-1 text-[13px] font-medium text-ink">
+                {meta.total_encounters}
+                <span className="ml-2 text-[11px] font-normal text-faint">
+                  {meta.contradiction_count} contradiction · {meta.safe_count} safe
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt className="label">Run</dt>
+              <dd className="mono mt-1 text-[12px] text-ink-2">{meta.eval_date}</dd>
+            </div>
+            <div>
+              <dt className="label">Schema</dt>
+              <dd className="mono mt-1 text-[12px] text-ink-2">v{report.schema_version}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <p className="mt-5 max-w-[92ch] border-l-2 border-edge-2 pl-3 text-[12.5px] leading-[1.6] text-muted">
+          <span className="font-medium text-ink-2">How to read this page.</span>{" "}
+          <span className="mono">N/A</span> means the run produced no scored value. A replay check
+          compares local fixture output with fixture expectations; it is not recall, precision, or
+          clinical validation. Scored metrics appear only when a prediction came from a live
+          provider response.
+          {meta.requested_mode !== meta.mode && (
+            <>
+              {" "}
+              Requested mode was <span className="mono">{meta.requested_mode}</span>; executed mode
+              was <span className="mono">{meta.mode}</span>.
+            </>
+          )}
+        </p>
+      </header>
+
+      {/* ──────────────────────────── KPIs ──────────────────────────── */}
+      <section
+        className="grid grid-cols-1 gap-x-10 gap-y-8 border-b border-edge py-8 sm:grid-cols-2 lg:grid-cols-4"
+        aria-label="Headline numbers"
+      >
+        <div className="border-t border-ink pt-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="label">Replay agreement</span>
+            <span className="mono text-[11px] text-faint">tiered router</span>
+          </div>
+          <div className="mt-2 font-display text-[clamp(2.4rem,3.4vw,3.2rem)] leading-[0.9] tracking-[-0.03em]">
+            {tiered.replay_check_matches}
+            <span className="text-faint">/{tiered.replay_check_total}</span>
+          </div>
+          <p className="mt-2 text-[12px] leading-[1.5] text-ink-2">
+            Predicted/expected fixture checks match. A functional check, not model accuracy.
+          </p>
+        </div>
+
+        <div className="border-t border-ink pt-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="label">Critical recall</span>
+            <span
+              className={`mono text-[11px] ${
+                tiered.scored_cases === 0 ? "text-faint" : "text-signal"
+              }`}
             >
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  meta.mode === "LIVE"
-                    ? "bg-emerald-400"
-                    : meta.mode === "MIXED"
-                      ? "bg-amber-400"
-                      : "bg-sky-400"
-                }`}
-              />
-              <span>{isReplay ? "REPLAY · NO PROVIDER CALLS" : `${meta.mode} RUN`}</span>
-            </div>
-            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs text-sky-300">
-              <span>{meta.eval_date}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-sky-500/20 bg-sky-500/5 p-3 text-xs text-slate-300">
-          <Sparkles className="h-4 w-4 text-sky-400 shrink-0 mt-0.5" />
-          <div className="leading-snug">
-            <strong className="text-white">How to read this page:</strong>{" "}
-            <span className="font-mono">N/A</span> means the run produced no scored value.
-            A replay check compares local fixture output with fixture expectations; it is
-            not recall, precision, or clinical validation. Scored metrics appear only when
-            a prediction came from a live provider response.
-            {meta.requested_mode !== meta.mode && (
-              <>
-                {" "}
-                Requested mode was <span className="font-mono">{meta.requested_mode}</span>;
-                executed mode was <span className="font-mono">{meta.mode}</span>.
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ---------------- 2. KPI CARDS ---------------- */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-b from-emerald-500/10 to-slate-900/60 p-5 shadow-xl">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-              False Positive Rate
-            </span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
-              <ShieldCheck className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="font-mono text-3xl font-black text-emerald-400">
-              {pct(tiered.fpr_pct)}
-            </span>
-            <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">
-              {tiered.fp} FP
+              {tiered.tp} tp
             </span>
           </div>
-          <p className="mt-1 font-mono text-xs text-slate-400">
-            {tiered.negative_cases_scored}/{tiered.negative_cases_total} clean fixtures scored
-          </p>
-          <p className="mt-2 border-t border-white/[0.06] pt-2 text-xs leading-relaxed text-slate-300">
-            {tiered.scored_cases === 0
-              ? "No scored clean cases in this run, so no FPR is claimed."
-              : "False positives are counted only on scored clean-fixture cases."}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-rose-500/30 bg-gradient-to-b from-rose-500/10 to-slate-900/60 p-5 shadow-xl">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-rose-400">
-              Critical Recall
-            </span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/20 text-rose-400">
-              <ShieldAlert className="h-4 w-4" />
-            </div>
+          <div className="mt-2 font-display text-[clamp(2.4rem,3.4vw,3.2rem)] leading-[0.9] tracking-[-0.03em]">
+            {pct(tiered.recall_pct)}
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="font-mono text-3xl font-black text-rose-400">
-              {pct(tiered.recall_pct)}
-            </span>
-            <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-[11px] font-semibold text-rose-300">
-              {tiered.tp}/{tiered.positive_cases_scored} detected
-            </span>
-          </div>
-          <p className="mt-1 font-mono text-xs text-slate-400">
-            {tiered.positive_cases_scored}/{tiered.positive_cases_total} contradiction fixtures scored
-          </p>
-          <p className="mt-2 border-t border-white/[0.06] pt-2 text-xs leading-relaxed text-slate-300">
+          <p className="mt-2 text-[12px] leading-[1.5] text-ink-2">
+            {tiered.positive_cases_scored}/{tiered.positive_cases_total} contradiction fixtures
+            scored.{" "}
             {tiered.positive_cases_scored === 0
               ? "Replay predictions are not scored, so no recall is claimed."
-              : "Recall is limited to the synthetic contradiction fixtures that produced a scored live prediction."}
+              : "Limited to fixtures that produced a scored live prediction."}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-sky-500/30 bg-gradient-to-b from-sky-500/10 to-slate-900/60 p-5 shadow-xl">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-sky-400">
-              Estimated Cost / 1k
-            </span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/20 text-sky-400">
-              <TrendingDown className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="font-mono text-3xl font-black text-sky-400">
-              {costApplicable ? usd(tiered.cost_per_1k_discharges_usd) : "N/A"}
-            </span>
-            <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-[11px] font-semibold text-sky-300">
-              {costTypeLabel(tiered.cost_type)}
+        <div className="border-t border-ink pt-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="label">False positive rate</span>
+            <span
+              className={`mono text-[11px] ${
+                tiered.scored_cases === 0 ? "text-faint" : "text-safe"
+              }`}
+            >
+              {tiered.fp} fp
             </span>
           </div>
-          <p className="mt-1 font-mono text-xs text-slate-400">
-            Reduction vs Ultra baseline:{" "}
-            {tiered.cost_reduction_vs_ultra_pct == null
-              ? "N/A"
-              : pct(tiered.cost_reduction_vs_ultra_pct)}
-          </p>
-          <p className="mt-2 border-t border-white/[0.06] pt-2 text-xs leading-relaxed text-slate-300">
-            Cost is estimated from actual token usage at public rates. It is not a provider
-            invoice and is not applicable to replay runs.
+          <div className="mt-2 font-display text-[clamp(2.4rem,3.4vw,3.2rem)] leading-[0.9] tracking-[-0.03em]">
+            {pct(tiered.fpr_pct)}
+          </div>
+          <p className="mt-2 text-[12px] leading-[1.5] text-ink-2">
+            {tiered.negative_cases_scored}/{tiered.negative_cases_total} clean fixtures scored.{" "}
+            {tiered.scored_cases === 0
+              ? "No scored clean cases, so no FPR is claimed."
+              : "Counted only on scored clean-fixture cases."}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-slate-800/40 to-slate-900/60 p-5 shadow-xl">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-              Median Latency
-            </span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 text-slate-300">
-              <Clock className="h-4 w-4" />
-            </div>
+        <div className="border-t border-ink pt-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="label">Median latency</span>
+            <span className="mono text-[11px] text-faint">n={tiered.latency_n}</span>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="font-mono text-3xl font-black text-white">
-              {ms(tiered.median_latency_ms)}
-            </span>
-            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-slate-300">
-              {latencyScopeLabel(tiered.latency_scope)}
-            </span>
+          <div className="mt-2 font-display text-[clamp(2.4rem,3.4vw,3.2rem)] leading-[0.9] tracking-[-0.03em]">
+            {ms(tiered.median_latency_ms)}
           </div>
-          <p className="mt-1 font-mono text-xs text-slate-400">
-            p95: {ms(tiered.p95_latency_ms)} · n={tiered.latency_n}
-          </p>
-          <p className="mt-2 border-t border-white/[0.06] pt-2 text-xs leading-relaxed text-slate-300">
+          <p className="mt-2 text-[12px] leading-[1.5] text-ink-2">
+            p95 {ms(tiered.p95_latency_ms)} · {latencyScopeLabel(tiered.latency_scope)}.{" "}
             {tiered.latency_scope === "local_replay"
-              ? "Replay timings measure local execution only; they are not model inference latency."
-              : "Latency covers only the scored cases in this artifact."}
+              ? "Replay timings measure local execution, not model inference."
+              : "Covers only the scored cases in this artifact."}
           </p>
         </div>
-      </div>
+      </section>
 
-      {/* ---------------- 3. CONFIGURATION TABLE ---------------- */}
-      <section className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50 shadow-2xl backdrop-blur-md">
-        <header className="flex flex-col gap-2 border-b border-white/[0.08] bg-slate-900/80 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* ──────────────────── architecture comparison ──────────────────── */}
+      <section className="border-b border-edge py-8" aria-labelledby="arch-title">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
           <div>
-            <div className="flex items-center gap-2">
-              <Layers className="h-4 w-4 text-sky-400" />
-              <h2 className="text-sm font-bold tracking-wide text-white">
-                Architecture Comparison ({cases.length} cases × {configs.length} configurations)
-              </h2>
-            </div>
-            <p className="mt-0.5 text-xs text-slate-400">
-              Executed mode: {meta.mode} · requested: {meta.requested_mode} ·{" "}
-              {meta.total_encounters} synthetic fixtures
+            <h2 id="arch-title" className="text-[15px] font-medium text-ink">
+              Architecture comparison
+            </h2>
+            <p className="mt-0.5 text-[12.5px] text-muted">
+              {cases.length} cases × {configs.length} configurations · executed {meta.mode} ·
+              requested {meta.requested_mode}
             </p>
           </div>
-          <span className="self-start rounded-full border border-sky-500/30 bg-sky-500/10 px-3 py-1 font-mono text-xs font-semibold text-sky-300 sm:self-auto">
-            schema v{report.schema_version}
-          </span>
-        </header>
+          <span className="mono text-[11px] text-faint">schema v{report.schema_version}</span>
+        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-white/[0.06] bg-slate-950/60 font-semibold uppercase tracking-wider text-slate-400">
-              <tr>
-                <th className="px-6 py-3.5">Model Architecture</th>
-                <th className="px-4 py-3.5 text-center">Mode</th>
-                <th className="px-4 py-3.5 text-center">Scored (pos/neg)</th>
-                <th className="px-4 py-3.5 text-center">Replay check</th>
-                <th className="px-4 py-3.5 text-center">FPR</th>
-                <th className="px-4 py-3.5 text-center">Recall</th>
-                <th className="px-4 py-3.5 text-center">Precision</th>
-                <th className="px-4 py-3.5 text-center">Median / p95</th>
-                <th className="px-5 py-3.5 text-right">Cost / 1k</th>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[900px] border-collapse text-left text-[12.5px]">
+            <thead>
+              <tr className="border-b border-ink text-[11px] text-muted">
+                <th className="w-[30%] py-2 pr-5 font-medium">Configuration</th>
+                <th className="px-3 py-2 text-center font-medium">Mode</th>
+                <th className="px-3 py-2 text-center font-medium">Scored</th>
+                <th className="px-3 py-2 text-center font-medium">Replay check</th>
+                <th className="px-3 py-2 text-center font-medium">FPR</th>
+                <th className="px-3 py-2 text-center font-medium">Recall</th>
+                <th className="px-3 py-2 text-center font-medium">Precision</th>
+                <th className="px-3 py-2 text-center font-medium">Median / p95</th>
+                <th className="py-2 pl-3 text-right font-medium">Cost / 1k</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04]">
+            <tbody>
               {configs.map(([key, data]) => {
                 const isSelected = key === "tiered_router";
                 const scoredNone = data.scored_cases === 0;
                 return (
                   <tr
                     key={key}
-                    className={
-                      isSelected
-                        ? "bg-sky-500/10 font-medium text-white"
-                        : "text-slate-300 hover:bg-white/[0.02]"
-                    }
+                    className={`border-b border-edge align-top ${
+                      isSelected ? "bg-sheet-2" : ""
+                    }`}
                   >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-                            isSelected
-                              ? "border border-sky-500/40 bg-sky-500/20 text-sky-400"
-                              : "bg-slate-800 text-slate-400"
-                          }`}
-                        >
-                          {isSelected ? (
-                            <Award className="h-4 w-4" />
-                          ) : (
-                            <span className="h-2 w-2 rounded-full bg-slate-500" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-white">{data.name}</span>
-                            {isSelected && (
-                              <span className="rounded-full border border-sky-500/30 bg-sky-500/20 px-2 py-0.5 text-[10px] font-bold text-sky-300">
-                                TIERED
-                              </span>
-                            )}
-                          </div>
-                          <div className="mt-0.5 text-xs text-slate-400">
-                            {data.description.join(" · ")}
-                          </div>
-                        </div>
+                    <td className="py-4 pr-5">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[13.5px] font-medium text-ink">{data.name}</span>
+                        {isSelected && (
+                          <span className="mono text-[10px] uppercase tracking-[0.06em] text-signal">
+                            selected
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 max-w-[44ch] text-[11.5px] leading-[1.45] text-muted">
+                        {data.description.join(" · ")}
+                      </p>
+                    </td>
+                    <td className={`mono px-3 py-4 text-center text-[11px] ${modeTone(data.mode)}`}>
+                      {data.mode}
+                    </td>
+                    <td className="mono px-3 py-4 text-center">
+                      <div className="text-ink">{data.scored_cases}</div>
+                      <div className="text-[10.5px] text-faint">
+                        {data.positive_cases_scored} pos · {data.negative_cases_scored} neg
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-center">
-                      <span
-                        className={`inline-block rounded-md border px-2 py-1 font-mono text-[10px] font-bold ${modeBadgeClass(
-                          data.mode
-                        )}`}
-                      >
-                        {data.mode}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-center font-mono text-slate-200">
-                      <div className="font-bold">{data.scored_cases}</div>
-                      <div className="text-[10px] text-slate-400">
-                        {data.positive_cases_scored}/{data.negative_cases_scored}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-center font-mono text-slate-200">
-                      <div className="font-bold">
+                    <td className="mono px-3 py-4 text-center">
+                      <div className="text-ink">
                         {data.replay_check_matches}/{data.replay_check_total}
                       </div>
-                      <div className="text-[10px] text-slate-400">
-                        fixture agreement
-                      </div>
+                      <div className="text-[10.5px] text-faint">agreement</div>
                     </td>
-                    <td className="px-4 py-4 text-center font-mono">
-                      <span
-                        className={`inline-block rounded-md border px-2.5 py-1 text-xs ${
-                          scoredNone
-                            ? "border-white/10 bg-white/5 text-slate-400"
-                            : data.fpr_pct === 0
-                              ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-300"
-                              : "border-rose-500/30 bg-rose-500/20 text-rose-300"
-                        }`}
-                      >
-                        {pct(data.fpr_pct)}
-                      </span>
+                    <td
+                      className={`mono px-3 py-4 text-center ${
+                        scoredNone
+                          ? "text-faint"
+                          : data.fpr_pct === 0
+                            ? "text-safe"
+                            : "text-signal"
+                      }`}
+                    >
+                      {pct(data.fpr_pct)}
                     </td>
-                    <td className="px-4 py-4 text-center font-mono">
-                      <span
-                        className={`inline-block rounded-md border px-2.5 py-1 text-xs ${
-                          scoredNone
-                            ? "border-white/10 bg-white/5 text-slate-400"
-                            : data.recall_pct === 100
-                              ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-300"
-                              : "border-amber-500/30 bg-amber-500/20 text-amber-300"
-                        }`}
-                      >
-                        {pct(data.recall_pct)}
-                      </span>
+                    <td
+                      className={`mono px-3 py-4 text-center ${
+                        scoredNone
+                          ? "text-faint"
+                          : data.recall_pct === 100
+                            ? "text-safe"
+                            : "text-warn"
+                      }`}
+                    >
+                      {pct(data.recall_pct)}
                     </td>
-                    <td className="px-4 py-4 text-center font-mono text-slate-200">
+                    <td className="mono px-3 py-4 text-center text-ink-2">
                       {pct(data.precision_pct)}
                     </td>
-                    <td className="px-4 py-4 text-center font-mono">
-                      <div className="font-semibold text-white">{ms(data.median_latency_ms)}</div>
-                      <div className="text-[10px] text-slate-400">
+                    <td className="mono px-3 py-4 text-center">
+                      <div className="text-ink">{ms(data.median_latency_ms)}</div>
+                      <div className="text-[10.5px] text-faint">
                         p95 {ms(data.p95_latency_ms)} · {latencyScopeLabel(data.latency_scope)}
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-right font-mono">
-                      <div className="text-sm font-bold text-white">
+                    <td className="mono py-4 pl-3 text-right">
+                      <div className="text-ink">
                         {data.cost_type === "not_applicable_replay"
                           ? "N/A"
                           : usd(data.cost_per_1k_discharges_usd)}
                       </div>
-                      <div className="text-[10px] text-slate-400">
+                      <div className="text-[10.5px] text-faint">
                         {costTypeLabel(data.cost_type)}
                       </div>
                     </td>
@@ -576,92 +507,84 @@ export default function BenchmarkView({
             </tbody>
           </table>
         </div>
+
+        <p className="mt-3 max-w-[92ch] text-[11.5px] leading-[1.6] text-muted">
+          Cost is estimated from actual token usage at public rates. It is not a provider invoice
+          and is not applicable to replay runs.{" "}
+          {costApplicable
+            ? `Tiered router is ${pct(tiered.cost_reduction_vs_ultra_pct)} below the Ultra baseline.`
+            : "No cost reduction is claimed in replay."}
+        </p>
       </section>
 
-      {/* ---------------- 4. PER-ENCOUNTER FIXTURE LEDGER ---------------- */}
-      <section className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50 shadow-2xl backdrop-blur-md">
-        <header className="border-b border-white/[0.08] bg-slate-900/80 px-6 py-4">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                <h2 className="text-sm font-bold tracking-wide text-white">
-                  Per-Encounter Fixture Ledger ({cases.length} synthetic cases)
-                </h2>
-              </div>
-              <p className="mt-0.5 text-xs text-slate-400">
-                Expected outcomes are authored with the fixtures. Predicted outcomes are shown with
-                their execution source and scoring status.
-              </p>
+      {/* ──────────────────── per-encounter ledger ──────────────────── */}
+      <section className="py-8" aria-labelledby="ledger-title">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+          <div>
+            <h2 id="ledger-title" className="text-[15px] font-medium text-ink">
+              Per-encounter fixture ledger
+            </h2>
+            <p className="mt-0.5 max-w-[80ch] text-[12.5px] text-muted">
+              Expected outcomes are authored with the fixtures. Predicted outcomes are shown with
+              their execution source and scoring status.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="flex items-center gap-3" role="group" aria-label="Filter cases">
+              {(
+                [
+                  ["all", `All (${cases.length})`],
+                  ["intercept", `Contradiction (${meta.positive_cases})`],
+                  ["safe", `Expected safe (${meta.negative_cases})`],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveFilter(id)}
+                  aria-pressed={activeFilter === id}
+                  className={`text-[12px] transition-colors ${
+                    activeFilter === id
+                      ? "font-medium text-ink underline decoration-signal decoration-1 underline-offset-4"
+                      : "text-muted hover:text-ink"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
-              <div className="flex items-center rounded-xl border border-white/10 bg-slate-950/60 p-1">
-                <button
-                  onClick={() => setActiveFilter("all")}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
-                    activeFilter === "all"
-                      ? "border border-sky-500/30 bg-sky-500/20 text-sky-300"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  All ({cases.length})
-                </button>
-                <button
-                  onClick={() => setActiveFilter("intercept")}
-                  className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
-                    activeFilter === "intercept"
-                      ? "border border-rose-500/30 bg-rose-500/20 text-rose-300"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <AlertTriangle className="h-3 w-3 text-rose-400" />
-                  <span>Contradiction ({meta.positive_cases})</span>
-                </button>
-                <button
-                  onClick={() => setActiveFilter("safe")}
-                  className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
-                    activeFilter === "safe"
-                      ? "border border-emerald-500/30 bg-emerald-500/20 text-emerald-300"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <ShieldCheck className="h-3 w-3 text-emerald-400" />
-                  <span>Expected safe ({meta.negative_cases})</span>
-                </button>
-              </div>
-
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Filter by ID, outcome, source…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-48 rounded-xl border border-white/10 bg-slate-950/60 py-1.5 pl-8 pr-3 text-xs text-white placeholder-slate-500 focus:border-sky-500/50 focus:outline-none sm:w-56"
-                />
-              </div>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-faint" />
+              <input
+                type="text"
+                placeholder="Filter by ID, outcome, source…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Filter cases"
+                className="field h-7 w-52 pl-7 pr-2 text-[12px] placeholder:text-faint sm:w-60"
+              />
             </div>
           </div>
-        </header>
+        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full table-fixed text-left text-xs">
-            <thead className="border-b border-white/[0.06] bg-slate-950/60 font-semibold uppercase tracking-wider text-slate-400">
-              <tr>
-                <th className="w-[86px] px-3 py-3.5">Encounter</th>
-                <th className="w-[90px] px-3 py-3.5">Modality</th>
-                <th className="px-3 py-3.5">Fixture Scenario</th>
-                <th className="w-[118px] px-1 py-3.5 text-center">Expected</th>
-                <th className="w-[130px] px-1 py-3.5 text-center">Predicted</th>
-                <th className="w-[96px] px-1 py-3.5 text-center">Mode / Source</th>
-                <th className="w-[82px] px-2 py-3.5 text-right">Latency</th>
-                <th className="w-[92px] px-2 py-3.5 text-right">Cost</th>
-                <th className="w-[72px] px-1 py-3.5 text-center">Status</th>
-                <th className="w-[45px] px-1 py-3.5 text-center">Details</th>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[980px] table-fixed border-collapse text-left text-[12.5px]">
+            <thead>
+              <tr className="border-b border-ink text-[11px] text-muted">
+                <th className="w-[92px] py-2 pr-3 font-medium">Encounter</th>
+                <th className="w-[96px] px-2 py-2 font-medium">Modality</th>
+                <th className="px-2 py-2 font-medium">Fixture scenario</th>
+                <th className="w-[104px] px-2 py-2 text-center font-medium">Expected</th>
+                <th className="w-[104px] px-2 py-2 text-center font-medium">Predicted</th>
+                <th className="w-[108px] px-2 py-2 text-center font-medium">Mode / source</th>
+                <th className="w-[96px] px-2 py-2 text-right font-medium">Latency</th>
+                <th className="w-[92px] px-2 py-2 text-right font-medium">Cost</th>
+                <th className="w-[92px] px-2 py-2 text-center font-medium">Status</th>
+                <th className="w-[36px] px-1 py-2" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04]">
+            <tbody>
               {filteredCases.map((c) => {
                 const isIntercept = c.expected_outcome === "CRITICAL_INTERCEPT";
                 const isExpanded = expandedId === c.encounter_id;
@@ -671,143 +594,119 @@ export default function BenchmarkView({
                   <React.Fragment key={c.encounter_id}>
                     <tr
                       onClick={() => setExpandedId(isExpanded ? null : c.encounter_id)}
-                      className={`cursor-pointer transition-colors ${
-                        isExpanded
-                          ? "bg-white/[0.04]"
-                          : isIntercept
-                            ? "hover:bg-rose-500/[0.03]"
-                            : "hover:bg-white/[0.02]"
+                      className={`cursor-pointer border-b border-edge align-top transition-colors ${
+                        isExpanded ? "bg-sheet-2" : "hover:bg-sheet-2/60"
                       }`}
                     >
-                      <td className="px-3 py-3.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-xs font-bold text-white">
+                      <td className="py-3 pr-3">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="mono text-[12px] font-medium text-ink">
                             {c.encounter_id}
                           </span>
                           {c.encounter_id === "ED-104" && (
-                            <span className="rounded border border-amber-500/30 bg-amber-500/20 px-1 py-0.2 text-[10px] font-bold text-amber-300">
-                              DEMO
+                            <span className="mono text-[9.5px] uppercase tracking-[0.06em] text-muted">
+                              demo
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="px-3 py-3.5">
-                        <div className="flex items-center gap-1 truncate font-mono text-[11px] text-slate-300">
-                          <span>{note?.modalityIcon ?? "🩻"}</span>
-                          <span className="truncate">
-                            {c.expected_contradiction ? "multi-modal" : "single study"}
-                          </span>
+                      <td className="px-2 py-3">
+                        <div className="flex items-center gap-1.5 text-[11.5px] text-ink-2">
+                          <span aria-hidden>{note?.modalityIcon ?? "🩻"}</span>
+                          <span>{c.expected_contradiction ? "multi" : "single"}</span>
                         </div>
                       </td>
-                      <td className="px-3 py-3.5">
-                        <div className="truncate font-medium text-white">
+                      <td className="px-2 py-3">
+                        <div className="truncate text-[12.5px] font-medium text-ink">
                           {note?.title ?? c.encounter_id}
                         </div>
-                        <div className="mt-0.5 truncate text-[11px] text-slate-400">
-                          {note?.fixturePlan ?? "Synthetic fixture"}
+                        <div className="mt-0.5 truncate text-[11px] text-muted">
+                          {stripPrefix(
+                            note?.fixturePlan ?? "Synthetic fixture",
+                            "Fixture discharge plan:"
+                          )}
                         </div>
                       </td>
-                      <td className="px-1 py-3.5 text-center font-mono">
-                        <span
-                          className={`inline-block whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[10px] font-bold tracking-tight ${
-                            isIntercept
-                              ? "border-rose-500/30 bg-rose-500/20 text-rose-300"
-                              : "border-emerald-500/30 bg-emerald-500/20 text-emerald-300"
-                          }`}
+                      <td className={`px-2 py-3 text-center text-[11.5px] ${outcomeTone(c.expected_outcome)}`}>
+                        {outcomeLabel(c.expected_outcome)}
+                      </td>
+                      <td className={`px-2 py-3 text-center text-[11.5px] ${outcomeTone(c.predicted_outcome)}`}>
+                        {outcomeLabel(c.predicted_outcome)}
+                      </td>
+                      <td className="px-2 py-3 text-center">
+                        <div className={`mono text-[10.5px] ${modeTone(c.case_mode)}`}>
+                          {c.case_mode}
+                        </div>
+                        <div
+                          className="truncate text-[10.5px] text-faint"
+                          title={c.prediction_source}
                         >
-                          {c.expected_outcome}
-                        </span>
-                      </td>
-                      <td className="px-1 py-3.5 text-center font-mono">
-                        {c.predicted_outcome == null ? (
-                          <span className="text-[10px] font-bold text-slate-500">
-                            NO PREDICTION
-                          </span>
-                        ) : (
-                          <span
-                            className={`inline-block whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[10px] font-bold tracking-tight ${
-                              c.predicted_outcome === "CRITICAL_INTERCEPT"
-                                ? "border-rose-500/30 bg-rose-500/20 text-rose-300"
-                                : "border-emerald-500/30 bg-emerald-500/20 text-emerald-300"
-                            }`}
-                          >
-                            {c.predicted_outcome}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-1 py-3.5 text-center font-mono">
-                        <div className="text-[10px] font-bold text-slate-300">{c.case_mode}</div>
-                        <div className="truncate text-[10px] text-slate-500" title={c.prediction_source}>
                           {sourceLabel(c.prediction_source)}
                         </div>
                       </td>
-                      <td className="px-2 py-3.5 text-right font-mono text-xs text-slate-300">
-                        <div>{ms(c.latency_ms)}</div>
-                        <div className="text-[10px] text-slate-500">
+                      <td className="mono px-2 py-3 text-right">
+                        <div className="text-ink-2">{ms(c.latency_ms)}</div>
+                        <div className="text-[10.5px] text-faint">
                           {latencyScopeLabel(c.latency_scope)}
                         </div>
                       </td>
-                      <td className="px-2 py-3.5 text-right font-mono text-xs text-slate-300">
-                        <div>
+                      <td className="mono px-2 py-3 text-right">
+                        <div className="text-ink-2">
                           {c.cost_type === "not_applicable_replay" ? "N/A" : usd(c.cost_usd)}
                         </div>
-                        <div className="text-[10px] text-slate-500">
+                        <div className="text-[10.5px] text-faint">
                           {c.cost_type === "not_applicable_replay"
                             ? "replay"
                             : costTypeLabel(c.cost_type)}
                         </div>
                       </td>
-                      <td className="px-1 py-3.5 text-center">
+                      <td className="px-2 py-3 text-center">
                         {c.scored ? (
                           <span
-                            className={`inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${
-                              agrees
-                                ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-300"
-                                : "border-rose-500/30 bg-rose-500/20 text-rose-300"
+                            className={`text-[10.5px] font-medium ${
+                              agrees ? "text-safe" : "text-signal"
                             }`}
                             title="Scored against fixture expectation (not clinical validation)"
                           >
-                            {agrees ? "SCORED ✓" : "SCORED ✗"}
+                            {agrees ? "scored ✓" : "scored ✗"}
                           </span>
                         ) : c.predicted_outcome != null ? (
                           <span
-                            className="inline-flex items-center justify-center rounded-md border border-sky-500/30 bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-bold text-sky-300"
+                            className="text-[10.5px] text-muted"
                             title="Replay/fixture agreement only; not a scored model prediction"
                           >
-                            REPLAY
+                            replay
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold text-slate-500">N/A</span>
+                          <span className="text-[10.5px] text-faint">N/A</span>
                         )}
                       </td>
-                      <td className="px-1 py-3.5 text-center text-slate-400">
+                      <td className="px-1 py-3 text-center text-faint">
                         {isExpanded ? (
-                          <ChevronUp className="mx-auto h-4 w-4 text-sky-400" />
+                          <ChevronUp className="mx-auto h-3.5 w-3.5" />
                         ) : (
-                          <ChevronDown className="mx-auto h-4 w-4 hover:text-white" />
+                          <ChevronDown className="mx-auto h-3.5 w-3.5" />
                         )}
                       </td>
                     </tr>
 
                     {isExpanded && (
-                      <tr className="border-b border-white/[0.06] bg-slate-950/70">
-                        <td colSpan={10} className="px-6 py-4">
-                          <div className="space-y-3 rounded-xl border border-white/[0.08] bg-slate-900/60 p-4">
-                            <div className="flex flex-col justify-between gap-2 border-b border-white/[0.06] pb-3 sm:flex-row sm:items-center">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-white">
+                      <tr className="border-b border-edge bg-sheet-2">
+                        <td colSpan={10} className="px-4 py-4">
+                          <div className="border-l-2 border-signal pl-4">
+                            <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-baseline">
+                              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                <span className="text-[13.5px] font-medium text-ink">
                                   {note?.title ?? c.encounter_id}
                                 </span>
                                 <span
-                                  className={`rounded border px-2 py-0.5 text-[10px] font-bold uppercase ${
-                                    isIntercept
-                                      ? "border-rose-500/30 bg-rose-500/20 text-rose-300"
-                                      : "border-emerald-500/30 bg-emerald-500/20 text-emerald-300"
+                                  className={`text-[11px] ${
+                                    isIntercept ? "text-signal" : "text-safe"
                                   }`}
                                 >
-                                  {isIntercept ? "Contradiction fixture" : "Expected-safe fixture"}
+                                  {isIntercept ? "contradiction fixture" : "expected-safe fixture"}
                                 </span>
-                                <span className={`rounded border px-2 py-0.5 font-mono text-[10px] ${modeBadgeClass(c.case_mode)}`}>
+                                <span className={`mono text-[11px] ${modeTone(c.case_mode)}`}>
                                   {c.case_mode}
                                 </span>
                               </div>
@@ -818,73 +717,83 @@ export default function BenchmarkView({
                                     e.stopPropagation();
                                     onSelectEncounter(c.encounter_id);
                                   }}
-                                  className="flex items-center gap-1.5 self-start rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-xs font-semibold text-sky-300 transition-all hover:bg-sky-500/20 sm:self-auto"
+                                  className="flex shrink-0 items-center gap-1.5 text-[12px] font-medium text-ink underline decoration-signal decoration-1 underline-offset-4 transition-colors hover:text-signal"
                                 >
-                                  <span>Open in Flight-Check Console</span>
+                                  Open in flight-check
                                   <ArrowUpRight className="h-3.5 w-3.5" />
                                 </button>
                               )}
                             </div>
 
-                            <div className="grid grid-cols-1 gap-4 text-xs md:grid-cols-3">
-                              <div className="rounded-lg border border-white/[0.04] bg-black/30 p-3">
-                                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                                  Fixture discharge plan
-                                </div>
-                                <p className="leading-relaxed text-slate-200">
-                                  {note?.fixturePlan ?? "Synthetic fixture"}
-                                </p>
+                            <dl className="mt-3 grid grid-cols-1 gap-x-8 gap-y-3 md:grid-cols-3">
+                              <div>
+                                <dt className="label">Fixture discharge plan</dt>
+                                <dd className="mt-1 text-[12px] leading-[1.5] text-ink-2">
+                                  {stripPrefix(
+                                    note?.fixturePlan ?? "Synthetic fixture",
+                                    "Fixture discharge plan:"
+                                  )}
+                                </dd>
                               </div>
-                              <div className="rounded-lg border border-white/[0.04] bg-black/30 p-3">
-                                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                                  Fixture contradiction
-                                </div>
-                                <p className={isIntercept ? "font-medium leading-relaxed text-rose-300" : "leading-relaxed text-emerald-300"}>
+                              <div>
+                                <dt className="label">Fixture contradiction</dt>
+                                <dd
+                                  className={`mt-1 text-[12px] leading-[1.5] ${
+                                    isIntercept ? "text-signal-ink" : "text-ink-2"
+                                  }`}
+                                >
                                   {note?.fixtureRisk ?? "No authored contradiction"}
-                                </p>
+                                </dd>
                               </div>
-                              <div className="rounded-lg border border-white/[0.04] bg-black/30 p-3">
-                                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                                  Reference expectation
-                                </div>
-                                <p className="font-medium leading-relaxed text-sky-300">
-                                  {note?.referenceAction ?? "See fixture definition."}
-                                </p>
+                              <div>
+                                <dt className="label">Reference expectation</dt>
+                                <dd className="mt-1 text-[12px] leading-[1.5] text-ink-2">
+                                  {stripPrefix(
+                                    note?.referenceAction ?? "See fixture definition.",
+                                    "Reference expectation:"
+                                  )}
+                                </dd>
                               </div>
-                            </div>
+                            </dl>
 
                             {c.stages.length > 0 && (
-                              <div className="overflow-x-auto rounded-lg border border-white/[0.06]">
-                                <table className="w-full text-left text-[11px]">
-                                  <thead className="bg-black/40 text-[10px] uppercase tracking-wider text-slate-400">
-                                    <tr>
-                                      <th className="px-3 py-1.5">Stage</th>
-                                      <th className="px-3 py-1.5">Source</th>
-                                      <th className="px-3 py-1.5">Model</th>
-                                      <th className="px-3 py-1.5 text-right">Latency</th>
-                                      <th className="px-3 py-1.5 text-right">Tokens</th>
-                                      <th className="px-3 py-1.5 text-right">Cost</th>
-                                      <th className="px-3 py-1.5">Note</th>
+                              <div className="mt-4 overflow-x-auto">
+                                <table className="w-full min-w-[720px] border-collapse text-left text-[11.5px]">
+                                  <thead>
+                                    <tr className="border-b border-edge-2 text-[10.5px] text-muted">
+                                      <th className="py-1.5 pr-4 font-medium">Stage</th>
+                                      <th className="px-3 py-1.5 font-medium">Source</th>
+                                      <th className="px-3 py-1.5 font-medium">Model</th>
+                                      <th className="px-3 py-1.5 text-right font-medium">Latency</th>
+                                      <th className="px-3 py-1.5 text-right font-medium">Tokens</th>
+                                      <th className="px-3 py-1.5 text-right font-medium">Cost</th>
+                                      <th className="py-1.5 pl-3 font-medium">Note</th>
                                     </tr>
                                   </thead>
-                                  <tbody className="divide-y divide-white/[0.04] font-mono text-slate-300">
+                                  <tbody>
                                     {c.stages.map((s, i) => (
-                                      <tr key={`${s.stage}-${i}`}>
-                                        <td className="px-3 py-1.5 text-white">{s.stage}</td>
-                                        <td className="px-3 py-1.5">{sourceLabel(s.source)}</td>
-                                        <td className="px-3 py-1.5">{s.model_id ?? "—"}</td>
-                                        <td className="px-3 py-1.5 text-right">{ms(s.latency_ms)}</td>
-                                        <td className="px-3 py-1.5 text-right">
+                                      <tr key={`${s.stage}-${i}`} className="border-b border-edge">
+                                        <td className="py-1.5 pr-4 text-ink">{s.stage}</td>
+                                        <td className="px-3 py-1.5 text-ink-2">
+                                          {sourceLabel(s.source)}
+                                        </td>
+                                        <td className="mono px-3 py-1.5 text-muted">
+                                          {s.model_id ?? "—"}
+                                        </td>
+                                        <td className="mono px-3 py-1.5 text-right text-ink-2">
+                                          {ms(s.latency_ms)}
+                                        </td>
+                                        <td className="mono px-3 py-1.5 text-right text-ink-2">
                                           {s.prompt_tokens == null && s.completion_tokens == null
                                             ? "N/A"
                                             : (s.prompt_tokens ?? 0) + (s.completion_tokens ?? 0)}
                                         </td>
-                                        <td className="px-3 py-1.5 text-right">
+                                        <td className="mono px-3 py-1.5 text-right text-ink-2">
                                           {s.cost_type === "not_applicable_replay"
                                             ? "N/A"
                                             : usd(s.cost_usd)}
                                         </td>
-                                        <td className="px-3 py-1.5 text-slate-400">{s.note || "—"}</td>
+                                        <td className="py-1.5 pl-3 text-muted">{s.note || "—"}</td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -893,27 +802,18 @@ export default function BenchmarkView({
                             )}
 
                             {(c.notes.length > 0 || c.fallback_affected || c.error) && (
-                              <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                              <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[11.5px]">
                                 {c.fallback_affected && (
-                                  <span className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-300">
-                                    fallback affected
-                                  </span>
+                                  <span className="text-warn">fallback affected</span>
                                 )}
                                 {c.verification_rejected && (
-                                  <span className="rounded border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 font-semibold text-rose-300">
-                                    verification rejected
-                                  </span>
+                                  <span className="text-signal">verification rejected</span>
                                 )}
                                 {c.error && (
-                                  <span className="rounded border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 font-mono text-rose-300">
-                                    error: {c.error}
-                                  </span>
+                                  <span className="mono text-signal">error: {c.error}</span>
                                 )}
                                 {c.notes.map((n) => (
-                                  <span
-                                    key={n}
-                                    className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-slate-300"
-                                  >
+                                  <span key={n} className="text-muted">
                                     {n}
                                   </span>
                                 ))}
@@ -930,9 +830,9 @@ export default function BenchmarkView({
           </table>
         </div>
 
-        <footer className="space-y-1 border-t border-white/[0.08] bg-slate-950/60 px-6 py-3 text-[11px] leading-relaxed text-slate-400">
+        <footer className="mt-5 space-y-1.5 border-t border-edge pt-4 text-[11.5px] leading-[1.6] text-muted">
           {meta.disclaimers.map((line) => (
-            <p key={line}>• {line}</p>
+            <p key={line}>{line}</p>
           ))}
         </footer>
       </section>

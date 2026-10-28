@@ -4,15 +4,10 @@ import React, { useState } from "react";
 import {
   ShieldAlert,
   ShieldCheck,
-  AlertTriangle,
-  FileScan,
   Lock,
   Unlock,
-  Sparkles,
-  Pill,
-  Calendar,
-  ExternalLink,
   Check,
+  ExternalLink,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -55,151 +50,142 @@ function DischargeEditor({
   const isSafe = phase === "safe";
   const isPass = phase === "pass";
 
+  const costLabel = (c: number) =>
+    c > 0 && c < 0.0001 ? "<$0.0001" : `$${c.toFixed(4)}`;
+
+  const diagnosis = packet.primary_diagnosis_icd10.includes(" - ")
+    ? packet.primary_diagnosis_icd10.split(" - ")[1]
+    : packet.primary_diagnosis_icd10;
+
+  const statusLabel = isRunning
+    ? "Running flight-check"
+    : isIntercept
+      ? "Discharge blocked"
+      : isSafe
+        ? "Verified safe"
+        : isPass
+          ? "Silent pass"
+          : "Awaiting sign-off";
+
+  const statusDetail = isRunning
+    ? runMode === "LIVE"
+      ? "Streaming a live audit through the configured provider."
+      : "Streaming deterministic replay. No provider calls are made."
+    : isIntercept
+      ? `${verdicts.length} contradiction${verdicts.length > 1 ? "s" : ""} found between the chart and the draft packet.`
+      : isSafe
+        ? "The patched packet re-audited clean. The loop is closed."
+        : isPass
+          ? "No unaddressed findings or kinetic collisions in this run."
+          : "No audit has completed for this encounter.";
+
   return (
-    <section className="glass-pane flex h-full min-h-0 flex-col rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl">
-      {/* ----------------- HEADER ----------------- */}
-      <header className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-slate-900/60 px-5 py-3">
-        <div className="flex items-center gap-2.5 overflow-hidden">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400">
-            <FileScan className="h-4 w-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold tracking-tight text-white shrink-0">
-                DISCHARGE PACKET
-              </h2>
-              <span className="rounded bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 text-xs font-semibold text-sky-300">
-                3. Safety Gate
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 truncate max-w-xs" title={packet.primary_diagnosis_icd10}>
-              Diagnosis: {packet.primary_diagnosis_icd10.includes(" - ") 
-                ? packet.primary_diagnosis_icd10.split(" - ")[1] 
-                : packet.primary_diagnosis_icd10}
-            </p>
-          </div>
+    <section className="flex h-full min-h-0 flex-col" aria-label="Discharge packet">
+      {/* ── column head ─────────────────────────────────────────────── */}
+      <header className="flex h-10 shrink-0 items-center justify-between gap-3 border-b border-edge px-4">
+        <div className="flex min-w-0 items-baseline gap-2.5">
+          <h2 className="text-[13px] font-medium text-ink">Gate</h2>
+          <span className="truncate text-[12px] text-muted" title={diagnosis}>
+            {diagnosis}
+          </span>
         </div>
 
         {lastResult && (
-          <div className="flex items-center gap-1.5 font-mono text-xs text-slate-300 bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg shadow-sm">
-            <span>⚡ {lastResult.elapsed}ms</span>
-            <span className="text-slate-600">·</span>
-            {lastResult.mode === "REPLAYED" ? (
-              <span className="text-slate-400" title="Local replay; no provider call was made">
-                replay · cost N/A
-              </span>
-            ) : (
-              <span className="text-emerald-400">
-                {lastResult.mode === "MIXED" ? "~" : ""}${lastResult.cost.toFixed(4)}
-              </span>
-            )}
-          </div>
+          <span className="mono shrink-0 text-[11px] text-faint">
+            {lastResult.elapsed} ms ·{" "}
+            {lastResult.mode === "REPLAYED" ? "replay" : costLabel(lastResult.cost)}
+          </span>
         )}
       </header>
 
-      {/* ----------------- FLIGHT-CHECK INTERLOCK STATUS BANNER ----------------- */}
+      {/* ── verdict band ────────────────────────────────────────────── */}
       <div
         aria-live="polite"
-        className={`shrink-0 border-b px-5 py-4 transition-colors ${
+        className={`shrink-0 border-b px-4 py-3 ${
           isIntercept
-            ? "border-rose-500/30 bg-rose-500/15"
+            ? "border-signal-ink bg-signal text-sheet"
             : isSafe || isPass
-              ? "border-emerald-500/30 bg-emerald-500/15"
-              : "border-white/[0.08] bg-slate-900/40"
+              ? "border-edge bg-safe-wash"
+              : "border-edge bg-sheet-2"
         }`}
       >
-        <div className="flex items-center justify-between gap-4">
-          <div>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               {isRunning ? (
-                <span className="h-3 w-3 rounded-full bg-sky-400 animate-ping" />
+                <span
+                  className="h-1.5 w-1.5 rounded-full bg-ink live-dot"
+                  aria-hidden
+                />
               ) : isIntercept ? (
-                <ShieldAlert className="h-5 w-5 text-rose-400" />
+                <ShieldAlert className="h-4 w-4 shrink-0" />
               ) : isSafe || isPass ? (
-                <ShieldCheck className="h-5 w-5 text-emerald-400" />
+                <ShieldCheck className="h-4 w-4 shrink-0 text-safe" />
               ) : (
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-500" />
+                <span className="h-1.5 w-1.5 rounded-full bg-faint" aria-hidden />
               )}
               <span
-                className={`text-sm font-bold tracking-wide ${
+                className={`text-[14px] font-medium tracking-[-0.01em] ${
                   isIntercept
-                    ? "text-rose-300"
+                    ? "text-sheet"
                     : isSafe || isPass
-                      ? "text-emerald-300"
-                      : "text-white"
+                      ? "text-safe"
+                      : "text-ink"
                 }`}
               >
-                {isRunning
-                  ? "RUNNING FLIGHT-CHECK INTERLOCK…"
-                  : isIntercept
-                    ? "SAFETY INTERLOCK: CRITICAL INTERCEPT"
-                    : isSafe
-                      ? "VERIFIED SAFE · DISCHARGE AUTHORIZED"
-                      : isPass
-                        ? "FLIGHT-CHECK CLEAR · SILENT PASS"
-                        : "PENDING CLINICAL SIGN-OFF"}
+                {statusLabel}
               </span>
             </div>
-            <p className="mt-1 text-xs text-slate-300 leading-snug">
-              {isRunning
-                ? runMode === "LIVE"
-                  ? "Streaming live audit via Nebius Token Factory & Tavily"
-                  : "Streaming deterministic replay (no provider calls)"
-                : isIntercept
-                  ? `Blocked: ${verdicts.length} critical contradiction${verdicts.length > 1 ? "s" : ""} detected before patient departure`
-                  : isSafe
-                    ? "Patched packet re-audited clean (loop closed)"
-                    : "No unaddressed findings or kinetic collisions in this run"}
+            <p
+              className={`mt-1 max-w-[46ch] text-[12.5px] leading-[1.45] ${
+                isIntercept ? "text-sheet/80" : "text-muted"
+              }`}
+            >
+              {statusDetail}
             </p>
           </div>
 
-          {/* Action Sign & Discharge CTA */}
-          <div className="relative group shrink-0">
+          <div className="relative shrink-0">
             <button
               data-testid="sign-discharge-btn"
               disabled={isIntercept || isRunning}
               onClick={() => {
                 if (!isIntercept && !isRunning) {
-                  alert("Discharge Authorized: Patient packet signed and transmitted to EHR.");
+                  alert(
+                    "Discharge authorized: patient packet signed and transmitted to the EHR."
+                  );
                 }
               }}
-              className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold transition-all ${
+              title={
+                isIntercept
+                  ? "Resolve every contradiction before signing"
+                  : "Sign and transmit the packet"
+              }
+              className={`flex h-8 items-center gap-1.5 px-3 text-[12px] font-medium transition-colors ${
                 isIntercept || isRunning
-                  ? "cursor-not-allowed border border-rose-500/20 bg-slate-900 text-slate-500 opacity-60"
-                  : "bg-emerald-500 text-slate-950 hover:bg-emerald-400 shadow-md shadow-black/50 active:scale-95"
+                  ? "cursor-not-allowed border border-sheet/25 text-sheet/55"
+                  : "bg-ink text-sheet hover:bg-ink-2"
               }`}
             >
-              {isIntercept ? (
-                <Lock className="h-4 w-4 text-rose-400" />
-              ) : (
-                <Unlock className="h-4 w-4 text-slate-950" />
-              )}
-              <span>Sign &amp; Discharge Patient</span>
+              {isIntercept ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+              Sign &amp; discharge
             </button>
-            {isIntercept && (
-              <div className="pointer-events-none absolute bottom-full right-0 mb-2 hidden w-72 rounded-lg border border-rose-500/40 bg-slate-950/95 p-3 text-xs text-rose-200 shadow-xl group-hover:block z-50">
-                🛑 <strong>Discharge Blocked:</strong> Resolve all detected omissions using the 1-click remediation buttons below before signing.
-              </div>
-            )}
           </div>
         </div>
       </div>
 
-      {/* ----------------- SCROLLABLE BODY ----------------- */}
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-3.5" data-testid="discharge-scroll">
-        {/* ----------------- CRITICAL CONTRADICTION CARDS ----------------- */}
-        <AnimatePresence>
+      {/* ── scrollable packet ───────────────────────────────────────── */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-5" data-testid="discharge-scroll">
+        <AnimatePresence initial={false}>
           {isIntercept && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mb-5 flex flex-col gap-3.5"
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              className="flex flex-col gap-2.5 pt-3"
             >
-              <div className="flex items-center gap-2 text-xs font-bold text-rose-300 uppercase tracking-wider">
-                <AlertTriangle className="h-4 w-4 text-rose-400" />
-                <span>Omissions Requiring Immediate Correction:</span>
-              </div>
+              <h3 className="label">Contradictions to resolve</h3>
 
               {verdicts.map((v, i) => {
                 const isNodule = v.kind === "INCIDENTAL_FINDING_DROP";
@@ -211,99 +197,81 @@ function DischargeEditor({
                   <article
                     key={i}
                     id={isNodule ? "interception-card-nodule" : "interception-card-drug"}
-                    className="rounded-xl border border-rose-500/50 bg-rose-500/10 p-4 shadow-lg shadow-rose-950/30"
+                    className="border border-signal/35 border-l-2 border-l-signal bg-signal-wash p-3"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="rounded bg-rose-500 px-1.5 py-0.5 text-[10px] font-extrabold text-slate-950 uppercase">
-                            DANGER
-                          </span>
-                          <h4 className="text-xs font-bold text-rose-200">
-                            CRITICAL · {kindLabel(v.kind)}
-                          </h4>
-                        </div>
-                        <p className="mt-1 text-xs text-slate-200 leading-relaxed">
-                          {isNodule
-                            ? "A 7.2mm lung nodule was noted by the radiologist, but the doctor discharged the patient with NO follow-up CT scheduled (Fleischner guideline violation). Potential early cancer left unmonitored."
-                            : "Patient's kidney filtration dropped +87% in 36h (acute kidney stress), yet the doctor prescribed Toradol (Ketorolac), a toxic NSAID that causes acute renal failure."}
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-rose-500/20 px-2.5 py-0.5 text-xs font-bold text-rose-300 shrink-0">
-                        Discharge Paused
+                    <div className="flex items-baseline justify-between gap-3">
+                      <h4 className="text-[12px] font-medium uppercase tracking-[0.06em] text-signal-ink">
+                        {kindLabel(v.kind)}
+                      </h4>
+                      <span className="mono shrink-0 text-[10.5px] uppercase tracking-[0.06em] text-signal">
+                        paused
                       </span>
                     </div>
 
-                    {/* Specific test assertion text */}
+                    <p className="mt-1.5 text-[12.5px] leading-[1.5] text-ink-2">
+                      {isNodule
+                        ? "A 7.2 mm lung nodule was dictated by the radiologist, but the packet leaves with no follow-up CT scheduled — a Fleischner guideline violation."
+                        : "Kidney filtration rose 87% in 36 hours, yet the packet still carries ketorolac, an NSAID that is toxic to an injured kidney."}
+                    </p>
+
+                    {/* Test assertions stay in the DOM, out of sight. */}
                     <div className="hidden">
                       {isNodule && <span>Incidental finding dropped 71250</span>}
                       {isDrug && <span>Lab-velocity drug collision Ketorolac</span>}
                     </div>
 
-                    {/* Quote comparison */}
-                    <div className="mt-3.5 grid grid-cols-2 gap-3 text-xs">
-                      <div className="rounded-lg border border-white/10 bg-slate-950/70 p-3">
-                        <span className="text-[11px] font-semibold text-slate-400 block mb-1">
-                          Diagnostic Evidence (Scan / Labs):
-                        </span>
-                        <p className="font-mono text-xs text-rose-200">
-                          &quot;{v.source_quote}&quot;
-                        </p>
+                    <dl className="mt-2.5 grid grid-cols-2 gap-2">
+                      <div className="border border-edge bg-sheet px-2.5 py-2">
+                        <dt className="label mb-1">Evidence</dt>
+                        <dd className="text-[11.5px] leading-[1.45] text-ink-2">
+                          &ldquo;{v.source_quote}&rdquo;
+                        </dd>
                       </div>
-
-                      <div className="rounded-lg border border-white/10 bg-slate-950/70 p-3">
-                        <span className="text-[11px] font-semibold text-slate-400 block mb-1">
-                          Doctor&apos;s Omission / Order:
-                        </span>
-                        <p className="text-xs text-slate-300">
+                      <div className="border border-edge bg-sheet px-2.5 py-2">
+                        <dt className="label mb-1">Packet</dt>
+                        <dd className="text-[11.5px] leading-[1.45] text-ink-2">
                           {isNodule
-                            ? "Forgot to schedule chest CT follow-up"
-                            : "Prescribed Ketorolac 10mg despite kidney surge"}
-                        </p>
+                            ? "No chest CT follow-up ordered"
+                            : "Ketorolac 10 mg, three days"}
+                        </dd>
                       </div>
-                    </div>
+                    </dl>
 
-                    {/* Guidelines & 1-Click Remediation */}
-                    <div className="mt-4 flex items-center justify-between gap-3 pt-3 border-t border-rose-500/25">
-                      {/* Tavily Guideline Link */}
+                    <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-signal/20 pt-2.5">
                       {guides.length > 0 && guides[i] ? (
                         <a
                           href={guides[i].url}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-300 hover:underline"
+                          className="flex min-w-0 items-center gap-1 text-[11px] text-muted underline underline-offset-2 transition-colors hover:text-ink"
                         >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          <span>
+                          <ExternalLink className="h-3 w-3 shrink-0" />
+                          <span className="truncate">
                             {guides[i].source === "tavily_live"
                               ? "Tavily live result"
                               : "Cached guideline snapshot"}
                           </span>
                         </a>
                       ) : (
-                        <span className="text-xs text-slate-400">No guideline source attached</span>
+                        <span className="text-[11px] text-faint">No guideline source attached</span>
                       )}
 
-                      {/* 1-Click Remediation Button */}
                       <button
                         onClick={() => onApply(v)}
                         disabled={isApplied}
-                        className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                        className={`flex h-7 shrink-0 items-center gap-1.5 px-2.5 text-[11.5px] font-medium transition-colors ${
                           isApplied
-                            ? "border border-emerald-500/40 bg-emerald-500/20 text-emerald-300"
-                            : "bg-rose-500 text-white hover:bg-rose-400 shadow-md shadow-black/50 active:scale-95"
+                            ? "cursor-default border border-safe/40 bg-safe-wash text-safe"
+                            : "bg-signal text-sheet hover:bg-signal-ink"
                         }`}
                       >
                         {isApplied ? (
                           <>
-                            <Check className="h-4 w-4" />
-                            <span>Remediation Applied</span>
+                            <Check className="h-3 w-3" />
+                            Applied
                           </>
                         ) : (
-                          <>
-                            <Sparkles className="h-4 w-4" />
-                            <span>Apply Safe Patch &amp; Re-Verify</span>
-                          </>
+                          "Apply patch & re-verify"
                         )}
                       </button>
                     </div>
@@ -314,111 +282,106 @@ function DischargeEditor({
           )}
         </AnimatePresence>
 
-        {/* ----------------- MEDICATIONS SECTION ----------------- */}
-        <div className="mb-4 rounded-xl border border-white/[0.08] bg-slate-900/40 p-4">
-          <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
-            <div className="flex items-center gap-2">
-              <Pill className="h-4 w-4 text-sky-400" />
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                Home Medications &amp; Prescriptions
-              </h3>
-            </div>
-            <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-xs text-slate-400 border border-white/10">
-              {packet.prescriptions.length} order{packet.prescriptions.length !== 1 ? "s" : ""}
-            </span>
+        {/* ── prescriptions ─────────────────────────────────────────── */}
+        <div className="pt-3">
+          <div className="flex items-baseline justify-between">
+            <h3 className="label">Home medications</h3>
+            <span className="mono text-[11px] text-faint">{packet.prescriptions.length}</span>
           </div>
 
-          <div className="mt-3 flex flex-col gap-2">
+          <ul className="mt-1 border-t border-edge">
             {packet.prescriptions.length === 0 ? (
-              <p className="text-xs text-slate-400 py-2">No prescriptions in discharge packet</p>
+              <li className="py-2 text-[12px] text-muted">No prescriptions in the packet</li>
             ) : (
               packet.prescriptions.map((rx: Prescription, idx: number) => {
-                const isKetorolac = rx.drug_name.toLowerCase().includes("ketorolac") || rx.drug_name.toLowerCase().includes("toradol");
+                const isKetorolac =
+                  rx.drug_name.toLowerCase().includes("ketorolac") ||
+                  rx.drug_name.toLowerCase().includes("toradol");
                 const isAcetaminophen = rx.drug_name.toLowerCase().includes("acetaminophen");
 
                 return (
-                  <div
+                  <li
                     key={idx}
-                    className={`flex items-center justify-between rounded-lg border px-3.5 py-2.5 text-xs transition-colors ${
-                      isKetorolac
-                        ? "border-rose-500/40 bg-rose-500/10 text-rose-200"
-                        : isAcetaminophen
-                          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-                          : "border-white/5 bg-slate-950/60 text-slate-200"
-                    }`}
+                    className="flex items-center justify-between gap-3 border-b border-edge py-2"
                   >
-                    <div>
-                      <span className="font-bold text-white">{rx.drug_name}</span>
-                      <span className="ml-2 font-mono text-slate-300">{rx.dose}</span>
-                      <span className="ml-2 text-slate-400">× {rx.days}d</span>
+                    <div className="flex min-w-0 items-baseline gap-2">
+                      <span
+                        className={`text-[12.5px] font-medium ${
+                          isKetorolac ? "text-signal-ink" : "text-ink"
+                        }`}
+                      >
+                        {rx.drug_name}
+                      </span>
+                      <span className="mono text-[11.5px] text-ink-2">{rx.dose}</span>
+                      <span className="mono text-[11px] text-faint">×{rx.days}d</span>
+                      {isKetorolac && (
+                        <span className="mono text-[10px] uppercase tracking-[0.06em] text-signal">
+                          hold
+                        </span>
+                      )}
+                      {isAcetaminophen && (
+                        <span className="mono text-[10px] uppercase tracking-[0.06em] text-safe">
+                          safe
+                        </span>
+                      )}
                     </div>
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs text-slate-300">
+                    <span className="shrink-0 truncate text-[11px] text-muted">
                       {rx.drug_class || rx.class}
                     </span>
-                  </div>
+                  </li>
                 );
               })
             )}
-          </div>
+          </ul>
         </div>
 
-        {/* ----------------- FOLLOW-UP ORDERS SECTION (#orders-anchor) ----------------- */}
-        <div id="orders-anchor" className="mb-4 rounded-xl border border-white/[0.08] bg-slate-900/40 p-4">
-          <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-sky-400" />
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                Follow-Up Orders &amp; Closed-Loop Referrals
-              </h3>
-            </div>
-            <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-xs text-slate-400 border border-white/10">
-              {packet.follow_up_orders.length} order{packet.follow_up_orders.length !== 1 ? "s" : ""}
-            </span>
+        {/* ── follow-up orders (#orders-anchor is the redline target) ── */}
+        <div id="orders-anchor" className="pt-4">
+          <div className="flex items-baseline justify-between">
+            <h3 className="label">Follow-up orders</h3>
+            <span className="mono text-[11px] text-faint">{packet.follow_up_orders.length}</span>
           </div>
 
-          <div className="mt-3 flex flex-col gap-2">
+          <ul className="mt-1 border-t border-edge">
             {packet.follow_up_orders.length === 0 ? (
-              <p className="text-xs text-slate-400 py-2">No follow-up imaging or specialty orders scheduled</p>
+              <li className="py-2 text-[12px] text-muted">
+                No follow-up imaging or specialty orders scheduled
+              </li>
             ) : (
               packet.follow_up_orders.map((ord: FollowUpOrder, idx: number) => {
                 const isCpt71250 = ord.cpt_code.trim() === "71250";
                 return (
-                  <div
-                    key={idx}
-                    className={`rounded-lg border px-3.5 py-2.5 text-xs transition-colors ${
-                      isCpt71250
-                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-                        : "border-white/5 bg-slate-950/60 text-slate-200"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white">{ord.specialty}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono rounded bg-white/5 border border-white/10 px-2 py-0.5 text-xs text-slate-300">
-                          CPT {ord.cpt_code}
-                        </span>
-                        <span className="text-slate-400">{ord.timeframe}</span>
+                  <li key={idx} className="border-b border-edge py-2">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span
+                        className={`text-[12.5px] font-medium ${
+                          isCpt71250 ? "text-safe" : "text-ink"
+                        }`}
+                      >
+                        {ord.specialty}
+                      </span>
+                      <div className="flex shrink-0 items-baseline gap-2">
+                        <span className="mono text-[11.5px] text-ink-2">CPT {ord.cpt_code}</span>
+                        <span className="mono text-[11px] text-faint">{ord.timeframe}</span>
                       </div>
                     </div>
-                    <p className="mt-1 text-slate-400">{ord.reason}</p>
-                  </div>
+                    <p className="mt-0.5 text-[11.5px] leading-[1.45] text-muted">{ord.reason}</p>
+                  </li>
                 );
               })
             )}
-          </div>
+          </ul>
         </div>
 
-        {/* ----------------- DISCHARGE INSTRUCTIONS SECTION ----------------- */}
-        <div className="rounded-xl border border-white/[0.08] bg-slate-900/40 p-4">
-          <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-              Discharge Instructions &amp; Patient Guidance
-            </h3>
+        {/* ── instructions ──────────────────────────────────────────── */}
+        <div className="pt-4">
+          <div className="flex items-baseline justify-between">
+            <h3 className="label">Discharge instructions</h3>
             <button
               onClick={() => setEditingInstructions(!editingInstructions)}
-              className="text-xs font-semibold text-sky-400 hover:text-sky-300 hover:underline transition-colors"
+              className="text-[11px] text-muted underline underline-offset-2 transition-colors hover:text-ink"
             >
-              {editingInstructions ? "Done Editing" : "Edit in Sandbox"}
+              {editingInstructions ? "Done" : "Edit"}
             </button>
           </div>
 
@@ -427,10 +390,10 @@ function DischargeEditor({
               value={packet.discharge_instructions}
               onChange={(e) => onEditInstructions(e.target.value)}
               rows={4}
-              className="mt-3 w-full rounded-lg border border-sky-500/40 bg-slate-950 p-3 text-xs leading-relaxed text-slate-200 outline-none focus:ring-1 focus:ring-sky-500"
+              className="field mt-1.5 w-full p-2 text-[12.5px] leading-[1.55]"
             />
           ) : (
-            <p className="mt-3 text-xs leading-relaxed text-slate-300 whitespace-pre-wrap">
+            <p className="mt-1.5 whitespace-pre-wrap text-[12.5px] leading-[1.55] text-ink-2">
               {packet.discharge_instructions}
             </p>
           )}

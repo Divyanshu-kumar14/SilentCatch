@@ -27,3 +27,6 @@ next-env.d.ts
 *.log
 dist/
 build/
+
+# Design inspector artifacts (local)
+.taste-skill/

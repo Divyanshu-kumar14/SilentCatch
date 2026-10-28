@@ -1,5 +1,5 @@
-import Console from "@/components/Console";
+import Landing from "@/components/landing/Landing";
 
 export default function Home() {
-  return <Console />;
+  return <Landing />;
 }

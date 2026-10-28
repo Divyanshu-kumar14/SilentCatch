@@ -12,11 +12,19 @@ const geistMono = localFont({
   variable: "--font-geist-mono",
   weight: "100 900",
 });
+const instrumentSerif = localFont({
+  src: [
+    { path: "./fonts/InstrumentSerif-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/InstrumentSerif-Italic.woff2", weight: "400", style: "italic" },
+  ],
+  variable: "--font-display",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "SilentCatch — ER Pre-Discharge Flight-Check",
+  title: "SilentCatch — the pre-discharge interlock",
   description:
-    "10-second cross-modal safety interlock before the Sign & Discharge click. Nebius Token Factory pipeline, deterministic span-guard, honest LIVE/REPLAYED telemetry.",
+    "A cross-modal safety interlock that reads the scan, the serial labs, and the discharge packet together — and blocks the signature when they contradict. Synthetic fixtures, replayable evidence, no clinical claims.",
   icons: { icon: "/favicon.ico" },
 };
 
@@ -28,7 +36,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} antialiased`}
       >
         {children}
       </body>

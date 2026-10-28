@@ -2,14 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import {
-  Layers,
-  ZoomIn,
-  ZoomOut,
-  Scan,
-  AlertCircle,
-  CheckCircle2,
-} from "lucide-react";
 
 import { API_BASE } from "@/lib/api";
 import { resolveSpan } from "@/lib/clinical";
@@ -18,39 +10,44 @@ import ThreeDVolumeViewer from "@/components/ThreeDVolumeViewer";
 
 /**
  * Bounding boxes for the FR-5.1 Key-Slice Viewer.
+ * Coordinates are in the 256-space the fixtures were authored in.
  */
-const ROI: Record<string, { cx: number; cy: number; width: number; height: number; label: string; plainDesc: string }> = {
+const ROI: Record<
+  string,
+  { cx: number; cy: number; width: number; height: number; label: string; plainDesc: string }
+> = {
   "ED-102": {
     cx: 120,
     cy: 150,
     width: 72,
     height: 60,
-    label: "RLL Consolidation (Pneumonia)",
-    plainDesc: "Lung infection area. Follow-up CT already scheduled by physician.",
+    label: "RLL consolidation",
+    plainDesc: "Lung infection area. Follow-up CT already scheduled by the physician.",
   },
   "ED-104": {
     cx: 170,
     cy: 90,
     width: 44,
     height: 44,
-    label: "7.2mm Spiculated Lung Nodule",
-    plainDesc: "⚠️ Potential early lung tumor! Requires 6-month follow-up CT (CPT 71250) to rule out malignancy.",
+    label: "7.2 mm spiculated nodule",
+    plainDesc:
+      "Potential early lung tumour. Requires a 6-month follow-up CT (CPT 71250) to rule out malignancy.",
   },
   "ED-110": {
     cx: 160,
     cy: 140,
     width: 56,
     height: 50,
-    label: "2.8cm Left Adrenal Mass",
-    plainDesc: "Incidental adrenal tumor needing endocrine referral.",
+    label: "2.8 cm left adrenal mass",
+    plainDesc: "Incidental adrenal tumour needing an endocrine referral.",
   },
   "ED-111": {
     cx: 110,
     cy: 130,
     width: 84,
     height: 70,
-    label: "Cardiomegaly (Enlarged Heart)",
-    plainDesc: "Fluid congestion in heart requiring cardiology follow-up.",
+    label: "Cardiomegaly",
+    plainDesc: "Enlarged heart with fluid congestion, requiring cardiology follow-up.",
   },
 };
 
@@ -74,7 +71,7 @@ function renderWithHighlights(
         <mark
           key={`h${i}`}
           id={`hl-${h.pane}-${h.idx}`}
-          className="rounded px-1.5 py-0.5 font-medium text-rose-300 bg-rose-500/25 border border-rose-500/50 shadow-sm"
+          className="rounded-[2px] bg-signal-wash px-0.5 text-signal-ink shadow-[inset_0_-1.5px_0_rgb(var(--signal))]"
         >
           {text.slice(h.start, h.end)}
         </mark>
@@ -98,7 +95,9 @@ function ScanViewer({
   interceptActive: boolean;
 }) {
   const [viewMode, setViewMode] = useState<"2d" | "3d">("2d");
-  const [windowPreset, setWindowPreset] = useState<"standard" | "lung" | "bone" | "invert">("standard");
+  const [windowPreset, setWindowPreset] = useState<"standard" | "lung" | "bone" | "invert">(
+    "standard"
+  );
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [mousePos, setMousePos] = useState<{ x: number; y: number; active: boolean }>({
     x: 128,
@@ -156,13 +155,12 @@ function ScanViewer({
 
   const isCT = encounter.radiology_study.modality.toLowerCase().includes("ct");
 
-  // Live HU estimation
   const liveHU = useMemo(() => {
-    if (!mousePos.active) return "+46.2 HU [Tissue]";
+    if (!mousePos.active) return "+46.2 HU";
     if (roi) {
       const dist = Math.hypot(mousePos.x - roi.cx, mousePos.y - roi.cy);
       if (dist < 40) {
-        return `+${Math.round(45 + (1 - dist / 40) * 15)}.0 HU [Nodule]`;
+        return `+${Math.round(45 + (1 - dist / 40) * 15)}.0 HU`;
       }
     }
     const val = Math.round(((mousePos.x + mousePos.y) / 512) * 200 - 100);
@@ -170,73 +168,61 @@ function ScanViewer({
   }, [mousePos, roi]);
 
   return (
-    <section className="glass-pane flex h-full min-h-0 flex-col rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl">
-      {/* ----------------- HEADER ----------------- */}
-      <header className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-slate-900/60 px-5 py-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400">
-            <Scan className="h-4 w-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold tracking-tight text-white">
-                RADIOLOGY · KEY-SLICE
-              </h2>
-              <span className="rounded bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 text-xs font-semibold text-sky-300">
-                1. Vision Input
-              </span>
-            </div>
-            <p className="text-xs text-slate-400">
-              {encounter.radiology_study.modality}
-            </p>
-          </div>
+    <section className="flex h-full min-h-0 flex-col" aria-label="Radiology key slice">
+      {/* ── column head ─────────────────────────────────────────────── */}
+      <header className="flex h-10 shrink-0 items-center justify-between gap-3 border-b border-edge px-4">
+        <div className="flex min-w-0 items-baseline gap-2.5">
+          <h2 className="text-[13px] font-medium text-ink">Vision</h2>
+          <span className="truncate text-[12px] text-muted">
+            {encounter.radiology_study.modality}
+          </span>
         </div>
 
-        {/* 2D / 3D Toggle */}
         {isCT ? (
-          <div className="flex items-center rounded-lg border border-white/10 bg-slate-950/60 p-0.5">
-            <button
-              onClick={() => setViewMode("2d")}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
-                viewMode === "2d"
-                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm font-semibold"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              2D Scan
-            </button>
-            <button
-              onClick={() => setViewMode("3d")}
-              className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
-                viewMode === "3d"
-                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm font-semibold"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <Layers className="h-3 w-3" />
-              3D Volume
-            </button>
+          <div className="flex shrink-0 items-center border border-edge" role="group">
+            {(
+              [
+                ["2d", "2D"],
+                ["3d", "3D"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setViewMode(id)}
+                aria-pressed={viewMode === id}
+                className={`h-6 px-2.5 text-[11px] transition-colors ${
+                  viewMode === id
+                    ? "bg-ink text-sheet"
+                    : "text-muted hover:bg-sheet-2 hover:text-ink"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         ) : (
-          <span className="rounded-lg border border-white/10 bg-slate-950/60 px-2.5 py-1 text-xs font-medium text-slate-400">
-            2D Radiograph
+          <span className="shrink-0 text-[11px] uppercase tracking-[0.08em] text-faint">
+            Radiograph
           </span>
         )}
       </header>
 
-      {/* ----------------- SCAN VIEWPORT ----------------- */}
-      <div className="flex shrink-0 flex-col border-b border-white/[0.08] bg-slate-950/90 p-4">
+      {/* ── imaging chamber ─────────────────────────────────────────── */}
+      <div className="shrink-0 border-b border-edge p-2.5">
         {encounter.radiology_study.slice_image_url ? (
           viewMode === "3d" ? (
             <ThreeDVolumeViewer
               encounter={encounter}
-              roi={roi ? { cx: roi.cx, cy: roi.cy, ring: Math.max(roi.width, roi.height) / 2 } : undefined}
+              roi={
+                roi
+                  ? { cx: roi.cx, cy: roi.cy, ring: Math.max(roi.width, roi.height) / 2 }
+                  : undefined
+              }
             />
           ) : (
-            <div className="flex flex-col gap-3">
-              {/* Scan Frame */}
+            <div className="flex flex-col gap-2">
               <div
-                className="group relative flex h-52 w-full items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black shadow-inner"
+                className="chamber film-grain group relative flex h-[248px] w-full items-center justify-center overflow-hidden"
                 onMouseMove={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
                   setMousePos({
@@ -247,33 +233,26 @@ function ScanViewer({
                 }}
                 onMouseLeave={() => setMousePos((p) => ({ ...p, active: false }))}
               >
-                {/* Laser Scanline during active phase */}
-                {interceptActive && <div className="laser-scan-line" />}
+                {interceptActive && <div className="scanline" aria-hidden />}
 
-                {/* Corner Medical Markers */}
-                <div className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 border-l-2 border-t-2 border-slate-600" />
-                <div className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 border-r-2 border-t-2 border-slate-600" />
-                <div className="pointer-events-none absolute bottom-2.5 left-2.5 h-3.5 w-3.5 border-b-2 border-l-2 border-slate-600" />
-                <div className="pointer-events-none absolute bottom-2.5 right-2.5 h-3.5 w-3.5 border-b-2 border-r-2 border-slate-600" />
-
-                {/* Orientation Markers */}
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs font-bold text-slate-400">
+                {/* film edge + orientation */}
+                <div className="pointer-events-none absolute inset-0 z-10 border border-white/10" />
+                <span className="pointer-events-none absolute left-2 top-1/2 z-10 -translate-y-1/2 text-[11px] text-night-muted">
                   R
                 </span>
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs font-bold text-slate-400">
+                <span className="pointer-events-none absolute right-2 top-1/2 z-10 -translate-y-1/2 text-[11px] text-night-muted">
                   L
                 </span>
-                <span className="pointer-events-none absolute top-2.5 left-1/2 -translate-x-1/2 font-mono text-xs font-bold text-slate-400">
+                <span className="pointer-events-none absolute left-1/2 top-2 z-10 -translate-x-1/2 text-[11px] text-night-muted">
                   S
                 </span>
-                <span className="pointer-events-none absolute bottom-2.5 left-1/2 -translate-x-1/2 font-mono text-xs font-bold text-slate-400">
+                <span className="pointer-events-none absolute bottom-2 left-1/2 z-10 -translate-x-1/2 text-[11px] text-night-muted">
                   I
                 </span>
 
-                {/* DICOM Scan Image */}
                 <Image
                   src={`${API_BASE}${encounter.radiology_study.slice_image_url}`}
-                  alt="Radiology Study Scan"
+                  alt={`Radiology key slice for ${encounter.encounter_id}`}
                   width={256}
                   height={256}
                   unoptimized
@@ -284,10 +263,10 @@ function ScanViewer({
                   }}
                 />
 
-                {/* Clinical Finding Bounding Reticle */}
+                {/* finding reticle */}
                 {roi && (
                   <div
-                    className="absolute transition-all duration-300 cursor-pointer pointer-events-auto"
+                    className="absolute z-20 transition-all duration-300"
                     style={{
                       left: `${(roi.cx / 256) * 100}%`,
                       top: `${(roi.cy / 256) * 100}%`,
@@ -297,24 +276,42 @@ function ScanViewer({
                     }}
                   >
                     <div
-                      className={`h-full w-full rounded border-2 transition-colors ${
+                      className={`relative h-full w-full border ${
                         interceptActive
-                          ? "border-rose-500 bg-rose-500/15 shadow-lg shadow-rose-950/40"
-                          : "border-sky-400 bg-sky-400/15 shadow-lg shadow-sky-950/40"
+                          ? "border-signal bg-signal/15"
+                          : "border-night-ink/60 bg-night-ink/5"
                       }`}
                     >
-                      <div className="absolute -top-1.5 -left-1.5 h-2 w-2 border-l-2 border-t-2 border-white" />
-                      <div className="absolute -top-1.5 -right-1.5 h-2 w-2 border-r-2 border-t-2 border-white" />
-                      <div className="absolute -bottom-1.5 -left-1.5 h-2 w-2 border-l-2 border-b-2 border-white" />
-                      <div className="absolute -bottom-1.5 -right-1.5 h-2 w-2 border-r-2 border-b-2 border-white" />
+                      <span
+                        className={`absolute -left-px -top-px h-1.5 w-1.5 border-l border-t ${
+                          interceptActive ? "border-signal" : "border-night-ink"
+                        }`}
+                      />
+                      <span
+                        className={`absolute -right-px -top-px h-1.5 w-1.5 border-r border-t ${
+                          interceptActive ? "border-signal" : "border-night-ink"
+                        }`}
+                      />
+                      <span
+                        className={`absolute -bottom-px -left-px h-1.5 w-1.5 border-b border-l ${
+                          interceptActive ? "border-signal" : "border-night-ink"
+                        }`}
+                      />
+                      <span
+                        className={`absolute -bottom-px -right-px h-1.5 w-1.5 border-b border-r ${
+                          interceptActive ? "border-signal" : "border-night-ink"
+                        }`}
+                      />
+                      {interceptActive && (
+                        <span className="pulse-ring absolute inset-0 border border-signal/70" />
+                      )}
                     </div>
 
-                    {/* Intuitive Finding Pill */}
                     <div
-                      className={`absolute top-full left-1/2 -translate-x-1/2 mt-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-bold shadow-lg backdrop-blur-md transition-all ${
+                      className={`absolute left-0 top-full mt-1.5 whitespace-nowrap px-1.5 py-0.5 text-[11px] ${
                         interceptActive
-                          ? "bg-rose-950/95 text-rose-200 border border-rose-500/50"
-                          : "bg-slate-900/95 text-sky-200 border border-sky-500/50"
+                          ? "bg-signal text-sheet"
+                          : "bg-night-ink text-night"
                       }`}
                     >
                       {roi.label}
@@ -322,146 +319,136 @@ function ScanViewer({
                   </div>
                 )}
 
-                {/* Clean Context Overlays */}
-                <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 text-xs font-medium text-slate-300">
-                  <span className="rounded bg-black/70 px-2 py-0.5 border border-white/15 font-bold text-white shadow">
+                {/* film metadata */}
+                <div className="pointer-events-none absolute inset-x-2.5 top-2.5 z-10 flex items-start justify-between gap-2">
+                  <span className="mono text-[11px] text-night-ink/70">
                     {encounter.encounter_id}
                   </span>
-                  <span className="text-slate-300 font-medium">
-                    {encounter.radiology_study.modality.split(",")[0]}
-                  </span>
+                  {isCT && (
+                    <span className="mono text-[11px] text-night-ink/70">{liveHU}</span>
+                  )}
                 </div>
-
-                {isCT && (
-                  <div className="pointer-events-none absolute right-3 bottom-3 flex items-center gap-2 font-mono text-xs text-slate-400">
-                    <span className="rounded bg-black/70 px-2 py-0.5 border border-white/10 text-sky-300 font-semibold shadow">
-                      {liveHU}
-                    </span>
-                  </div>
-                )}
               </div>
 
-              {/* Viewport Control Bar */}
-              <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-medium text-slate-400 mr-1">Window:</span>
+              {/* window / zoom */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-0.5" role="group" aria-label="Window preset">
                   {(["standard", "lung", "bone", "invert"] as const).map((preset) => (
                     <button
                       key={preset}
                       onClick={() => setWindowPreset(preset)}
-                      className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                      aria-pressed={windowPreset === preset}
+                      className={`h-6 px-2 text-[11px] capitalize transition-colors ${
                         windowPreset === preset
-                          ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 font-semibold"
-                          : "bg-white/5 text-slate-400 hover:text-white border border-white/5"
+                          ? "bg-sheet-2 font-medium text-ink"
+                          : "text-muted hover:text-ink"
                       }`}
                     >
-                      {preset.charAt(0).toUpperCase() + preset.slice(1)}
+                      {preset}
                     </button>
                   ))}
                 </div>
 
-                {/* Zoom */}
-                <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-0.5">
+                <div className="flex items-center gap-1">
                   <button
                     onClick={() => setZoomLevel((z) => Math.max(1, z - 0.5))}
-                    title="Zoom Out"
-                    className="p-1 rounded text-slate-400 hover:text-white transition-colors"
+                    title="Zoom out"
+                    className="h-6 px-1.5 text-[11px] text-muted transition-colors hover:text-ink disabled:opacity-40"
+                    disabled={zoomLevel <= 1}
                   >
-                    <ZoomOut className="h-3.5 w-3.5" />
+                    −
                   </button>
-                  <span className="font-mono text-xs text-sky-400 px-1.5 font-semibold">
-                    {zoomLevel}x
+                  <span className="mono w-7 text-center text-[11px] text-ink-2">
+                    {zoomLevel}×
                   </span>
                   <button
                     onClick={() => setZoomLevel((z) => Math.min(2, z + 0.5))}
-                    title="Zoom In"
-                    className="p-1 rounded text-slate-400 hover:text-white transition-colors"
+                    title="Zoom in"
+                    className="h-6 px-1.5 text-[11px] text-muted transition-colors hover:text-ink disabled:opacity-40"
+                    disabled={zoomLevel >= 2}
                   >
-                    <ZoomIn className="h-3.5 w-3.5" />
+                    +
                   </button>
                 </div>
               </div>
             </div>
           )
         ) : (
-          <p className="text-xs text-slate-400 text-center py-8">No diagnostic scan on file</p>
+          <p className="py-10 text-center text-[12px] text-muted">No diagnostic scan on file</p>
         )}
       </div>
 
-      {/* ----------------- REPORT & EXTRACTED FINDINGS ----------------- */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 space-y-4" data-testid="report-scroll">
-        {/* Structured Findings List with Plain English Explanations */}
+      {/* ── findings + report ───────────────────────────────────────── */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3" data-testid="report-scroll">
         {findings.length > 0 && (
-          <div>
-            <h3 className="text-xs font-bold text-slate-300 mb-2 uppercase tracking-wider flex items-center justify-between">
-              <span>Identified Scan Findings</span>
-              <span className="text-slate-400 normal-case font-normal text-xs">
-                {findings.length} extracted
-              </span>
-            </h3>
-            <div className="flex flex-col gap-2">
-              {findings.map((f: ScanFinding, i: number) => (
-                <div
+          <div className="mb-4">
+            <div className="mb-1.5 flex items-baseline justify-between">
+              <h3 className="label">Extracted findings</h3>
+              <span className="mono text-[11px] text-faint">{findings.length}</span>
+            </div>
+
+            <ul className="border-t border-edge">
+              {findings.map((f: ScanFinding, i: number) => {
+                const fired = f.acute && interceptActive;
+                return (
+                <li
                   key={i}
-                  className={`flex items-start justify-between gap-3 rounded-xl border p-2.5 text-xs transition-colors ${
-                    f.acute
-                      ? "border-rose-500/40 bg-rose-500/10 text-rose-100"
-                      : "border-white/5 bg-slate-900/40 text-slate-200"
-                  }`}
+                  className="flex items-start justify-between gap-3 border-b border-edge py-2"
                 >
-                  <div className="flex items-start gap-2.5">
-                    {f.acute ? (
-                      <AlertCircle className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
-                    ) : (
-                      <CheckCircle2 className="h-4 w-4 text-sky-400 shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p
+                      className={`text-[13px] leading-[1.45] ${
+                        fired ? "font-medium text-signal-ink" : "text-ink-2"
+                      }`}
+                    >
+                      {f.description}
+                    </p>
+                    {f.acute && (
+                      <p
+                        className={`mt-0.5 text-[11.5px] ${
+                          fired ? "text-signal" : "text-muted"
+                        }`}
+                      >
+                        {fired ? "Unresolved in the packet" : "Acute, already addressed"}
+                      </p>
                     )}
-                    <div>
-                      <span className="font-semibold block">{f.description}</span>
-                      {f.acute && (
-                        <p className="text-xs text-rose-300/90 mt-0.5">
-                          ⚠️ Needs follow-up order in discharge packet!
-                        </p>
-                      )}
-                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex shrink-0 items-baseline gap-2">
                     {f.measurement_mm != null && (
-                      <span className="font-mono text-xs font-bold text-sky-300 bg-sky-950/80 px-2 py-0.5 rounded border border-sky-800/40">
-                        Ø{f.measurement_mm}mm
+                      <span className="mono text-[11.5px] text-ink-2">
+                        {f.measurement_mm} mm
                       </span>
                     )}
                     {f.recommended_cpt && (
-                      <span className="font-mono rounded bg-white/5 border border-white/10 px-2 py-0.5 text-xs text-slate-300">
+                      <span className="mono text-[11.5px] text-muted">
                         CPT {f.recommended_cpt}
                       </span>
                     )}
                   </div>
-                </div>
-              ))}
-            </div>
+                </li>
+                );
+              })}
+            </ul>
           </div>
         )}
-        <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
-          <h3 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
-            RADIOLOGY REPORT TEXT
-          </h3>
+
+        <div className="mb-1.5 flex items-baseline justify-between gap-3">
+          <h3 className="label">Radiology report</h3>
           {interceptActive && spanMeta && (
-            <span className="rounded-full bg-rose-500/15 px-2.5 py-0.5 text-xs font-semibold text-rose-300 border border-rose-500/30">
-              Verified Span [{spanMeta.start_char}–{spanMeta.end_char}]
+            <span className="mono text-[11px] text-signal">
+              verified [{spanMeta.start_char}–{spanMeta.end_char}]
             </span>
           )}
         </div>
 
-        <p className="mt-3 whitespace-pre-wrap text-xs leading-relaxed text-slate-300 font-normal">
+        <p className="whitespace-pre-wrap text-[13px] leading-[1.65] text-ink-2">
           {interceptActive ? renderWithHighlights(report, reportHls) : report}
         </p>
 
         {labNote && (
-          <div className="mt-4 border-t border-white/[0.08] pt-3">
-            <h3 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
-              CLINICAL LAB NOTE
-            </h3>
-            <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-slate-300 font-normal">
+          <div className="mt-4 border-t border-edge pt-3">
+            <h3 className="label mb-1.5">Clinical lab note</h3>
+            <p className="whitespace-pre-wrap text-[13px] leading-[1.65] text-ink-2">
               {interceptActive ? renderWithHighlights(labNote, labHls) : labNote}
             </p>
           </div>
