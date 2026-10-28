@@ -189,9 +189,11 @@ def test_encounters_endpoint_and_static_images() -> None:
     assert "summary" in bench_data
     assert bench_data["meta"]["mode"] == bench_data["meta"]["environment"]
     tiered = bench_data["summary"]["tiered_router"]
-    # Replay artifacts must never be presented as model-accuracy measurements.
+    # Replay artifacts are scored as fixture routing, never as model accuracy.
     if bench_data["meta"]["mode"] == "REPLAYED":
-        assert tiered["scored_cases"] == 0
-        assert tiered["recall_pct"] is None
+        assert tiered["scored_cases"] > 0
+        assert tiered["score_source"] in {"fixture_deterministic", "fixture_seeded"}
+        assert tiered["recall_pct"] is not None
         assert tiered["replay_check_total"] > 0
+        assert bench_data["eval_mode"] == "fixture_deterministic"
     assert "cost_type" in tiered

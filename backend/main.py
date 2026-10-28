@@ -115,7 +115,11 @@ async def list_encounters() -> list[dict]:
 
 @app.get("/api/benchmark")
 async def get_benchmark() -> dict:
-    """Pre-computed empirical evaluation metrics across 12 encounters x 3 architectures."""
+    """Cached benchmark artifact plus an explicit evaluation-mode label.
+
+    Replay artifacts score deterministic fixture routing; live artifacts score
+    provider responses. ``eval_mode`` lets the console state which one it shows.
+    """
     global _benchmark_cache, _benchmark_mtime
     benchmark_file = Path(__file__).resolve().parent.parent / "eval" / "results_latest.json"
     try:
@@ -123,9 +127,23 @@ async def get_benchmark() -> dict:
         if _benchmark_cache is None or mtime != _benchmark_mtime:
             _benchmark_cache = json.loads(benchmark_file.read_text())
             _benchmark_mtime = mtime
-        return _benchmark_cache
+        mode = _benchmark_cache.get("meta", {}).get("mode")
+        if mode == "LIVE":
+            eval_mode = "live_inference"
+        elif mode == "REPLAYED":
+            eval_mode = "fixture_deterministic"
+        elif mode:
+            eval_mode = "mixed_provenance"
+        else:
+            eval_mode = "unavailable"
+        # Copy so each response carries eval_mode without mutating the cache.
+        return {**_benchmark_cache, "eval_mode": eval_mode}
     except FileNotFoundError:
-        return {"status": "pending", "message": "Run make benchmark to generate results."}
+        return {
+            "status": "pending",
+            "eval_mode": "unavailable",
+            "message": "Run make benchmark to generate results.",
+        }
 
 
 @app.post("/api/audit-stream")
