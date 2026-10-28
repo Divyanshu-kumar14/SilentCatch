@@ -23,7 +23,7 @@
 <br/>
 
 ![SilentCatch Hero Console](docs/assets/hero-critical-intercept.png)
-*SilentCatch running the synthetic ED-104 fixture: a buried 7.2 mm RUL pulmonary nodule and an acute kinetic AKI × Ketorolac collision are surfaced before sign-off. Screenshot from the local replay path; it is not evidence of clinical validation.*
+*SilentCatch running the synthetic ED-104 fixture: a buried 7.2 mm RUL pulmonary nodule and an acute kinetic AKI × Ketorolac collision are surfaced before sign-off. Screenshot from a local run; it is not evidence of clinical validation.*
 
 </div>
 
@@ -154,7 +154,7 @@ Actual values depend on the run; inspect `eval/results_latest.json` rather than 
 
 ## 🖥️ Clinical Flight-Check Console
 
-The interface is engineered as an ergonomic dark cockpit (`#0A0E13`) formatted to display all clinical evidence above the fold at standard hospital workstation resolutions (`1280×800`):
+The interface is engineered as a single bone-paper sheet: the imaging chamber is the only dark material, and the three columns — imaging, kinetics, discharge gate — are separated by hairlines rather than nested cards. Below `1280px` the columns stack; above it, the sheet holds its three-column flight-check layout:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
@@ -163,7 +163,7 @@ The interface is engineered as an ergonomic dark cockpit (`#0A0E13`) formatted t
 │ PANE 1: RADIOLOGY KEY-SLICE  │ PANE 2: 48-HR LAB VELOCITY   │ PANE 3: DISCHARGE EDITOR │
 │                              │                              │                          │
 │ • 256×256 Key-Slice Viewer   │ • OLS Linear Trajectory Math │ • Primary ICD-10 & Rx    │
-│ • Cyan ROI Caliper Ring      │ • KDIGO AKI 1/2/3 Alarm Bands│ • Interception Cards     │
+│ • Red ROI Caliper Ring       │ • KDIGO AKI 1/2/3 Alarm Bands│ • Interception Cards     │
 │ • Verbatim Span-Guard Quote  │ • Interactive Judge Sandbox  │ • Tavily Clinical Badges │
 │   Offset Highlighting        │ • Real-time bounds (0.1-25.0)│ • 1-Click Patch & Verify │
 ├──────────────────────────────┴──────────────────────────────┴──────────────────────────┤
@@ -176,7 +176,17 @@ The interface is engineered as an ergonomic dark cockpit (`#0A0E13`) formatted t
 | Step 1: Interception (`CRITICAL_INTERCEPT`) | Step 2: Verified Safe (`VERIFIED_SAFE`) |
 | :---: | :---: |
 | ![ED-104 Intercept](docs/assets/hero-critical-intercept.png) | ![ED-104 Verified Safe](docs/assets/loop-closed-verified-safe.png) |
-| Halts sign-off; highlights buried 7.2 mm nodule and draws red-line to missing CPT 71250 order. Flags kinetic AKI creatinine delta. | Clinician clicks **"Apply Safe Patch & Re-Verify"**. Packet updates in-place, re-audits clean in **< 10ms**, and displays green sign-off badge. |
+| Halts sign-off; highlights buried 7.2 mm nodule and draws red-line to missing CPT 71250 order. Flags kinetic AKI creatinine delta. | Clinician clicks **"Apply patch & re-verify"**. The packet updates in place, re-audits clean, and unlocks the green sign-off state. |
+
+### 3D reconstruction
+
+![SilentCatch 3D reconstruction](docs/assets/console-3d-reconstruction.png)
+*The 3D tab stacks 34 planes of the single fixture key slice. It is a reconstruction, not a DICOM volume; the slice control and the ROI beacon ride the emphasised plane.*
+
+### The landing page
+
+![SilentCatch landing page](docs/assets/landing-page.png)
+*The public entry point at `/`: a scroll-driven reconstruction of the ED-104 key slice above the fold, with the fixture ledger and the two failure modes below. The console lives at `/console`.*
 
 ---
 
@@ -387,16 +397,17 @@ SilentCatch/
 │   │   ├── telemetry.py          # Real-time token pricing, spend ledger & caps
 │   │   └── replay.py             # ReplayStore for deterministic offline execution
 │   └── fixtures/                 # 12 synthetic ER encounters, key-slice PNGs & guideline cache
-├── frontend/                     # Next.js 14 Dark Clinical Console
-│   ├── src/app/                  # App router layout & global stylesheet
+├── frontend/                     # Next.js 14 light-table landing + console
+│   ├── src/app/                  # App router: `/` landing, `/console` flight-check
 │   ├── src/components/
-│   │   ├── Console.tsx           # Dark cockpit container & red-line SVG overlay
+│   │   ├── Console.tsx           # Console shell, audit stream & keyboard shortcuts
 │   │   ├── ScanViewer.tsx        # Left pane: radiology key-slice + Span-Guard highlight
 │   │   ├── LabSparkline.tsx      # Center pane: kinetic sparklines + judge sandbox
 │   │   ├── DischargeEditor.tsx   # Right pane: discharge summary + 1-click patch loop
 │   │   ├── TelemetryBar.tsx      # Bottom bar: progressive pipeline telemetry & spend ledger
-│   │   └── BenchmarkView.tsx     # Lazy-loaded Model Benchmarks visualization tab
-│   ├── src/lib/                  # Client-side API client & analytical clinical math
+│   │   ├── BenchmarkView.tsx     # Lazy-loaded Model Benchmarks visualization tab
+│   │   └── landing/              # Landing page, scroll film & 3D volume components
+│   ├── src/lib/                  # API client, analytical clinical math & volume-scene engine
 │   └── test-phase3.cjs           # Playwright automated 6-step console verification suite
 ├── eval/
 │   ├── benchmark.py              # Reproducible 12-case × 3-config evaluation harness
