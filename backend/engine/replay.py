@@ -36,8 +36,9 @@ def _atomic_write_json(path: Path, data: dict) -> None:
 
 
 class ReplayStore:
-    def __init__(self, path: Path | None = None) -> None:
+    def __init__(self, path: Path | None = None, *, persist: bool = True) -> None:
         self.path = path or _DEFAULT_PATH
+        self.persist = persist
         self._data: dict = self._read()
 
     def _read(self) -> dict:
@@ -60,6 +61,8 @@ class ReplayStore:
         self, stage: str, encounter_id: str, payload: dict, meta: dict
     ) -> None:
         """Best-effort persist of a successful LIVE call (mute IO failures: log)."""
+        if not self.persist:
+            return
         captures = self._data.setdefault("captures", {})
         captures.setdefault(stage, {})[encounter_id] = {"meta": meta, "payload": payload}
         try:

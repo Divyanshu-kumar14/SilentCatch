@@ -1,4 +1,4 @@
-.PHONY: dev judge-demo benchmark install
+.PHONY: dev judge-demo benchmark benchmark-live sync-benchmark-artifact install
 
 # Two-process dev: backend :8000 + frontend :3000 (Ctrl-C stops both)
 dev:
@@ -14,5 +14,17 @@ install:
 judge-demo:
 	docker compose up --build
 
+# Default benchmark is deterministic replay: no provider calls, no model accuracy.
 benchmark:
-	./.venv/bin/python eval/benchmark.py
+	./.venv/bin/python eval/benchmark.py --replay
+	$(MAKE) sync-benchmark-artifact
+
+# Explicit live benchmark. Requires NEBIUS_API_KEY and may incur provider charges.
+# Prefer a smoke run first: ./.venv/bin/python eval/benchmark.py --live --smoke --case ED-104
+benchmark-live:
+	./.venv/bin/python eval/benchmark.py --live
+	$(MAKE) sync-benchmark-artifact
+
+# The frontend imports a static copy for offline/deployed rendering.
+sync-benchmark-artifact:
+	cp eval/results_latest.json frontend/src/data/results_latest.json

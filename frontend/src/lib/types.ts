@@ -121,15 +121,17 @@ export interface KinematicSlope {
 }
 
 export interface StageTrace {
-  stage: string; // vision | gate | guideline | reasoning
+  stage: string; // vision | gate | guideline | reasoning | span_guard
   model_id?: string | null;
   replayed: boolean;
-  latency_ms: number;
-  prompt_tokens: number;
-  completion_tokens: number;
-  est_cost_usd: number;
+  latency_ms: number | null;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  est_cost_usd: number | null;
   payload: Record<string, unknown>;
   note: string;
+  /** Stable machine-readable provenance set by the backend (never by a model). */
+  source: string;
 }
 
 export interface Guideline {
@@ -146,15 +148,21 @@ export interface AuditResult {
   traces: StageTrace[];
   total_cost_usd: number;
   elapsed_ms: number;
+  execution_mode?: string; // LIVE | MIXED | REPLAYED | FAILED | ERROR
+  stage_sources?: Record<string, string>;
+  fallback_used?: boolean;
   error?: string; // rides the SSE payload only on crash
 }
 
 export interface RunStartEvent {
   encounter_id: string;
   mode: "LIVE" | "REPLAYED";
+  requested_mode?: "LIVE" | "REPLAYED";
   daily_spend_usd: number;
   mode_note: string;
+  allow_seed_fallback?: boolean;
 }
+
 
 export type StageDoneEvent =
   | { stage: "vision"; trace: StageTrace; findings: ScanFinding[]; vision_confidence: string }
@@ -178,9 +186,127 @@ export type AuditEvent =
 
 export interface Healthz {
   status: string;
-  inference_mode: "LIVE" | "REPLAYED";
+  /** Configuration capability only — this endpoint makes no provider call. */
+  inference_mode: "LIVE_CAPABLE" | "REPLAY_ONLY";
+  live_capable: boolean;
+  mode_note: string;
   nebius_base_url: string;
   models: Partial<Record<"vision" | "gate" | "reasoning" | "failsafe", string | null>>;
-  tavily_live: boolean;
+  tavily_configured: boolean;
+  /** @deprecated Backward-compatible alias for `tavily_configured`. */
+  tavily_live?: boolean;
   spend_caps: Record<string, number>;
+}
+
+/* ------------------------------------------------------------------ benchmark */
+
+export type BenchmarkMode = "LIVE" | "MIXED" | "REPLAYED" | "FAILED";
+
+export interface BenchmarkStage {
+  stage: string;
+  source: string;
+  model_id?: string | null;
+  replayed: boolean;
+  latency_ms: number | null;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  cost_usd: number | null;
+  cost_type: string;
+  note: string;
+}
+
+export interface BenchmarkCase {
+  encounter_id: string;
+  expected_contradiction: boolean;
+  expected_outcome: "CRITICAL_INTERCEPT" | "SILENT_PASS";
+  predicted_outcome: string | null;
+  flagged: boolean | null;
+  evaluable: boolean;
+  scored: boolean;
+  status: string;
+  prediction_source: string;
+  case_mode: BenchmarkMode | string;
+  fallback_affected: boolean;
+  verification_rejected: boolean;
+  stages: BenchmarkStage[];
+  stage_sources: Record<string, string>;
+  latency_ms: number | null;
+  latency_scope: string;
+  cost_usd: number | null;
+  cost_type: string;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  verdicts_count: number;
+  error: string | null;
+  notes: string[];
+}
+
+export interface BenchmarkSummary {
+  key: string;
+  name: string;
+  description: string[];
+  input_modality: string;
+  mode: string;
+  total_cases: number;
+  evaluable_cases: number;
+  scored_cases: number;
+  incomplete_cases: number;
+  failed_cases: number;
+  fallback_affected_cases: number;
+  replay_check_total: number;
+  replay_check_matches: number;
+  replay_check_pct: number | null;
+  positive_cases_total: number;
+  negative_cases_total: number;
+  positive_cases_scored: number;
+  negative_cases_scored: number;
+  tp: number;
+  fp: number;
+  tn: number;
+  fn: number;
+  recall_pct: number | null;
+  precision_pct: number | null;
+  specificity_pct: number | null;
+  fpr_pct: number | null;
+  median_latency_ms: number | null;
+  p95_latency_ms: number | null;
+  latency_n: number;
+  latency_scope: string;
+  cost_per_1k_discharges_usd: number | null;
+  cost_per_discharge_avg_usd: number | null;
+  cost_type: string;
+  pricing_version: string;
+  cost_reduction_vs_ultra_pct: number | null;
+  notes: string[];
+}
+
+export interface BenchmarkMeta {
+  schema_version: number;
+  eval_date: string;
+  mode: string;
+  environment: string;
+  requested_mode: string;
+  git_commit: string | null;
+  total_encounters: number;
+  positive_cases: number;
+  negative_cases: number;
+  safe_count: number;
+  contradiction_count: number;
+  total_eval_runs: number;
+  configs_evaluated: string[];
+  case_limit: number | null;
+  case_ids: string[];
+  models_resolved: Record<string, string | null>;
+  tavily_configured: boolean;
+  pricing: Record<string, unknown>;
+  disclaimers: string[];
+  limitations: string[];
+}
+
+export interface BenchmarkReport {
+  schema_version: number;
+  meta: BenchmarkMeta;
+  summary: Record<string, BenchmarkSummary>;
+  configs: Record<string, BenchmarkSummary>;
+  cases: BenchmarkCase[];
 }

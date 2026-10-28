@@ -104,39 +104,335 @@
         "payload": {
           "findings": [
             {
-              "description": "3 mm distal left ureteral calculus no longer visualized",
+              "description": "3 mm distal left ureteral calculus no longer visualized; previously noted mild hydronephrosis resolved. No residual obstructing stone.",
               "location": "left distal ureter",
               "measurement_mm": 3.0,
               "acute": false,
-              "verbatim_quote": "3 mm distal left ureteral calculus no longer visualized",
-              "recommended_cpt": null
-            },
-            {
-              "description": "previously noted mild hydronephrosis resolved",
-              "location": "left kidney",
-              "measurement_mm": null,
-              "acute": false,
-              "verbatim_quote": "previously noted mild hydronephrosis resolved",
-              "recommended_cpt": null
-            },
-            {
-              "description": "No residual obstructing stone",
-              "location": "left distal ureter",
-              "measurement_mm": null,
-              "acute": false,
-              "verbatim_quote": "No residual obstructing stone",
-              "recommended_cpt": null
-            },
-            {
-              "description": "No incidental masses or lesions",
-              "location": "abdomen/pelvis",
-              "measurement_mm": null,
-              "acute": false,
-              "verbatim_quote": "No incidental masses or lesions",
+              "verbatim_quote": "3 mm distal left ureteral calculus no longer visualized; previously noted mild hydronephrosis resolved. No residual obstructing stone.",
               "recommended_cpt": null
             }
           ],
           "vision_confidence": "HIGH",
+          "source": "vl_live",
+          "note": ""
+        }
+      },
+      "ED-105": {
+        "meta": {
+          "model_id": "nvidia/Nemotron-3.5-Super-VL"
+        },
+        "payload": {
+          "findings": [
+            {
+              "description": "No radiopaque foreign body identified",
+              "location": "left forearm",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "No radiopaque foreign body identified.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Intact bony cortices without acute fracture",
+              "location": "left forearm",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "Intact bony cortices without acute fracture.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Soft tissue defect corresponds to superficial skin laceration",
+              "location": "left forearm",
+              "measurement_mm": null,
+              "acute": true,
+              "verbatim_quote": "Soft tissue defect corresponds to superficial skin laceration.",
+              "recommended_cpt": null
+            }
+          ],
+          "vision_confidence": "LOW",
+          "source": "vl_live",
+          "note": ""
+        }
+      },
+      "ED-106": {
+        "meta": {
+          "model_id": "nvidia/Nemotron-3.5-Super-VL"
+        },
+        "payload": {
+          "findings": [
+            {
+              "description": "Normal cardiothoracic ratio",
+              "location": "chest",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "Normal cardiothoracic ratio.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Lungs clear without focal consolidation, pneumothorax, or effusion",
+              "location": "lungs",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "Lungs are clear without focal consolidation, pneumothorax, or effusion.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Osseous structures intact",
+              "location": "chest",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "Osseous structures intact.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Normal chest radiograph",
+              "location": "chest",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "Normal chest radiograph.",
+              "recommended_cpt": null
+            }
+          ],
+          "vision_confidence": "HIGH",
+          "source": "vl_live",
+          "note": ""
+        }
+      },
+      "ED-107": {
+        "meta": {
+          "model_id": "nvidia/Nemotron-3.5-Super-VL"
+        },
+        "payload": {
+          "findings": [
+            {
+              "description": "Normal bowel gas distribution without dilated loops or air-fluid levels",
+              "location": "abdomen",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "Normal bowel gas distribution without dilated loops or air-fluid levels.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "No free air under diaphragm",
+              "location": "subdiaphragmatic",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "No free air under diaphragm.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Unremarkable abdominal radiograph",
+              "location": "abdomen",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "Unremarkable abdominal radiograph.",
+              "recommended_cpt": null
+            }
+          ],
+          "vision_confidence": "LOW",
+          "source": "vl_live",
+          "note": ""
+        }
+      },
+      "ED-108": {
+        "meta": {
+          "model_id": "nvidia/Nemotron-3.5-Super-VL"
+        },
+        "payload": {
+          "findings": [
+            {
+              "description": "Normal renal size and parenchymal thickness bilaterally",
+              "location": "bilateral kidneys",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "Normal renal size and parenchymal thickness bilaterally.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "No hydronephrosis, calculus, or perinephric fluid",
+              "location": "bilateral kidneys",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "No hydronephrosis, calculus, or perinephric fluid.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Bladder lumen clear",
+              "location": "bladder",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "Bladder lumen clear.",
+              "recommended_cpt": null
+            }
+          ],
+          "vision_confidence": "LOW",
+          "source": "vl_live",
+          "note": ""
+        }
+      },
+      "ED-109": {
+        "meta": {
+          "model_id": "nvidia/Nemotron-3.5-Super-VL"
+        },
+        "payload": {
+          "findings": [
+            {
+              "description": "Mild age-appropriate L4-L5 disc space narrowing",
+              "location": "L4-L5",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "Mild age-appropriate L4-L5 disc space narrowing.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Alignment maintained without spondylolisthesis or acute fracture",
+              "location": "Lumbar spine",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "Alignment maintained without spondylolisthesis or acute fracture.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Pedicles and posterior elements intact",
+              "location": "Lumbar spine",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "Pedicles and posterior elements intact.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Mild degenerative disc disease at L4-L5",
+              "location": "L4-L5",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "Mild degenerative disc disease at L4-L5.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "No acute fracture",
+              "location": "Lumbar spine",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "No acute fracture.",
+              "recommended_cpt": null
+            }
+          ],
+          "vision_confidence": "LOW",
+          "source": "vl_live",
+          "note": ""
+        }
+      },
+      "ED-110": {
+        "meta": {
+          "model_id": "nvidia/Nemotron-3.5-Super-VL"
+        },
+        "payload": {
+          "findings": [
+            {
+              "description": "No solid organ laceration or active hemorrhage",
+              "location": "abdomen",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "No solid organ laceration or active hemorrhage.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Incidental 2.8 cm indeterminate right adrenal nodule with attenuation 24 HU",
+              "location": "right adrenal",
+              "measurement_mm": 28.0,
+              "acute": false,
+              "verbatim_quote": "Incidental 2.8 cm indeterminate right adrenal nodule with attenuation 24 HU (Series 4, Image 18)",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Abdominal wall contusion without acute intra-abdominal injury",
+              "location": "abdominal wall",
+              "measurement_mm": null,
+              "acute": true,
+              "verbatim_quote": "Abdominal wall contusion without acute intra-abdominal injury.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Incidental 2.8 cm right adrenal nodule requiring follow-up imaging",
+              "location": "right adrenal",
+              "measurement_mm": 28.0,
+              "acute": false,
+              "verbatim_quote": "Incidental 2.8 cm right adrenal nodule requiring follow-up imaging.",
+              "recommended_cpt": null
+            }
+          ],
+          "vision_confidence": "HIGH",
+          "source": "vl_live",
+          "note": ""
+        }
+      },
+      "ED-111": {
+        "meta": {
+          "model_id": "nvidia/Nemotron-3.5-Super-VL"
+        },
+        "payload": {
+          "findings": [
+            {
+              "description": "Mild cardiomegaly with bibasilar pulmonary vascular congestion consistent with congestive heart failure",
+              "location": "heart and bilateral lung bases",
+              "measurement_mm": null,
+              "acute": true,
+              "verbatim_quote": "Mild cardiomegaly with bibasilar pulmonary vascular congestion consistent with congestive heart failure",
+              "recommended_cpt": null
+            },
+            {
+              "description": "No focal infiltrate or pneumothorax",
+              "location": "lungs",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "No focal infiltrate or pneumothorax",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Mild congestive heart failure exacerbation",
+              "location": "heart",
+              "measurement_mm": null,
+              "acute": true,
+              "verbatim_quote": "Mild congestive heart failure exacerbation",
+              "recommended_cpt": null
+            }
+          ],
+          "vision_confidence": "LOW",
+          "source": "vl_live",
+          "note": ""
+        }
+      },
+      "ED-112": {
+        "meta": {
+          "model_id": "nvidia/Nemotron-3.5-Super-VL"
+        },
+        "payload": {
+          "findings": [
+            {
+              "description": "No acute pelvic ring disruption or hip fracture",
+              "location": "pelvis and right hip",
+              "measurement_mm": null,
+              "acute": false,
+              "verbatim_quote": "No acute pelvic ring disruption or hip fracture.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Extensive subcutaneous hematoma and soft tissue contusion overlying right lateral iliac crest",
+              "location": "right lateral iliac crest",
+              "measurement_mm": null,
+              "acute": true,
+              "verbatim_quote": "Extensive subcutaneous hematoma and soft tissue contusion overlying right lateral iliac crest.",
+              "recommended_cpt": null
+            },
+            {
+              "description": "Soft tissue hematoma and pelvic contusion without bony fracture",
+              "location": "pelvis",
+              "measurement_mm": null,
+              "acute": true,
+              "verbatim_quote": "Soft tissue hematoma and pelvic contusion without bony fracture.",
+              "recommended_cpt": null
+            }
+          ],
+          "vision_confidence": "LOW",
           "source": "vl_live",
           "note": ""
         }
@@ -150,9 +446,10 @@
         "payload": {
           "action": "ESCALATE",
           "reasons": [
-            "Incidental 7.2 mm spiculated solid nodule in right upper lobe requires follow-up CT in 3 months per clinical guidelines; no follow-up order documented in discharge packet",
-            "Kinetic flag KINETIC_EGFR_DECLINE indicates disease progression; omission of oncologic referral or repeat imaging order creates a clinical contradiction",
-            "Discharge packet contains no CPT code for CT follow-up or oncology consult, violating standard care pathway for spiculated nodules >6 mm",
+            "Incidental 7.2 mm spiculated solid nodule in right upper lobe requires urgent follow-up; no documented follow-up plan or CPT code provided",
+            "Ketorolac tromethamine prescribed despite acute rib fracture; nephrotoxic risk in context of KINETIC_EGFR_DECLINE flag",
+            "KINETIC_AKI_STAGE_1 flag indicates acute kidney injury progression; no renal monitoring or nephrology referral noted",
+            "No CPT code assigned for nodule evaluation or fracture management, violating billing completeness requirements",
             "deterministic override: unaddressed 7.2mm finding needs follow-up",
             "deterministic override: creatinine_mg_dl moved 87.1% with ['KINETIC_AKI_STAGE_1']",
             "deterministic override: egfr_ml_min moved 44.2% with ['KINETIC_EGFR_DECLINE']"
@@ -170,12 +467,12 @@
           "reasons": [
             "No acute fracture or dislocation identified",
             "No incidental osseous lesion identified",
-            "Mild lateral soft tissue swelling is acute but non-osseous and consistent with sprain",
-            "Sprain diagnosis explicitly states 'No fracture'",
-            "Prescribed ibuprofen aligns with sprain management",
+            "Mild lateral soft tissue swelling noted but not clinically significant",
+            "Soft tissue sprain grade II confirmed with no fracture",
             "No follow-up required for incidental findings",
-            "No kinetic flags or contradictory lab trends present",
-            "CPT 99213 appropriate for established patient evaluation of acute sprain"
+            "No nephrotoxic medications prescribed",
+            "No acute lab trends requiring intervention",
+            "Prescribed ibuprofen is appropriate for grade II sprain"
           ],
           "confidence": 0.99,
           "source": "nano_live"
@@ -188,10 +485,11 @@
         "payload": {
           "action": "ESCALATE",
           "reasons": [
-            "Dense right lower lobe consolidation consistent with pneumonia is acute and requires treatment; amoxicillin-clavulanate is appropriate first-line therapy.",
-            "Incidental 6 mm solid noncalcified nodule is non-acute; follow-up CT in 6 months is already scheduled and documented, so no immediate action needed.",
+            "Dense right lower lobe consolidation consistent with pneumonia is acute and requires treatment; amoxicillin-clavulanate is an appropriate first-line outpatient antibiotic.",
+            "Incidental 6 mm solid noncalcified nodule is non-acute, and follow-up CT in 6 months is already scheduled and documented, eliminating need for immediate action.",
             "No pneumothorax is normal and requires no intervention.",
             "No kinetic flags or contradictions present; all findings are either resolved, benign, or appropriately tracked.",
+            "Prescribed medication aligns with standard outpatient management of bacterial pneumonia.",
             "deterministic override: unaddressed 6.0mm finding needs follow-up"
           ],
           "confidence": 0.99,
@@ -212,6 +510,71 @@
             "No kinetic flags or acute lab trends requiring escalation",
             "Prescribed medications are appropriate (tamsulosin for stone passage, acetaminophen for pain)",
             "CPT 99213 aligns with established discharge complexity"
+          ],
+          "confidence": 0.99,
+          "source": "nano_live"
+        }
+      },
+      "ED-105": {
+        "meta": {
+          "model_id": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
+        },
+        "payload": {
+          "action": "SILENT_PASS",
+          "reasons": [
+            "No acute fracture identified; only superficial skin laceration noted.",
+            "Prescribed cephalexin aligns with standard outpatient treatment for uncomplicated superficial lacerations.",
+            "No mention of nephrotoxic agents, renal decline, or missed follow-up for incidental findings."
+          ],
+          "confidence": 0.99,
+          "source": "nano_live"
+        }
+      },
+      "ED-106": {
+        "meta": {
+          "model_id": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
+        },
+        "payload": {
+          "action": "SILENT_PASS",
+          "reasons": [
+            "All findings are normal or benign without acute pathology",
+            "No kinetic flags or acute lab trends present",
+            "No nephrotoxic drugs or renal velocity concerns",
+            "No missed incidental findings requiring follow-up",
+            "Prescription of pantoprazole is appropriate for GERD without renal contraindication"
+          ],
+          "confidence": 0.99,
+          "source": "nano_live"
+        }
+      },
+      "ED-107": {
+        "meta": {
+          "model_id": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
+        },
+        "payload": {
+          "action": "SILENT_PASS",
+          "reasons": [
+            "All imaging findings are normal with no acute abnormalities or clinical significance.",
+            "No kinetic flags present indicating no time-sensitive follow-up needed.",
+            "Prescribed medication (Ondansetron) is appropriate for symptom management without contraindications.",
+            "No contradictions between radiology description and discharge medication or follow-up orders."
+          ],
+          "confidence": 0.99,
+          "source": "nano_live"
+        }
+      },
+      "ED-108": {
+        "meta": {
+          "model_id": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
+        },
+        "payload": {
+          "action": "SILENT_PASS",
+          "reasons": [
+            "No acute findings or kinetic flags indicating clinical deterioration",
+            "All imaging descriptors are normal without concerning features",
+            "No recommended CPT codes or follow-up actions required",
+            "Prescribed nitrofurantoin is appropriate for uncomplicated UTI without renal abnormalities",
+            "No contradictions with clinical context or medication safety"
           ],
           "confidence": 0.99,
           "source": "nano_live"

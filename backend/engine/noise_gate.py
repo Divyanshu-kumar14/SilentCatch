@@ -90,8 +90,10 @@ def decide(
     started = time.perf_counter()
     forces = deterministic_forces(findings, packet, slopes)
     prompt_tokens = completion_tokens = 0
+    model_attempted = transport is not None
 
     if transport is None:
+        trace_source = "deterministic_replay"
         decision = GateDecision(
             action="ESCALATE" if forces else "SILENT_PASS",
             reasons=list(forces) or ["deterministic triage: no contradiction evidence"],
@@ -123,8 +125,10 @@ def decide(
             completion_tokens = int(usage.get("completion_tokens", 0))
             decision = parse_llm_json(raw, GateDecision)
             decision.source = "nano_live"
+            trace_source = "live"
         except (LlmUnverifiableError, TimeoutError) as exc:
             # Nano unreadable/late: rely on deterministic facts (fail-safe, loud note)
+            trace_source = "deterministic_fallback"
             decision = GateDecision(
                 action="ESCALATE" if forces else "SILENT_PASS",
                 reasons=list(forces) or [f"nano_failed: {exc}"],
@@ -133,6 +137,7 @@ def decide(
             )
 
         # Fail-safe overrides: the model cannot silence provable contradictions.
+        model_action = decision.action
         if decision.action == "SILENT_PASS" and forces:
             decision.action = "ESCALATE"
         if forces:
@@ -141,14 +146,20 @@ def decide(
                 if force not in merged:
                     merged.append(force)
             decision.reasons = merged
+        if trace_source == "live" and decision.action != model_action:
+            # The model said SILENT_PASS; deterministic evidence changed the final
+            # action. Record that honestly: this case is not a pure model decision.
+            trace_source = "live_override"
 
     trace = StageTrace(
         stage="gate",
-        model_id=model_id or None,
-        replayed=transport is None or decision.source != "nano_live",
-        latency_ms=int((time.perf_counter() - started) * 1000),
+        model_id=(model_id or None) if model_attempted else None,
+        replayed=not trace_source.startswith("live"),
+        latency_ms=round((time.perf_counter() - started) * 1000.0, 3),
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
         note=decision.source,
+        source=trace_source,
+        payload={"deterministic_forces": forces},
     )
     return decision, trace

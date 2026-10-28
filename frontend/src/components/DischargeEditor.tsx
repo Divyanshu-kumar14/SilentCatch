@@ -34,6 +34,7 @@ function DischargeEditor({
   guides,
   applied,
   lastResult,
+  runMode,
   onApply,
   onEditInstructions,
 }: {
@@ -42,7 +43,8 @@ function DischargeEditor({
   verdicts: InterceptionVerdict[];
   guides: Guideline[];
   applied: Set<string>;
-  lastResult: { elapsed: number; cost: number } | null;
+  lastResult: { elapsed: number; cost: number; mode: string } | null;
+  runMode?: "LIVE" | "REPLAYED" | null;
   onApply: (verdict: InterceptionVerdict) => void;
   onEditInstructions: (text: string) => void;
 }) {
@@ -82,7 +84,15 @@ function DischargeEditor({
           <div className="flex items-center gap-1.5 font-mono text-xs text-slate-300 bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg shadow-sm">
             <span>⚡ {lastResult.elapsed}ms</span>
             <span className="text-slate-600">·</span>
-            <span className="text-emerald-400">${lastResult.cost.toFixed(4)}</span>
+            {lastResult.mode === "REPLAYED" ? (
+              <span className="text-slate-400" title="Local replay; no provider call was made">
+                replay · cost N/A
+              </span>
+            ) : (
+              <span className="text-emerald-400">
+                {lastResult.mode === "MIXED" ? "~" : ""}${lastResult.cost.toFixed(4)}
+              </span>
+            )}
           </div>
         )}
       </header>
@@ -132,12 +142,14 @@ function DischargeEditor({
             </div>
             <p className="mt-1 text-xs text-slate-300 leading-snug">
               {isRunning
-                ? "Streaming multi-stage audit via Nebius Token Factory & Tavily"
+                ? runMode === "LIVE"
+                  ? "Streaming live audit via Nebius Token Factory & Tavily"
+                  : "Streaming deterministic replay (no provider calls)"
                 : isIntercept
                   ? `Blocked: ${verdicts.length} critical contradiction${verdicts.length > 1 ? "s" : ""} detected before patient departure`
                   : isSafe
-                    ? "Patched packet re-audited clean in <1s (loop closed)"
-                    : "Zero-latency pass: no unaddressed findings or kinetic collisions"}
+                    ? "Patched packet re-audited clean (loop closed)"
+                    : "No unaddressed findings or kinetic collisions in this run"}
             </p>
           </div>
 
@@ -262,10 +274,14 @@ function DischargeEditor({
                           className="flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-300 hover:underline"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
-                          <span>Tavily Guideline</span>
+                          <span>
+                            {guides[i].source === "tavily_live"
+                              ? "Tavily live result"
+                              : "Cached guideline snapshot"}
+                          </span>
                         </a>
                       ) : (
-                        <span className="text-xs text-slate-400">Clinical Guideline Verified</span>
+                        <span className="text-xs text-slate-400">No guideline source attached</span>
                       )}
 
                       {/* 1-Click Remediation Button */}

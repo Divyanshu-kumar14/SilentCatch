@@ -137,17 +137,33 @@ class KinematicSlope(BaseModel):
 
 
 class StageTrace(BaseModel):
-    """FR-2.2 telemetry line — one per model/backing store call."""
+    """FR-2.2 telemetry line — one per model/backing store call.
+
+    `source` is the machine-readable execution provenance. Consumers must use it
+    (not `model_id` alone) to decide whether a stage was actually executed live:
+
+      live, failsafe_live            real provider response accepted
+      live_empty, live_rejected      provider responded; proposal empty/rejected
+      cache_hit                      served from the in-process vision cache
+      replay_seed, seed_replay       deterministic fixture/seed path
+      deterministic_replay           deterministic algorithm, no model attempted
+      deterministic_fallback         model attempted but failed; deterministic result
+      template_replay/fallback       deterministic query template
+      tavily_live                    live Tavily response
+      cache_snapshot(_fallback)      local guideline snapshot
+      failure_no_prediction          model attempted, no usable prediction produced
+    """
 
     stage: str  # vision | gate | guideline | reasoning | span_guard
     model_id: str | None = None
     replayed: bool = False
-    latency_ms: int = 0
+    latency_ms: float = 0.0  # monotonic measurement, milliseconds
     prompt_tokens: int = 0
     completion_tokens: int = 0
     est_cost_usd: float = 0.0
     payload: dict[str, Any] = Field(default_factory=dict)
-    note: str = ""  # e.g. "capture", "seed", "failure_fallback", "cache_hit"
+    note: str = ""  # human-readable detail; `source` is the stable provenance
+    source: str = ""
 
 
 class ScanFinding(BaseModel):
@@ -180,11 +196,15 @@ class GateDecision(BaseModel):
 
 class AuditResult(BaseModel):
     encounter_id: str
-    status: str  # SILENT_PASS | CRITICAL_INTERCEPT
+    status: str  # SILENT_PASS | CRITICAL_INTERCEPT | ERROR
     verdicts: list[InterceptionVerdict] = Field(default_factory=list)
     traces: list[StageTrace] = Field(default_factory=list)
     total_cost_usd: float = 0.0
     elapsed_ms: int = 0
+    # Execution provenance (additive; derived from traces, never from key presence)
+    execution_mode: str = ""  # LIVE | MIXED | REPLAYED | FAILED | ERROR
+    stage_sources: dict[str, str] = Field(default_factory=dict)
+    fallback_used: bool = False
 
 
 # ---------------------------------------------------------------- eval metadata

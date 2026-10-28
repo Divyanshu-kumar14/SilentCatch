@@ -71,11 +71,24 @@ class AuditRequest(BaseModel):
 
 @app.get("/healthz")
 async def healthz() -> dict:
-    """Liveness + config introspection. Always 200, never leaks keys."""
+    """Liveness + configuration introspection. Always 200, never leaks keys.
+
+    This endpoint reports whether live inference is *configured*; it never makes
+    a provider call, so it must not claim that a model was actually invoked.
+    """
     resolved = getattr(config, "resolved_model_ids", config.DEFAULT_MODEL_IDS)
+    live_capable = bool(config.NEBIUS_API_KEY)
+    tavily_configured = bool(config.TAVILY_API_KEY)
     return {
         "status": "ok",
-        "inference_mode": "LIVE" if config.NEBIUS_API_KEY else "REPLAYED",
+        "inference_mode": "LIVE_CAPABLE" if live_capable else "REPLAY_ONLY",
+        "live_capable": live_capable,
+        "mode_note": (
+            "NEBIUS_API_KEY configured; audits may call the provider. "
+            "This health check makes no model call."
+            if live_capable
+            else "No NEBIUS_API_KEY; audits use deterministic replay/seed paths."
+        ),
         "nebius_base_url": config.NEBIUS_BASE_URL,
         "models": {
             "vision": resolved.get("vision"),
@@ -83,7 +96,9 @@ async def healthz() -> dict:
             "reasoning": resolved.get("reasoning"),
             "failsafe": resolved.get("failsafe"),
         },
-        "tavily_live": bool(config.TAVILY_API_KEY),
+        "tavily_configured": tavily_configured,
+        # Backward-compatible alias: means "configured", not "called".
+        "tavily_live": tavily_configured,
         "spend_caps": config.spend_caps(),
     }
 

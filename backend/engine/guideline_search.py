@@ -113,11 +113,13 @@ def generate_queries(
     if transport is None:
         return fallback, StageTrace(
             stage="guideline", model_id=None, replayed=True,
-            latency_ms=int((time.perf_counter() - started) * 1000),
+            latency_ms=round((time.perf_counter() - started) * 1000.0, 3),
             note="template_queries",
+            source="template_replay",
         )
 
     template_list = json.dumps(fallback, indent=2)
+    prompt_tokens = completion_tokens = 0
     try:
         raw, usage = validate_transport_kind(
             transport,
@@ -140,6 +142,7 @@ def generate_queries(
         completion_tokens = int(usage.get("completion_tokens", 0))
 
         def repair(error: str) -> str:
+            nonlocal prompt_tokens, completion_tokens
             raw2, usage2 = validate_transport_kind(
                 transport,
                 model_id,
@@ -149,6 +152,8 @@ def generate_queries(
                 ],
                 timeout_s,
             )
+            prompt_tokens += int(usage2.get("prompt_tokens", 0))
+            completion_tokens += int(usage2.get("completion_tokens", 0))
             return raw2
 
         plan = parse_llm_json(raw, QueryPlan, retry_call=repair)
@@ -156,7 +161,9 @@ def generate_queries(
         if not queries:  # LLM thought it could send zero — templates win
             queries = fallback
             logger.warning("Nano produced zero queries — template fallback")
-        source_note = "nano_live"
+            source_note = "deterministic_query_fallback"
+        else:
+            source_note = "nano_live"
     except (LlmUnverifiableError, TimeoutError) as exc:
         logger.warning("Nano query gen failed (%s) — templates", exc)
         prompt_tokens = completion_tokens = 0
@@ -169,10 +176,11 @@ def generate_queries(
             stage="guideline",
             model_id=model_id or None,
             replayed=source_note != "nano_live",
-            latency_ms=int((time.perf_counter() - started) * 1000),
+            latency_ms=round((time.perf_counter() - started) * 1000.0, 3),
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             note=source_note,
+            source="live" if source_note == "nano_live" else "template_fallback",
         ),
     )
 
@@ -270,10 +278,11 @@ def search(
                     GuidelineResult(queries=queries, guidelines=validated[:6]),
                     StageTrace(
                         stage="guideline", model_id=None,
-                        latency_ms=int((time.perf_counter() - started) * 1000),
+                        latency_ms=round((time.perf_counter() - started) * 1000.0, 3),
                         prompt_tokens=prompt_tokens,
                         completion_tokens=completion_tokens,
                         note="tavily_live",
+                        source="tavily_live",
                     ),
                 )
             degraded = True  # live call succeeded but returned nothing usable
@@ -304,7 +313,8 @@ def search(
             stage="guideline",
             model_id=None,
             replayed=True,
-            latency_ms=int((time.perf_counter() - started) * 1000),
+            latency_ms=round((time.perf_counter() - started) * 1000.0, 3),
             note="cache_snapshot" if degraded else "snapshot_only",
+            source="cache_snapshot_fallback" if degraded else "cache_snapshot",
         ),
     )

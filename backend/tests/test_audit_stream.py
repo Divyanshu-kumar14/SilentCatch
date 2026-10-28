@@ -187,4 +187,11 @@ def test_encounters_endpoint_and_static_images() -> None:
     assert bench_res.status_code == 200
     bench_data = bench_res.json()
     assert "summary" in bench_data
-    assert bench_data["summary"]["tiered_router"]["recall_pct"] == 100.0
+    assert bench_data["meta"]["mode"] == bench_data["meta"]["environment"]
+    tiered = bench_data["summary"]["tiered_router"]
+    # Replay artifacts must never be presented as model-accuracy measurements.
+    if bench_data["meta"]["mode"] == "REPLAYED":
+        assert tiered["scored_cases"] == 0
+        assert tiered["recall_pct"] is None
+        assert tiered["replay_check_total"] > 0
+    assert "cost_type" in tiered

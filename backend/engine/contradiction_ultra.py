@@ -138,17 +138,28 @@ def synthesize_verdicts(
     model_id: str = "",
     failsafe_model_id: str = "",
     timeout_s: float = REASONING_TIMEOUT_S,
+    allow_seed_fallback: bool = True,
 ) -> tuple[list[InterceptionVerdict], StageTrace]:
-    """Stage-4 runner: propose -> guard -> verdicts. Guards run at every layer."""
+    """Stage-4 runner: propose -> guard -> verdicts. Guards run at every layer.
+
+    `allow_seed_fallback=False` is the predictive-evaluation mode: expected-label
+    fixtures may NEVER become a prediction. If every live tier fails, the function
+    returns no verdicts with an explicit failure source instead of a seed answer.
+    """
     started = time.perf_counter()
-    used_model = model_id
+    used_model: str | None = None
+    last_attempt_model: str | None = None
+    attempted_models: list[str] = []
     replayed = transport is None
     prompt_tokens = completion_tokens = 0
     candidates: list[FindingSpec] | None = None
-
+    live_outcome: str | None = None  # live | empty | failed
     parsed_empty = False
     raised_any = False
     failsafe_tier = False
+    seed_fell_back = False
+    rescued = False
+
     if transport is not None:
         messages = _context_messages(findings, slopes, flags, bundle)
         attempts: list[tuple[str, str]] = (
@@ -157,6 +168,8 @@ def synthesize_verdicts(
             else [(model_id, "reasoning")]
         )
         for attempt_model, attempt_note in attempts:
+            attempted_models.append(attempt_model)
+            last_attempt_model = attempt_model
             try:
                 raw, usage = transport(attempt_model, messages, timeout_s=timeout_s)
                 prompt_tokens += int(usage.get("prompt_tokens", 0))
@@ -180,6 +193,7 @@ def synthesize_verdicts(
                     return raw2
 
                 batch = parse_llm_json(raw, CandidateBatch, retry_call=repair)
+                used_model = attempt_model
                 if not batch.candidates:
                     parsed_empty = True
                     logger.warning(
@@ -188,8 +202,8 @@ def synthesize_verdicts(
                     )
                     continue
                 candidates = batch.candidates
-                used_model, replayed = attempt_model, False
                 failsafe_tier = attempt_note == "failsafe_super"
+                live_outcome = "live"
                 break
             except Exception as exc:  # noqa: BLE001 — each tier is a fallback rung
                 raised_any = True
@@ -199,13 +213,17 @@ def synthesize_verdicts(
                     exc,
                 )
 
-    if candidates is None and transport is not None:
-        # Ladder exhausted: what follows comes from the seed rig, not the model
-        replayed = True
+        if candidates is None:
+            # A valid empty response is a real (negative) model prediction;
+            # a timeout/schema failure is not. Keep them distinct.
+            live_outcome = "empty" if parsed_empty and not raised_any else "failed"
 
-    seed_fell_back = candidates is None
-    if seed_fell_back:
-        candidates = list(seed_candidates or [])
+    if candidates is None:
+        if allow_seed_fallback:
+            candidates = list(seed_candidates or [])
+            seed_fell_back = bool(candidates)
+        else:
+            candidates = []
 
     def _rig(specs: list[FindingSpec]) -> list[InterceptionVerdict]:
         rig_run = run_deterministic_pipeline(
@@ -225,40 +243,68 @@ def synthesize_verdicts(
 
     verdicts = _rig(candidates)
 
-    rescued = False
-    if candidates and not seed_fell_back and not verdicts and seed_candidates:
+    if (
+        allow_seed_fallback
+        and candidates
+        and live_outcome == "live"
+        and not verdicts
+        and seed_candidates
+    ):
         # R-2: live proposals existed but the guards rejected ALL of them —
         # rescue via the seed candidates through the same rig, honest re-badge.
+        # Never enabled in predictive evaluation (allow_seed_fallback=False).
         verdicts = _rig(list(seed_candidates))
         rescued = bool(verdicts)
-        if rescued:
-            replayed = True  # finals did not come from the live model
 
-    if transport is None:
-        model_note = "deterministic_seed_rig"
-    elif rescued:
+    # ---------------------------------------------------------------- provenance
+    if rescued:
+        source = "seed_rescue"
+        replayed = True
         model_note = "rig_rejected_seed_rescue"
-    elif replayed:
-        # Honest badge: every verdict below came from the seed rig, not the
-        # live model (ladder failed, or every tier proposed nothing usable).
-        if raised_any and parsed_empty:
-            model_note = f"failure_fallback+empty_proposal:{used_model}"
-        elif raised_any:
-            model_note = f"failure_fallback:{used_model}"
-        elif parsed_empty:
+    elif transport is None:
+        source = "seed_replay" if candidates else "replay_no_prediction"
+        replayed = True
+        model_note = "deterministic_seed_rig" if candidates else "replay_no_prediction"
+    elif seed_fell_back:
+        source = "seed_fallback"
+        replayed = True
+        if live_outcome == "empty":
             model_note = "empty_proposal_seed_fallback"
+        elif raised_any:
+            model_note = f"failure_fallback:{last_attempt_model}"
         else:
-            model_note = f"seed_fallback:{used_model}"
+            model_note = f"seed_fallback:{last_attempt_model}"
+    elif live_outcome == "live":
+        source = "failsafe_live" if failsafe_tier else "live"
+        replayed = False
+        model_note = (used_model or "") + ("|failsafe_tier" if failsafe_tier else "")
+        if candidates and not verdicts:
+            source = "live_rejected"
+            model_note = f"live_candidates_rejected:{used_model}"
+    elif live_outcome == "empty":
+        source = "live_empty"
+        replayed = False
+        model_note = f"live_empty_proposal:{used_model}"
     else:
-        model_note = used_model + ("|failsafe_tier" if failsafe_tier else "")
+        source = "failure_no_prediction"
+        replayed = True
+        model_note = f"failure_no_prediction:{last_attempt_model}"
 
     trace = StageTrace(
         stage="reasoning",
-        model_id=used_model or None,
+        model_id=(used_model or last_attempt_model) if transport is not None else None,
         replayed=replayed,
-        latency_ms=int((time.perf_counter() - started) * 1000),
+        latency_ms=round((time.perf_counter() - started) * 1000.0, 3),
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
         note=model_note,
+        source=source,
+        payload={
+            "attempted_models": attempted_models,
+            "proposal_status": live_outcome or "not_called",
+            "candidate_count": len(candidates or []),
+            "verified_count": len(verdicts),
+            "seed_fallback_allowed": allow_seed_fallback,
+        },
     )
     return verdicts, trace

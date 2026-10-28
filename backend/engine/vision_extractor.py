@@ -24,7 +24,7 @@ from typing import Callable, Protocol
 
 from PIL import Image
 
-from backend.engine.llm_client import LlmUnverifiableError, parse_llm_json
+from backend.engine.llm_client import parse_llm_json
 from backend.schemas import ScanFinding, StageTrace, VisionResult
 
 logger = logging.getLogger(__name__)
@@ -145,21 +145,26 @@ def extract_findings(
     """Stage 1 runner. Returns (result, trace) — trace feeds SSE + cost ledger."""
     started = time.perf_counter()
     prompt_tokens = completion_tokens = 0
+    model_attempted = False
+    trace_source = "replay_seed"
 
     # D-1: identical image bytes are never re-inferred
     if image_png is not None and vision_cache is not None:
         cached = vision_cache.get(image_sha256(image_png))
         if cached is not None:
             trace = StageTrace(
-                stage="vision", model_id=model_id,
+                stage="vision",
+                model_id=None,
                 replayed=True,  # no live call was made in THIS audit (D-1)
-                latency_ms=int((time.perf_counter() - started) * 1000),
+                latency_ms=round((time.perf_counter() - started) * 1000.0, 3),
                 note="cache_hit",
+                source="cache_hit",
             )
             return cached.model_copy(deep=True), trace
 
     if transport is None or image_png is None:
         # Seed / degraded path (FR-1.1 edge: missing or corrupt image)
+        trace_source = "replay_seed" if transport is None else "text_only_seed"
         result = VisionResult(
             findings=parse_report_sentences(report_text),
             vision_confidence="LOW" if image_png is None else "MEDIUM",
@@ -167,6 +172,7 @@ def extract_findings(
             note="text_only_fallback" if image_png is None else "no_transport",
         )
     else:
+        model_attempted = True
         normalized = normalize_image_png(image_png)
         try:
             raw, usage = transport(
@@ -203,8 +209,10 @@ def extract_findings(
 
             result = parse_llm_json(raw, VisionResult, retry_call=repair)
             result.source = "vl_live"
-        except (LlmUnverifiableError, TimeoutError, Exception) as exc:
+            trace_source = "live"
+        except Exception as exc:  # noqa: BLE001 — provider failure degrades loudly
             logger.warning("VL stage failed (%s) — seed fallback", exc)
+            trace_source = "fallback"
             result = VisionResult(
                 findings=parse_report_sentences(report_text),
                 vision_confidence="LOW",
@@ -217,11 +225,13 @@ def extract_findings(
 
     trace = StageTrace(
         stage="vision",
-        model_id=model_id or None,
-        replayed=result.source != "vl_live",
-        latency_ms=int((time.perf_counter() - started) * 1000),
+        # Only claim a model when a provider call was actually attempted.
+        model_id=(model_id or None) if model_attempted else None,
+        replayed=trace_source != "live",
+        latency_ms=round((time.perf_counter() - started) * 1000.0, 3),
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
         note=result.note or result.source,
+        source=trace_source,
     )
     return result, trace

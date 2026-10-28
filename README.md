@@ -12,18 +12,18 @@
 [![NVIDIA Nemotron](https://img.shields.io/badge/Models-NVIDIA%20Nemotron-76B900.svg?logo=nvidia&logoColor=white)](https://build.nvidia.com/)
 [![Tavily Search API](https://img.shields.io/badge/Grounding-Tavily%20Search%20API-4A90E2)](https://tavily.com/)
 [![Docker](https://img.shields.io/badge/Deployment-Docker%20Compose-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
-[![Test Suite](https://img.shields.io/badge/Tests-46%20Passed-brightgreen.svg)]()
+[![Test Suite](https://img.shields.io/badge/Tests-52%20Passed-brightgreen.svg)]()
 
 <br/>
 
-**A sub-second, multi-tier safety interlock that runs before the clinician clicks *Sign & Discharge Patient* — eliminating lethal emergency department misses while maintaining zero alert fatigue.**
+**A multi-tier safety interlock that runs before the clinician clicks *Sign & Discharge Patient* — designed to surface cross-modal contradictions that routine discharge checks can miss.**
 
-[Overview](#-the-clinical-challenge) • [Architecture](#-system-architecture) • [Benchmarks](#-empirical-benchmarks) • [Console Showcase](#-clinical-flight-check-console) • [Quick Start](#-quick-start) • [API Reference](#-api-reference) • [Privacy Posture](#-sovereign-privacy--hipaa-compliance)
+[Overview](#-the-clinical-challenge) • [Architecture](#-system-architecture) • [Benchmarks](#-empirical-benchmarks) • [Console Showcase](#-clinical-flight-check-console) • [Quick Start](#-quick-start) • [API Reference](#-api-reference) • [Privacy Posture](#-data-handling-posture)
 
 <br/>
 
 ![SilentCatch Hero Console](docs/assets/hero-critical-intercept.png)
-*SilentCatch intercepting trauma encounter ED-104: detects a buried 7.2 mm RUL pulmonary nodule (citing live ACR Fleischner Society criteria via Tavily) alongside an acute kinetic AKI × Ketorolac nephrotoxic collision, drawing real-time visual red-lines before sign-off.*
+*SilentCatch running the synthetic ED-104 fixture: a buried 7.2 mm RUL pulmonary nodule and an acute kinetic AKI × Ketorolac collision are surfaced before sign-off. Screenshot from the local replay path; it is not evidence of clinical validation.*
 
 </div>
 
@@ -31,7 +31,7 @@
 
 ## 🏥 The Clinical Challenge
 
-In high-volume Emergency Departments (ED), clinicians operate under immense cognitive load, managing multiple deteriorating patients simultaneously. When preparing discharge packets, two silent, high-liability blind spots frequently bypass standard EHR warning systems:
+In high-volume Emergency Departments (ED), clinicians operate under immense cognitive load, managing multiple deteriorating patients simultaneously. When preparing discharge packets, two silent, high-liability blind spots frequently bypass standard EHR warning systems. The diagram below is an illustrative synthetic failure mode, not a measured outcome:
 
 ```
                        THE "SILENT TRAP" OF ROUTINE ER DISCHARGES
@@ -50,11 +50,11 @@ In high-volume Emergency Departments (ED), clinicians operate under immense cogn
 ```
 
 ### Why Conventional Clinical Decision Support (CDS) Fails
-Traditional hospital alerts fire pop-ups on **over 90% of routine discharges**, causing reflex dismissal from overwhelming alert fatigue.
+Alert fatigue is a widely reported problem: modal-heavy decision support is easy to dismiss reflexively. SilentCatch is designed to avoid adding another routine pop-up by gating on deterministic risk signals first.
 
 ### The SilentCatch Paradigm
-- **Zero-Modal Silence on Clean Cases:** Routine safe discharges (~85–90% of patient volume) clear in **< 1.2 seconds** via the fast-path gate without any UI modal interruption.
-- **Synchronized Interception on Contradictions:** When cross-modal contradictions collide (e.g. imaging finding vs. discharge order, or kinetic lab trajectory vs. prescribed drug), SilentCatch halts sign-off, animates visual red-lines connecting the source evidence to the draft packet, cites governing clinical guidelines, and offers a **1-click closed loop patch** that closes the safety loop in milliseconds.
+- **Quiet fast path on clean fixtures:** In this prototype, routine safe encounters can clear through the deterministic gate without opening an interception modal. The reference latency budgets are design targets, not measured clinical performance.
+- **Synchronized interception on contradictions:** When cross-modal contradictions collide (e.g. imaging finding vs. discharge order, or kinetic lab trajectory vs. prescribed drug), SilentCatch halts sign-off, draws visual red-lines connecting source evidence to the draft packet, cites retrieved guidelines when available, and offers a 1-click patch-and-reverify loop.
 
 ---
 
@@ -74,55 +74,81 @@ flowchart TD
         D --> S1["Stage 1: Vision Extraction<br/><b>NVIDIA Nemotron 3.5 Super VL (120B)</b><br/>• Extracts lesion calipers & mm measurements<br/>• In-memory SHA-256 byte cache (D-1)"]
         S1 --> S2["Stage 2: Sub-Second Noise Gate<br/><b>NVIDIA Nemotron 3 Nano (30B)</b><br/>• Sub-second triage clearance<br/>• Deterministic fail-safe override (≥4mm or ≥25% delta)"]
         
-        S2 -- "Clean Trajectory" --> Pass["SILENT_PASS (<1.2s)<br/>Zero modal popup • Discharge authorized"]
+        S2 -- "Clean Trajectory" --> Pass["SILENT_PASS (fast path)<br/>No interception modal • Discharge authorized"]
         
-        S2 -- "Potential Conflict" --> S3["Stage 3: Evidence Grounding<br/><b>Tavily Search API</b><br/>• Regex PHI scrubber (names, MRN, DOB stripped)<br/>• Cites ACR Fleischner, KDIGO & FDA rules"]
+        S2 -- "Potential Conflict" --> S3["Stage 3: Evidence Grounding<br/><b>Tavily Search API / snapshot</b><br/>• Regex PHI scrubber (names, MRN, DOB stripped)<br/>• Retrieves relevant guideline references when available"]
         S3 --> S4["Stage 4: Contradiction Synthesis<br/><b>NVIDIA Nemotron 3 Ultra (550B)</b><br/>• Cross-modal clinical contradiction reasoning<br/>• Synthesizes discharge order & medication patches"]
     end
 
-    subgraph Verification ["3. Deterministic Zero-Hallucination Gate"]
+    subgraph Verification ["3. Deterministic Quote-Verification Gate"]
         S4 --> SG["Deterministic Span-Guard Rig<br/>1. Exact case-insensitive substring quote match<br/>2. Computes [start_char, end_char] UI coordinates<br/>3. Validates required CPT / drug is provably absent"]
         SG -- "Quote Unverified" --> Retry["Auto-Repair Retry (1x)<br/>Re-prompts with strict verbatim constraint"]
         Retry --> SG
-        SG -- "Guards Verified" --> Intercept["CRITICAL_INTERCEPT<br/>• Red-line visual bridge to source quote<br/>• Cited Tavily guideline badge<br/>• 1-Click 'Apply Safe Patch & Re-Verify'"]
+        SG -- "Guards Verified" --> Intercept["CRITICAL_INTERCEPT<br/>• Red-line visual bridge to source quote<br/>• Guideline provenance badge<br/>• 1-Click 'Apply Safe Patch & Re-Verify'"]
     end
 ```
 
 ### Stage Details
 
-| Stage | Engine / Model | Latency Target | Primary Responsibility |
+Latency values below are design budgets, not measured production results. Live behaviour depends on provider load, model routing, and network conditions.
+
+| Stage | Engine / Model | Latency Budget | Primary Responsibility |
 | :--- | :--- | :---: | :--- |
 | **Stage 1: Vision** | `Nemotron-3.5-Super-VL-120B` | ~400 ms | Ingests key-slice CT/X-ray and report; extracts mm findings and ROI coordinates. |
 | **Stage 2: Gate** | `NVIDIA-Nemotron-3-Nano-30B` | ~250 ms | Triage filter for clean discharges. Deterministic fail-safes override model if findings $\ge 4\text{mm}$ or lab delta $\ge 25\%$. |
 | **Stage 3: Evidence** | `Tavily Search API` | ~300 ms | Outbound query scrubbed of PHI; retrieves governing clinical literature (`pubs.rsna.org`, `kdigo.org`, `fda.gov`). |
 | **Stage 4: Reasoning** | `Nemotron-3-Ultra-550B` | ~600 ms | Synthesizes structured clinical patches. Proposes candidates with verbatim source quotes. |
-| **Verification Gate** | Deterministic Python Rig | < 1 ms | Proves quotes exist in chart, computes UI character offsets, and ensures no hallucinations can surface. |
+| **Verification Gate** | Deterministic Python Rig | < 1 ms | Verifies quotes exist in the chart, computes UI character offsets, and blocks unverified proposals from surfacing. |
 
 ---
 
-## 📊 Empirical Benchmarks
+## 📊 Benchmark: Replay vs. Live
 
-SilentCatch was evaluated against a benchmark suite of **12 standardized ER encounters** (8 safe routine discharges, 4 cross-modal contradictions) across 3 architectural configurations (36 total evaluation runs).
+The repository ships a benchmark harness over **12 synthetic development fixtures** (8 expected-safe, 4 expected-contradiction) across 3 configurations. The artifact in [`eval/results_latest.json`](eval/results_latest.json) must be read together with its `meta.mode`:
 
-All metrics are reproducible via `make benchmark` and recorded in [`eval/results_latest.json`](eval/results_latest.json).
+- **Replay (`make benchmark`)** — re-executes the recorded pipeline locally. It makes **no provider calls**, so it produces **no model accuracy, token, latency, or cost metrics**. Its only score-like value is a replay check: whether the local fixture path reproduces the fixture expectations. `scored_cases` is `0` and model metrics are `null` (shown as `N/A` in the UI).
+- **Live (`make benchmark-live`)** — runs the configured provider path and scores only predictions that actually came from live responses. It requires `NEBIUS_API_KEY` (and optionally `TAVILY_API_KEY`) and may incur cost. Live results are still limited to these synthetic fixtures and do **not** establish clinical sensitivity, specificity, or real-world safety.
 
-| Model Configuration | False Positive Rate (FPR) | Critical Recall | Precision | Median Safe Latency | Cost / 1k Discharges | Architectural Trade-Off |
-| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Nemotron 3 Nano-30B Only** | **0.0%** | **100.0%** | **100.0%** | **< 0.1s** | **$0.01** | Rapid triage; lacks parameter capacity for complex unstructured order synthesis |
-| **Nemotron 3 Ultra-550B Only** | **0.0%** | **100.0%** | **100.0%** | **~0.8s** | **$8.50** | Un-routed baseline; high cost and compute overhead on routine clean discharges |
-| **SilentCatch Tiered Router (Ours)** | **0.0%** | **100.0%** | **100.0%** | **< 0.1s** | **$2.08** | **75.5% cost reduction vs. Ultra-550B while maintaining 100% critical recall** |
+The console's **MODEL BENCHMARKS** tab renders `meta.mode`, `scored_cases`, `prediction_source`, per-case provenance, fallback status, and nullable metrics from the artifact. It never substitutes replay agreement for recall or precision.
 
+<details>
+<summary>What the generated artifact contains</summary>
+
+```json
+{
+  "schema_version": 2,
+  "meta": {
+    "mode": "REPLAYED",
+    "requested_mode": "replay",
+    "environment": "REPLAYED",
+    "total_encounters": 12,
+    "positive_cases": 4,
+    "negative_cases": 8
+  },
+  "summary": {
+    "tiered_router": {
+      "mode": "REPLAYED",
+      "scored_cases": 0,
+      "replay_check_matches": 12,
+      "replay_check_total": 12,
+      "recall_pct": null,
+      "precision_pct": null,
+      "fpr_pct": null,
+      "median_latency_ms": null,
+      "cost_type": "not_applicable_replay"
+    }
+  }
+}
 ```
-Benchmark Acceptance Summary:
-  [PASS] 0.0% False Positive Rate (0 noisy alerts on 8 clean discharges)
-  [PASS] 100.0% Critical Recall (4/4 lethal contradictions intercepted)
-  [PASS] 75.5% Cost Reduction vs. Frontier Baseline ($2.08 vs $8.50 per 1k cases)
-```
+
+Actual values depend on the run; inspect `eval/results_latest.json` rather than copying numbers from this example.
+
+</details>
 
 <br/>
 
-![SilentCatch Empirical Model Benchmarks](docs/assets/model-benchmarks-tab.png)
-*SilentCatch Model Benchmarks & Architecture Validation Ledger: comparing single-model baselines against the Tiered Cascade across 12 emergency encounters (36 runs) on Nebius Token Factory with 100% ground-truth match.*
+![SilentCatch Model Benchmarks](docs/assets/model-benchmarks-tab.png)
+*Screenshot of the benchmark tab. The tab labels replay mode explicitly; replay agreement is a functional check, not a clinical validation result.*
 
 ---
 
@@ -176,7 +202,7 @@ make judge-demo
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 > [!NOTE]
-> When API keys are unset, SilentCatch automatically runs in **Deterministic Seed / Replay Mode** using verified clinical traces. All 46 tests, UI features, and benchmark metrics function offline with 100% fidelity.
+> When API keys are unset, SilentCatch automatically uses the **deterministic replay/seed path** with recorded fixture traces. Backend tests, the console workflow, and the replay benchmark run offline. Replay verifies fixture plumbing, not model accuracy, latency, or cost.
 
 ---
 
@@ -207,15 +233,23 @@ TAVILY_API_KEY=your_tavily_search_api_key
 ### Run the Benchmark & Verification Tests
 
 ```bash
-# Run the 36-run empirical benchmark suite
+# Replay benchmark: no provider calls; syncs the frontend artifact
 make benchmark
 
-# Run backend unit & integration tests (46 tests)
-pytest backend/tests
+# Explicit live benchmark: requires NEBIUS_API_KEY, may incur provider charges
+# Prefer a one-case smoke first:
+# ./.venv/bin/python eval/benchmark.py --live --smoke --case ED-104
+make benchmark-live
 
-# Run frontend lint and type-checking
+# Backend unit & integration tests
+./.venv/bin/python -m pytest backend/tests -q
+
+# Frontend lint, type-check, and production build
 npm --prefix frontend run lint
+npm --prefix frontend run build
 ```
+
+The frontend reads a static copy at `frontend/src/data/results_latest.json`; both benchmark targets call `make sync-benchmark-artifact` so the UI cannot drift from `eval/results_latest.json`.
 
 ---
 
@@ -225,26 +259,30 @@ npm --prefix frontend run lint
 ```http
 GET /healthz
 ```
-Returns system mode, resolved Nebius model IDs, Tavily search connectivity, and active spend caps.
+Returns configured live capability, resolved model IDs, Tavily configuration, and active spend caps. It reports configuration only; it does not make a provider call.
 
 ```json
 {
   "status": "ok",
-  "inference_mode": "REPLAYED",
+  "inference_mode": "LIVE_CAPABLE",
+  "live_capable": true,
+  "mode_note": "NEBIUS_API_KEY configured; audits may call the provider. This health check makes no model call.",
   "nebius_base_url": "https://api.tokenfactory.nebius.com/v1",
   "models": {
-    "vision": "nvidia/Nemotron-3.5-Super-VL-120B-A12B",
+    "vision": "nvidia/Nemotron-3.5-Super-VL",
     "gate": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
     "reasoning": "nvidia/Nemotron-3-Ultra-550b-a55b",
     "failsafe": "nvidia/nemotron-3-super-120b-a12b"
   },
-  "tavily_live": false,
+  "tavily_configured": true,
   "spend_caps": {
     "per_discharge_usd": 0.05,
     "daily_usd": 2.00
   }
 }
 ```
+
+When no key is configured, the same endpoint returns `"inference_mode": "REPLAY_ONLY"` and `"live_capable": false`. `tavily_live` remains as a deprecated alias for `tavily_configured`.
 
 ---
 
@@ -256,11 +294,11 @@ Returns all available patient fixtures formatted for the clinical cockpit view (
 
 ---
 
-### Empirical Benchmark Results
+### Benchmark Results
 ```http
 GET /api/benchmark
 ```
-Returns the cached 12-case × 3-configuration benchmark matrix consumed by the console's **MODEL BENCHMARKS** tab.
+Returns the cached `eval/results_latest.json` artifact consumed by the console's **MODEL BENCHMARKS** tab. Consumers must branch on `meta.mode`, `scored_cases`, and nullable metrics; replay artifacts contain no model accuracy, latency, or cost values.
 
 ---
 
@@ -309,24 +347,24 @@ event: stage_done
 data: {"stage": "reasoning", "verdicts": [...]}
 
 event: verdict
-data: {"status": "CRITICAL_INTERCEPT", "verdicts": [...], "total_cost_usd": 0.0}
+data: {"status": "CRITICAL_INTERCEPT", "verdicts": [...], "total_cost_usd": 0.0, "execution_mode": "REPLAYED"}
 
 event: done
-data: {"status": "CRITICAL_INTERCEPT", "verdicts": [...], "elapsed_ms": 7}
+data: {"status": "CRITICAL_INTERCEPT", "verdicts": [...], "elapsed_ms": 7, "execution_mode": "REPLAYED"}
 ```
 
 ---
 
-## 🔒 Sovereign Privacy & HIPAA Compliance
+## 🔒 Data-Handling Posture
 
-SilentCatch is engineered from first principles for strict clinical data governance:
+This section describes the prototype's intended data flow. It is **not** a HIPAA certification, nor a guarantee about third-party provider retention.
 
-1. **Sovereign Model Infrastructure**: All frontier inference executes on [Nebius Token Factory](https://nebius.com/services/token-factory) dedicated infrastructure using open-weight NVIDIA Nemotron models. Clinical tokens are never retained, logged, or utilized for foundation model retraining.
-2. **Deterministic PHI Sanitizer**: Before any medical query reaches the Tavily Search API, outbound text passes through a deterministic regex filter that strips patient names, medical record numbers (MRNs), and dates of birth. Only generalized clinical concepts (e.g. `"ACR Fleischner Society guidelines 7mm solid nodule follow-up"`) are transmitted.
-3. **Hardware Spend Circuit Breakers**: Built-in memory ledgers enforce hard ceilings:
-   - **$0.05 USD** maximum spend per discharge evaluation.
-   - **$2.00 USD** maximum spend per day.
-   Tripped caps trigger instant fallback to deterministic offline replay traces, guaranteeing the ER console never crashes or exceeds budget.
+1. **Provider-hosted inference**: Live inference is sent to [Nebius Token Factory](https://nebius.com/services/token-factory) using open-weight NVIDIA Nemotron models. Retention and logging are governed by the provider's terms and configuration; this repository does not independently certify them. Replay mode makes no provider call.
+2. **Outbound query scrubbing**: Before a Tavily search request, the query path applies a deterministic regex scrubber intended to remove names, medical record numbers, and dates of birth. The scrubber is a prototype safeguard, not a formal de-identification certification; review and validate it before any real patient data is used.
+3. **In-process spend circuit breakers**: In-memory ledgers enforce:
+   - **$0.05 USD** budget per discharge evaluation.
+   - **$2.00 USD** budget per day.
+   The caps are process-local and reset on restart. When a cap is reached, the audit falls back to the deterministic replay path instead of making further provider calls.
 
 ---
 
@@ -341,7 +379,7 @@ SilentCatch/
 │   ├── engine/
 │   │   ├── pipeline.py           # 4-stage SSE orchestrator & thread pool worker
 │   │   ├── vision_extractor.py   # Nemotron 3.5 Super VL image/text extractor & cache
-│   │   ├── noise_gate.py         # Nemotron 3 Nano sub-second triage gate (<1.2s)
+│   │   ├── noise_gate.py         # Nemotron 3 Nano triage gate with deterministic overrides
 │   │   ├── guideline_search.py   # PHI-scrubbed Tavily guideline retrieval & snapshot cache
 │   │   ├── contradiction_ultra.py# Nemotron 3 Ultra deep cross-modal reasoning
 │   │   ├── span_guard.py         # Zero-hallucination substring quote verifier & LRU cache
@@ -366,7 +404,7 @@ SilentCatch/
 ├── docs/assets/                  # Console screenshot artifacts
 ├── Dockerfile                    # Container definition
 ├── docker-compose.yml            # Multi-service local & cloud compose file
-├── Makefile                      # make dev, make judge-demo, make benchmark
+├── Makefile                      # make dev, make judge-demo, make benchmark, make benchmark-live
 └── LICENSE                       # MIT License
 ```
 
@@ -377,5 +415,5 @@ SilentCatch/
 This project is open-source software licensed under the [MIT License](LICENSE).
 
 <div align="center">
-<sub>Engineered with precision for zero alert fatigue and uncompromising patient safety in Emergency Medicine.</sub>
+<sub>An experimental prototype for surfacing cross-modal discharge contradictions. Not a validated clinical device.</sub>
 </div>

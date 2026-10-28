@@ -44,6 +44,66 @@ logger = logging.getLogger(__name__)
 
 StageRole = str  # vision | gate | reasoning | failsafe
 
+_LIVE_SOURCES = frozenset({"live", "failsafe_live", "tavily_live"})
+_LOCAL_SOURCES = frozenset(
+    {
+        "replay_seed",
+        "seed_replay",
+        "deterministic_replay",
+        "template_replay",
+        "cache_snapshot",
+        "cache_hit",
+        "replay_no_prediction",
+    }
+)
+_FAILURE_SOURCES = frozenset({"failure_no_prediction"})
+
+
+def stage_source_key(trace: StageTrace) -> str:
+    """Stable per-stage key for provenance maps (two guideline sub-stages)."""
+    if trace.stage == "guideline" and trace.source in {
+        "tavily_live",
+        "cache_snapshot",
+        "cache_snapshot_fallback",
+        "snapshot_only",
+    }:
+        return "guideline_search"
+    if trace.stage == "guideline":
+        return "guideline_query"
+    return trace.stage
+
+
+def audit_execution_summary(
+    traces: list[StageTrace], required_stages: list[str]
+) -> tuple[str, dict[str, str], bool]:
+    """Derive mode from what actually happened, never from key presence."""
+    sources: dict[str, str] = {}
+    for trace in traces:
+        sources[stage_source_key(trace)] = trace.source or (
+            "replay_seed" if trace.replayed else "live"
+        )
+
+    observed = [sources[key] for key in required_stages if key in sources]
+    if not observed:
+        return "REPLAYED", sources, False
+
+    live_count = sum(1 for source in observed if source in _LIVE_SOURCES)
+    failure = any(source in _FAILURE_SOURCES for source in observed)
+    fallback = any(
+        source not in _LIVE_SOURCES and source not in _LOCAL_SOURCES
+        for source in observed
+    ) or any(source in {"cache_hit", "cache_snapshot"} for source in observed)
+
+    if failure and live_count == 0:
+        mode = "FAILED"
+    elif live_count == len(observed) and not fallback:
+        mode = "LIVE"
+    elif live_count > 0:
+        mode = "MIXED"
+    else:
+        mode = "REPLAYED"
+    return mode, sources, fallback
+
 
 @functools.lru_cache(maxsize=32)
 def _fixture_png(url: str | None) -> bytes | None:
@@ -143,8 +203,16 @@ def run_audit(  # noqa: C901 — a guarded linear stream read top to bottom
     search_post: guideline_search.HttpPostFn | None = None,
     vision_cache: dict[str, object] | None = None,
     emit: Callable[[dict], None] | None = None,
+    allow_live: bool = True,
+    allow_seed_fallback: bool = True,
 ) -> AuditResult:
-    """Run the 4-stage audit; emit ordered events; never raise to the stream."""
+    """Run the 4-stage audit; emit ordered events; never raise to the stream.
+
+    `allow_live=False` forces the deterministic/replay ladder even when API keys
+    are present (used by the default benchmark and offline tests).
+    `allow_seed_fallback=False` forbids expected-label fixtures from becoming a
+    prediction (used by live predictive evaluation).
+    """
     if ledger is None:
         ledger = SpendLedger(*spend_caps().values())
         ledger.seed_day(day_cost())
@@ -161,31 +229,53 @@ def run_audit(  # noqa: C901 — a guarded linear stream read top to bottom
         emit({"event": kind, "data": data})
 
     def finish(result: AuditResult) -> AuditResult:
+        required = ["vision", "gate"]
+        if any(trace.stage == "guideline" for trace in result.traces):
+            required += ["guideline_query", "guideline_search"]
+        if any(trace.stage == "reasoning" for trace in result.traces):
+            required += ["reasoning"]
+        mode, sources, fallback = audit_execution_summary(result.traces, required)
+        result.execution_mode = mode
+        result.stage_sources = sources
+        result.fallback_used = fallback
         emit({"event": "verdict", "data": result.model_dump()})
         emit({"event": "done", "data": result.model_dump()})
         return result
 
     try:
         ledger.start_request()
-        live_llm = bool(NEBIUS_API_KEY) and ledger.live_call_allowed()
-        if NEBIUS_API_KEY and not live_llm:
+        intended_live = (
+            allow_live
+            and ledger.live_call_allowed()
+            and (bool(NEBIUS_API_KEY) or transport_factory is not None)
+        )
+        if intended_live:
+            transport, close_llm = (transport_factory or build_live_transport)()
+            live_llm = transport is not None
+        else:
+            transport, close_llm = None, lambda: None
+            live_llm = False
+
+        if not allow_live:
+            mode_note = "live inference disabled by caller -> deterministic replay"
+        elif NEBIUS_API_KEY and not ledger.live_call_allowed():
             # FR-2.2: budget tripped -> whole audit runs the replay path
             mode_note = f"live Budget exceeded -> replay ({ledger.cap_reason()})"
-        elif not NEBIUS_API_KEY:
+        elif not live_llm and transport_factory is None:
             mode_note = "no NEBIUS_API_KEY -> deterministic seed replay"
+        elif not live_llm:
+            mode_note = "injected transport unavailable -> deterministic replay"
         else:
             mode_note = ""
         emit({"event": "run_start", "data": {
             "encounter_id": encounter.encounter_id,
             "mode": "LIVE" if live_llm else "REPLAYED",
+            "requested_mode": "LIVE" if allow_live else "REPLAYED",
             "daily_spend_usd": round(day_cost(), 6),
             "mode_note": mode_note,
+            "allow_seed_fallback": allow_seed_fallback,
         }})
         models = resolved()
-        if live_llm:
-            transport, close_llm = (transport_factory or build_live_transport)()
-        else:
-            transport, close_llm = None, lambda: None
 
         def stage_transport() -> vision_extractor.LlmTransport | None:
             """FR-2.2 budget gate: a tripped cap disables later live calls."""
@@ -274,7 +364,9 @@ def run_audit(  # noqa: C901 — a guarded linear stream read top to bottom
 
             # ---------------- Stage 4: Ultra + span-guard ----------------
             stage_event("stage_start", "reasoning")
-            seed_specs = load_eval_specs(encounter.encounter_id)
+            # Predictive evaluation disables expected-label seed candidates;
+            # the demo/replay path keeps them (and badges the trace honestly).
+            seed_specs = load_eval_specs(encounter.encounter_id) if allow_seed_fallback else []
             verdicts, ultra_trace = contradiction_ultra.synthesize_verdicts(
                 encounter.encounter_id,
                 encounter.radiology_study.report_text,
@@ -289,6 +381,7 @@ def run_audit(  # noqa: C901 — a guarded linear stream read top to bottom
                 transport=stage_transport(),
                 model_id=models.get("reasoning", ""),
                 failsafe_model_id=models.get("failsafe", ""),
+                allow_seed_fallback=allow_seed_fallback,
             )
             _attr(ultra_trace, ledger)
             traces.append(ultra_trace)
@@ -323,11 +416,18 @@ def finish_or_error(
     started: float,
     emit: Callable[[dict], None],
 ) -> AuditResult:
+    required = ["vision", "gate"] + sorted(
+        {stage_source_key(trace) for trace in traces if trace.stage in {"guideline", "reasoning"}}
+    )
+    _mode, sources, fallback = audit_execution_summary(traces, required)
     result = AuditResult(
         encounter_id=encounter.encounter_id,
         status="ERROR",
         traces=traces,
         elapsed_ms=int((time.perf_counter() - started) * 1000),
+        execution_mode="ERROR",
+        stage_sources=sources,
+        fallback_used=fallback,
     )
     payload = result.model_dump()
     payload["error"] = f"{type(exc).__name__}: {exc}"

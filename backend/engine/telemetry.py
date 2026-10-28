@@ -8,17 +8,36 @@ remainder of the day (in-memory, PRD wording — no DB dependency).
 from __future__ import annotations
 
 import datetime as dt
+from typing import Any
 
 # Estimated public rates (USD per million tokens, Oct-2026 benchmark comparability).
-# Edit these when exact Token Factory pricing is available; benchmark deltas
-# (G3: >70% route cost reduction) are ratio-based and robust to uniform scaling.
+# These are DOCUMENTED ASSUMPTIONS, not provider invoices. The benchmark labels
+# every value computed from them as "estimated_from_actual_tokens". Update the
+# version whenever a rate changes so saved reports stay reproducible.
+PRICING_ASSUMPTIONS_VERSION: str = "2026-10-public-estimates-v1"
 TOKEN_COSTS_USD_PER_MTOK: dict[str, tuple[float, float]] = {
     # role: (prompt USD/Mtok, completion USD/Mtok)
-    "vision": (0.60, 0.60),      # 3.5 Super VL 120B-A12B est.
-    "gate": (0.03, 0.03),        # Nano 30B-A3B est.
-    "reasoning": (2.00, 2.00),   # Ultra 550B-A55B est.
-    "failsafe": (0.30, 0.30),    # Super 120B est.
+    "vision": (0.60, 0.60),      # 3.5 Super VL 120B assumption
+    "gate": (0.03, 0.03),        # Nano 30B-A3B assumption
+    "reasoning": (2.00, 2.00),   # Ultra 550B-A55B assumption
+    "failsafe": (0.30, 0.30),    # Super 120B assumption
 }
+
+
+def pricing_snapshot() -> dict[str, Any]:
+    """Serializable pricing assumptions embedded in benchmark reports."""
+    return {
+        "version": PRICING_ASSUMPTIONS_VERSION,
+        "unit": "USD per million tokens",
+        "rates": {
+            role: {"prompt": rates[0], "completion": rates[1]}
+            for role, rates in TOKEN_COSTS_USD_PER_MTOK.items()
+        },
+        "note": (
+            "Public list-price assumptions used only to estimate spend. "
+            "Not an actual provider invoice."
+        ),
+    }
 
 
 def estimate_cost(role: str, prompt_tokens: int, completion_tokens: int) -> float:

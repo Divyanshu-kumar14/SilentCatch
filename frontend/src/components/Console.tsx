@@ -183,7 +183,7 @@ function RedlineOverlay({
 }
 
 export default function Console() {
-  const [, setHealthz] = useState<Healthz | null>(null);
+  const [healthz, setHealthz] = useState<Healthz | null>(null);
   const [fixtures, setFixtures] = useState<Encounter[]>([]);
   const [enc, setEnc] = useState<Encounter | null>(null);
   const [phase, setPhase] = useState<Phase>("boot");
@@ -200,9 +200,11 @@ export default function Console() {
   const [viewTab, setViewTab] = useState<"cockpit" | "benchmarks">("cockpit");
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const [showGuide, setShowGuide] = useState<boolean>(true);
-  const [lastResult, setLastResult] = useState<{ elapsed: number; cost: number } | null>(
-    null
-  );
+  const [lastResult, setLastResult] = useState<{
+    elapsed: number;
+    cost: number;
+    mode: string;
+  } | null>(null);
 
   const runToken = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
@@ -268,7 +270,11 @@ export default function Console() {
               break;
             }
             setVerdicts(r.verdicts ?? []);
-            setLastResult({ elapsed: r.elapsed_ms, cost: r.total_cost_usd });
+            setLastResult({
+              elapsed: r.elapsed_ms,
+              cost: r.total_cost_usd,
+              mode: r.execution_mode || "REPLAYED",
+            });
             if (r.status === "CRITICAL_INTERCEPT") {
               setPhase("intercept");
               playCockpitSound("intercept", soundRef.current);
@@ -433,7 +439,7 @@ export default function Console() {
       isCritical: false,
     },
     "ED-104": {
-      name: "Robert Martinez, 48M",
+      name: "Robert Martinez, 62M",
       problem: "Bicycle crash with chest pain.",
       situation: "DANGER: Doctor missed a 7.2mm lung nodule AND prescribed Toradol while kidneys are silently failing!",
       outcome: phase === "safe"
@@ -550,11 +556,26 @@ export default function Console() {
             </kbd>
           </button>
 
-          {/* Token Factory Live Pill */}
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-300">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
-            <span className="font-semibold">TOKEN FACTORY LIVE</span>
-            <span className="text-xs text-emerald-400/80">tavily: live</span>
+          {/* Live capability / replay status (configuration only, not a call) */}
+          <div
+            className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-medium ${
+              healthz?.live_capable
+                ? "border-sky-500/30 bg-sky-500/10 text-sky-300"
+                : "border-amber-500/30 bg-amber-500/10 text-amber-300"
+            }`}
+            title={healthz?.mode_note ?? "Backend health not loaded"}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${
+                healthz?.live_capable ? "bg-sky-400" : "bg-amber-400"
+              }`}
+            />
+            <span className="font-semibold">
+              {healthz?.live_capable ? "LIVE CAPABLE" : "REPLAY / OFFLINE"}
+            </span>
+            <span className="text-xs opacity-80">
+              tavily: {healthz?.tavily_configured ? "configured" : "snapshot"}
+            </span>
           </div>
         </div>
       </header>
@@ -676,7 +697,9 @@ export default function Console() {
               <div className="flex items-center gap-2">
                 <Info className="h-4 w-4 text-sky-400 shrink-0" />
                 <span>
-                  <strong>Judges Guide:</strong> Click <strong>ED-104 (⭐ Judge Demo)</strong> to see SilentCatch block a dangerous discharge where a doctor missed an early lung tumor and prescribed a toxic painkiller to a patient with failing kidneys.
+                  <strong>Judges Guide:</strong> Click <strong>ED-104 (⭐ Judge Demo)</strong> to run the synthetic
+                  fixture where a missed early lung nodule and a toxic painkiller prescription collide. The
+                  interlock outcome is produced by the audit stream (replay offline, live when configured).
                 </span>
               </div>
               <button
@@ -749,6 +772,7 @@ export default function Console() {
                   guides={guides}
                   applied={applied}
                   lastResult={lastResult}
+                  runMode={runStart?.mode ?? null}
                   onApply={applyAndRerun}
                   onEditInstructions={editInstructions}
                 />

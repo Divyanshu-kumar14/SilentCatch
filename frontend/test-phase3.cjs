@@ -1,6 +1,8 @@
 const { chromium } = require("playwright");
 const assert = require("assert").strict;
 
+const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
+
 async function run() {
   console.log("=== Phase 3 ER Flight-Check Console Verification ===");
   const browser = await chromium.launch({ headless: true });
@@ -9,8 +11,8 @@ async function run() {
   });
   const page = await context.newPage();
 
-  console.log("1. Navigating to http://localhost:3000 at 1280x800...");
-  await page.goto("http://localhost:3000", { waitUntil: "networkidle" });
+  console.log(`1. Navigating to ${BASE_URL} at 1280x800...`);
+  await page.goto(BASE_URL, { waitUntil: "networkidle" });
 
   // Verify responsive layout: zero horizontal scroll at 1280x800
   const noHScroll = await page.evaluate(() => {
@@ -21,20 +23,25 @@ async function run() {
 
   // Verify ED-101 auto-runs on boot and clears with SILENT_PASS
   await page.waitForSelector("text=FLIGHT-CHECK CLEAR · SILENT PASS", { timeout: 5000 });
-  console.log("✓ ED-101 initial boot audit: SILENT_PASS < 1.2s, 0 modals");
+  console.log("✓ ED-101 initial boot audit rendered SILENT_PASS without an interception modal");
 
   // Verify telemetry bar shows REPLAY mode and stages 1 & 2
   const telemetryText = await page.textContent("footer");
   assert(telemetryText.includes("STAGE 1 · VISION"), "Telemetry missing Stage 1");
   assert(telemetryText.includes("STAGE 2 · GATE"), "Telemetry missing Stage 2");
-  assert(telemetryText.includes("REPLAY"), "Telemetry missing REPLAY badge");
-  console.log("✓ Telemetry bar correctly badges Stage 1/2 REPLAY execution");
+  assert(
+    /REPLAY|CACHE HIT|DETERMINISTIC/.test(telemetryText),
+    "Telemetry missing replay/cache/deterministic provenance badge"
+  );
+  assert(telemetryText.includes("local replay"), "Telemetry missing local-replay scope label");
+  assert(telemetryText.includes("N/A (replay)"), "Telemetry invented a replay cost");
+  console.log("✓ Telemetry bar shows replay provenance and N/A replay cost");
 
   // ---------------- ED-104 CRITICAL INTERCEPTION ----------------
   console.log("2. Switching to ED-104 (trauma patient with 2 cross-modal contradictions)...");
   await page.click('button:has-text("ED-104")');
 
-  // Wait for CRITICAL INTERCEPT (live Nebius inference can take up to 30s)
+  // Wait for CRITICAL INTERCEPT (local replay here; live inference can be slower)
   await page.waitForSelector("text=SAFETY INTERLOCK: CRITICAL INTERCEPT", { timeout: 35000 });
   console.log("✓ ED-104 stream completed: CRITICAL_INTERCEPT detected");
 
@@ -44,7 +51,7 @@ async function run() {
   assert(footerAfterEd104.includes("STAGE 2 · GATE"), "Stage 2 not in footer");
   assert(footerAfterEd104.includes("STAGE 3 · EVIDENCE"), "Stage 3 not in footer");
   assert(footerAfterEd104.includes("STAGE 4 · ULTRA"), "Stage 4 not in footer");
-  console.log("✓ All 4 pipeline stages completed in telemetry bar (Super VL -> Nano -> Tavily -> Ultra + Rig)");
+  console.log("✓ All 4 pipeline stages completed in telemetry bar (vision → gate → evidence → reasoning)");
 
   // Verify 2 contradiction cards
   const cards = await page.$$("article:has-text('CRITICAL')");
@@ -62,10 +69,14 @@ async function run() {
   console.log("✓ Verified Card 1: 7.2mm nodule -> Fleischner follow-up CT (CPT 71250)");
   console.log("✓ Verified Card 2: kinetic AKI -> Ketorolac nephrotoxic collision");
 
-  // Verify Tavily guideline link
-  const tavilyLink = await page.$("a:has-text('Tavily Guideline')");
-  assert(tavilyLink, "Tavily Guideline badge link missing!");
-  console.log("✓ Tavily clinical guideline badge present and linked");
+  // Verify guideline provenance badge/link
+  const guidelineLink = await page.$(
+    "a:has-text('Cached guideline snapshot'), a:has-text('Tavily live result')"
+  );
+  assert(guidelineLink, "Guideline provenance badge/link missing!");
+  const guidelineHref = await guidelineLink.getAttribute("href");
+  assert(guidelineHref && guidelineHref.startsWith("http"), "Guideline link has no URL");
+  console.log("✓ Guideline provenance badge present and linked");
 
   // Verify Span-Guard highlight in Report or Lab Note
   const highlight = await page.$("mark[id^='hl-']");
@@ -107,17 +118,36 @@ async function run() {
 
   // ED-102: Pneumonia with 6mm nodule that ALREADY has follow-up CT scheduled
   await page.click('button:has-text("ED-102")');
+  await page.waitForSelector("text=Maria Santos, 54F", { timeout: 10000 });
   await page.waitForSelector("text=FLIGHT-CHECK CLEAR · SILENT PASS", { timeout: 35000 });
+  // Cards exit with a short animation; wait until no CRITICAL card remains.
+  await page.waitForFunction(
+    () =>
+      Array.from(document.querySelectorAll("article")).every(
+        (a) => !(a.textContent || "").includes("CRITICAL")
+      ),
+    null,
+    { timeout: 5000 }
+  );
   const ed102Cards = await page.$$("article:has-text('CRITICAL')");
   assert.equal(ed102Cards.length, 0, "ED-102 should have 0 critical cards (nodule already has CT scheduled)");
-  console.log("✓ ED-102 (nodule with CT already scheduled): SILENT_PASS, 0 alert modal");
+  console.log("✓ ED-102 (nodule with CT already scheduled): SILENT_PASS, 0 alert cards");
 
   // ED-103: Renal colic with recovering creatinine slope (declining -> no AKI)
   await page.click('button:has-text("ED-103")');
+  await page.waitForSelector("text=David Chen, 42M", { timeout: 10000 });
   await page.waitForSelector("text=FLIGHT-CHECK CLEAR · SILENT PASS", { timeout: 35000 });
+  await page.waitForFunction(
+    () =>
+      Array.from(document.querySelectorAll("article")).every(
+        (a) => !(a.textContent || "").includes("CRITICAL")
+      ),
+    null,
+    { timeout: 5000 }
+  );
   const ed103Cards = await page.$$("article:has-text('CRITICAL')");
   assert.equal(ed103Cards.length, 0, "ED-103 should have 0 critical cards (recovering kidney slope)");
-  console.log("✓ ED-103 (recovering kidney slope): SILENT_PASS, 0 alert modal");
+  console.log("✓ ED-103 (recovering kidney slope): SILENT_PASS, 0 alert cards");
 
   // ---------------- JUDGE SANDBOX: LIVE EDIT & BOUNDS (FR-5.3) ----------------
   console.log("5. Testing Judge Sandbox: client-side bounds validation and instant slope recalc...");
@@ -151,22 +181,31 @@ async function run() {
   // ---------------- MODEL BENCHMARKS TAB (FA-6 / FR-6.1) ----------------
   console.log("6. Testing Model Benchmarks Tab (offline results_latest.json)...");
   await page.click('button:has-text("MODEL BENCHMARKS")');
-  await page.waitForSelector("text=Architecture Benchmark Comparison (36 Evaluation Runs)", { timeout: 5000 });
+  await page.waitForSelector("text=Architecture Comparison", { timeout: 5000 });
 
   const benchText = await page.textContent("main");
-  assert(benchText.includes("0%"), "Missing 0% FPR in benchmark view");
-  assert(benchText.includes("100%"), "Missing 100% Recall in benchmark view");
-  assert(benchText.includes("75.5%"), "Missing 75.5% Cost Reduction in benchmark view");
+  // Truthful replay semantics: mode is explicit, metrics are separated from
+  // replay agreement, and no legacy hardcoded performance claims remain.
+  assert(benchText.includes("REPLAY · NO PROVIDER CALLS"), "Missing explicit replay mode badge");
+  assert(benchText.includes("Scored (pos/neg)"), "Missing scored-case column");
+  assert(benchText.includes("Replay check"), "Missing replay-check column");
+  assert(benchText.includes("fixture agreement"), "Replay check is not labelled as fixture agreement");
+  assert(benchText.includes("not recall, precision, or clinical validation"), "Missing replay-accuracy disclaimer");
+  assert(benchText.includes("N/A"), "Missing N/A for unscored replay metrics");
+  assert(!benchText.includes("75.5%"), "Stale 75.5% cost claim still present");
+  assert(!benchText.includes("100.0%"), "Stale 100.0% recall/FPR claim still present");
   assert(benchText.includes("Nemotron 3 Nano-30B Only"), "Missing Nano-30B row");
   assert(benchText.includes("Nemotron 3 Ultra-550B Only"), "Missing Ultra-550B row");
   assert(benchText.includes("SilentCatch Tiered Router"), "Missing Tiered Router row");
-  console.log("✓ Benchmark summary cards verified: 0% FPR, 100% Recall, 75.5% Cost Reduction vs Ultra-550B");
-  console.log("✓ All 3 architecture configurations rendered in comparison table");
+  console.log("✓ Benchmark view verified: replay mode, scored-case counts, fixture agreement, N/A metrics");
+  console.log("✓ Stale 100% recall and 75.5% savings claims are absent");
 
-  // Verify all 12 cases in the audit ledger
-  const ledgerRows = await page.$$("table:nth-of-type(1) tr");
+  // Verify all 12 fixtures in the audit ledger
+  const ledgerRows = await page.$$(
+    "section:has-text('Per-Encounter Fixture Ledger') tbody tr"
+  );
   assert(ledgerRows.length >= 12, `Expected at least 12 ledger cases, found ${ledgerRows.length}`);
-  console.log("✓ Per-Encounter Validation Ledger rendered all 12 clinical encounters");
+  console.log("✓ Per-Encounter Fixture Ledger rendered all 12 synthetic encounters");
 
   await page.screenshot({ path: "/tmp/phase4_model_benchmarks.png" });
   console.log("✓ Captured screenshot: /tmp/phase4_model_benchmarks.png");
