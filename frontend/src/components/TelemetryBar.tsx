@@ -16,6 +16,18 @@ const STAGE_CONFIG: ReadonlyArray<{
   { id: "reasoning", label: "Ultra", role: "reasoning + verifier" },
 ];
 
+/**
+ * README "Stage Details" design budgets, mirrored from
+ * `eval/benchmark.py::STAGE_LATENCY_TARGETS_MS`. Replay executes locally in
+ * microseconds, so these targets are shown with an asterisk instead.
+ */
+const STAGE_DESIGN_TARGET_MS: Readonly<Record<string, number>> = {
+  vision: 400,
+  gate: 250,
+  guideline: 300,
+  reasoning: 600,
+};
+
 /** Machine-readable backend provenance -> short UI label. */
 function provenanceLabel(source: string | undefined): string | null {
   if (!source) return null;
@@ -51,6 +63,16 @@ function TelemetryBar({
 }) {
   const isRunning = phase === "running";
   const overallMode = runStart?.mode ?? null;
+  const isReplay = overallMode === "REPLAYED";
+  const estimatedLatency = isReplay
+    ? STAGE_CONFIG.reduce(
+        (sum, cfg) =>
+          traces.some((t) => t.stage === cfg.id)
+            ? sum + (STAGE_DESIGN_TARGET_MS[cfg.id] ?? 0)
+            : sum,
+        0,
+      )
+    : 0;
 
   // Aggregate only values the backend actually measured. Replay traces carry
   // zero/absent cost, so a replay run must not display a provider dollar figure.
@@ -91,6 +113,7 @@ function TelemetryBar({
           const isActive = activeStage === cfg.id;
           const isDone = Boolean(trace);
           const badge = provenanceLabel(trace?.source);
+          const designTarget = isReplay ? STAGE_DESIGN_TARGET_MS[cfg.id] : null;
 
           return (
             <li key={cfg.id} className="flex min-w-0 items-center">
@@ -114,12 +137,21 @@ function TelemetryBar({
                     {trace.model_id && (
                       <span className="hidden text-muted lg:inline">{shortModel(trace.model_id)}</span>
                     )}
-                    <span className="text-ink-2">
-                      {trace.latency_ms == null
-                        ? "—"
-                        : trace.latency_ms < 1
-                          ? "<1ms"
-                          : `${Math.round(trace.latency_ms)}ms`}
+                    <span
+                      className="text-ink-2"
+                      title={
+                        designTarget != null
+                          ? "Design target from the README Stage Details table; not measured inference latency"
+                          : undefined
+                      }
+                    >
+                      {designTarget != null
+                        ? `~${designTarget}ms*`
+                        : trace.latency_ms == null
+                          ? "—"
+                          : trace.latency_ms < 1
+                            ? "<1ms"
+                            : `${Math.round(trace.latency_ms)}ms`}
                     </span>
                     {(trace.prompt_tokens ?? 0) + (trace.completion_tokens ?? 0) > 0 && (
                       <span className="hidden md:inline">
@@ -167,11 +199,27 @@ function TelemetryBar({
 
         {traces.length > 0 && (
           <div className="mono flex items-center gap-3 border-l border-edge pl-3">
-            <span className="text-faint">
-              elapsed{" "}
-              <span className="text-ink-2">
-                {totalLatency < 1 ? "<1ms" : `${Math.round(totalLatency)}ms`}
+            <span
+              className="text-faint"
+              title={
+                isReplay
+                  ? "Estimated from README design targets; this replay made no provider call"
+                  : "Measured stage time from the SSE stream"
+              }
+            >
+              {isReplay ? "est. " : "elapsed "}
+              <span className={isReplay ? "text-warn" : "text-ink-2"}>
+                {isReplay
+                  ? estimatedLatency > 0
+                    ? `~${Math.round(estimatedLatency)}ms*`
+                    : "N/A"
+                  : totalLatency < 1
+                    ? "<1ms"
+                    : `${Math.round(totalLatency)}ms`}
               </span>
+              {isReplay && estimatedLatency > 0 && (
+                <span className="ml-1 text-faint">(estimated)</span>
+              )}
             </span>
             <span className="hidden text-faint sm:inline">
               tokens{" "}

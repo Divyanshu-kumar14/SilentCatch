@@ -495,15 +495,25 @@ export default function Console() {
           {/* Provenance is configuration, not a provider call. */}
           <div
             className="hidden items-center gap-2 pr-2 text-[12px] lg:flex"
-            title={healthz?.mode_note ?? "Backend health not loaded"}
+            title={
+              healthz?.live_capable
+                ? "NEBIUS_API_KEY is configured. Audits may call the provider; this badge reports configuration, not a completed model call."
+                : "No NEBIUS_API_KEY configured. Audits run deterministic replay/seed paths with no provider call."
+            }
           >
             <span
               className={`h-1.5 w-1.5 rounded-full ${
-                healthz?.live_capable ? "bg-safe" : "bg-warn"
+                healthz?.live_capable ? "bg-safe" : "bg-edge-2"
               }`}
             />
-            <span className="font-medium text-ink-2">
-              {healthz?.live_capable ? "Live capable" : "Replay"}
+            <span
+              className={`font-medium ${
+                healthz?.live_capable ? "text-safe" : "text-muted"
+              }`}
+            >
+              {healthz?.live_capable
+                ? "[LIVE — Nebius Token Factory]"
+                : "[REPLAY MODE — No API Keys]"}
             </span>
             <span className="text-faint">
               tavily {healthz?.tavily_configured ? "live" : "snapshot"}

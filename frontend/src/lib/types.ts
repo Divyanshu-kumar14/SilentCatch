@@ -223,6 +223,7 @@ export interface BenchmarkCase {
   flagged: boolean | null;
   evaluable: boolean;
   scored: boolean;
+  score_source?: "live_inference" | "fixture_deterministic" | "fixture_seeded" | null;
   status: string;
   prediction_source: string;
   case_mode: BenchmarkMode | string;
@@ -250,6 +251,7 @@ export interface BenchmarkSummary {
   total_cases: number;
   evaluable_cases: number;
   scored_cases: number;
+  score_source: "live_inference" | "fixture_deterministic" | "fixture_seeded" | null;
   incomplete_cases: number;
   failed_cases: number;
   fallback_affected_cases: number;
@@ -272,6 +274,7 @@ export interface BenchmarkSummary {
   p95_latency_ms: number | null;
   latency_n: number;
   latency_scope: string;
+  estimated_latency_ms: Record<string, number> | null;
   cost_per_1k_discharges_usd: number | null;
   cost_per_discharge_avg_usd: number | null;
   cost_type: string;
@@ -286,6 +289,7 @@ export interface BenchmarkMeta {
   mode: string;
   environment: string;
   requested_mode: string;
+  scoring_basis?: string;
   git_commit: string | null;
   total_encounters: number;
   positive_cases: number;

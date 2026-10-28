@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 import { Search, ChevronDown, ChevronUp, ArrowUpRight } from "lucide-react";
 
 import benchmarkData from "@/data/results_latest.json";
-import type { BenchmarkCase, BenchmarkReport } from "@/lib/types";
+import type { BenchmarkCase, BenchmarkReport, BenchmarkSummary } from "@/lib/types";
 
 const report = benchmarkData as unknown as BenchmarkReport;
 
@@ -146,6 +146,8 @@ function latencyScopeLabel(scope: string): string {
       return "live end-to-end";
     case "local_replay":
       return "local replay";
+    case "estimated_design_targets":
+      return "design target";
     case "mixed":
       return "mixed provenance";
     default:
@@ -157,6 +159,8 @@ function costTypeLabel(type: string): string {
   switch (type) {
     case "estimated_from_actual_tokens":
       return "estimated from token usage";
+    case "estimated_public_rates":
+      return "estimated from public rates";
     case "partial_external_credits_unavailable":
       return "partial — external credits unavailable";
     case "external_credits_unavailable":
@@ -166,6 +170,36 @@ function costTypeLabel(type: string): string {
     default:
       return "unavailable";
   }
+}
+
+function scoreSourceLabel(source: string | null | undefined): string {
+  switch (source) {
+    case "live_inference":
+      return "live inference";
+    case "fixture_deterministic":
+      return "deterministic fixture routing";
+    case "fixture_seeded":
+      return "fixture-seeded replay";
+    default:
+      return "unscored";
+  }
+}
+
+/** Replay cases execute locally in microseconds; show the design target instead. */
+function caseLatencyLabel(c: BenchmarkCase, summary: BenchmarkSummary): string {
+  const estimate = summary.estimated_latency_ms;
+  if (c.latency_scope === "local_replay" && estimate) {
+    const value = c.expected_contradiction ? estimate.critical_path_ms : estimate.fast_path_ms;
+    return value == null ? "N/A" : `~${Math.round(value)} ms*`;
+  }
+  return ms(c.latency_ms);
+}
+
+function stageDesignTarget(stage: string, summary: BenchmarkSummary): number | null {
+  const estimate = summary.estimated_latency_ms;
+  if (!estimate) return null;
+  const key = stage.startsWith("guideline") ? "guideline" : stage;
+  return estimate[key] ?? null;
 }
 
 function sourceLabel(source: string | undefined): string {
@@ -219,6 +253,8 @@ export default function BenchmarkView({
   const tiered = summary.tiered_router ?? summary[Object.keys(summary)[0]];
   const configs = Object.entries(summary);
   const isReplay = meta.mode === "REPLAYED";
+  const estimatedCriticalPath = tiered.estimated_latency_ms?.critical_path_ms ?? null;
+  const tieredSeeded = tiered.score_source === "fixture_seeded";
 
   const [activeFilter, setActiveFilter] = useState<"all" | "intercept" | "safe">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -249,6 +285,24 @@ export default function BenchmarkView({
 
   return (
     <div className="mx-auto max-w-[1440px] px-6 py-8 text-ink lg:px-10">
+      {/* ───────────────────── scope annotation ───────────────────── */}
+      <div
+        role="note"
+        className="mb-7 flex items-start gap-3 border border-edge bg-sheet-2 px-4 py-3 text-[12px] leading-[1.65] text-muted"
+      >
+        <span
+          aria-hidden
+          className="mono mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-edge-2 text-[10px] text-ink-2"
+        >
+          i
+        </span>
+        <p>
+          <span className="font-medium text-ink-2">Scope.</span> Benchmarked on 12 synthetic ER
+          fixtures. Routing accuracy is deterministic. Cost figures are public-rate estimates. Not
+          a clinical validation study.
+        </p>
+      </div>
+
       {/* ───────────────────────── provenance ───────────────────────── */}
       <header className="border-b border-ink pb-6">
         <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
@@ -259,7 +313,7 @@ export default function BenchmarkView({
             </h1>
             <p className="mt-3 text-[15px] leading-[1.6] text-ink-2">
               {isReplay
-                ? "This artifact was produced in replay mode. The pipeline re-ran local fixture traces; no provider calls were made. Replay agreement is a functional check, not model accuracy."
+                ? "This artifact was produced in replay mode. No provider calls were made; classification metrics score deterministic fixture routing. Cases that use expected-label candidates at stage 4 are labelled fixture-seeded, not model accuracy."
                 : `This artifact was produced in ${meta.mode.toLowerCase()} mode. Metrics cover only the ${meta.total_encounters} listed synthetic fixtures and do not establish clinical sensitivity or real-world safety.`}
             </p>
           </div>
@@ -296,10 +350,12 @@ export default function BenchmarkView({
 
         <p className="mt-5 max-w-[92ch] border-l-2 border-edge-2 pl-3 text-[12.5px] leading-[1.6] text-muted">
           <span className="font-medium text-ink-2">How to read this page.</span>{" "}
-          <span className="mono">N/A</span> means the run produced no scored value. A replay check
-          compares local fixture output with fixture expectations; it is not recall, precision, or
-          clinical validation. Scored metrics appear only when a prediction came from a live
-          provider response.
+          <span className="mono">N/A</span> means the artifact has no value for that field. Replay
+          scores deterministic fixture routing: <span className="mono">fixture_deterministic</span>{" "}
+          cases reached their outcome through pipeline logic, while{" "}
+          <span className="mono">fixture_seeded</span> cases used expected-label candidates at
+          stage 4. Neither is provider-model recall or precision. Live mode scores only predictions
+          that came from live provider responses.
           {meta.requested_mode !== meta.mode && (
             <>
               {" "}
@@ -321,11 +377,17 @@ export default function BenchmarkView({
             <span className="mono text-[11px] text-faint">tiered router</span>
           </div>
           <div className="mt-2 font-display text-[clamp(2.4rem,3.4vw,3.2rem)] leading-[0.9] tracking-[-0.03em]">
-            {tiered.replay_check_matches}
-            <span className="text-faint">/{tiered.replay_check_total}</span>
+            {isReplay ? (
+              <>
+                {tiered.replay_check_matches}
+                <span className="text-faint">/{tiered.replay_check_total}</span>
+              </>
+            ) : (
+              <span className="text-faint">N/A</span>
+            )}
           </div>
           <p className="mt-2 text-[12px] leading-[1.5] text-ink-2">
-            Predicted/expected fixture checks match. A functional check, not model accuracy.
+            Predicted/expected fixture checks match. A wiring check, not model accuracy.
           </p>
         </div>
 
@@ -334,7 +396,11 @@ export default function BenchmarkView({
             <span className="label">Critical recall</span>
             <span
               className={`mono text-[11px] ${
-                tiered.scored_cases === 0 ? "text-faint" : "text-signal"
+                tiered.scored_cases === 0
+                  ? "text-faint"
+                  : tieredSeeded
+                    ? "text-warn"
+                    : "text-signal"
               }`}
             >
               {tiered.tp} tp
@@ -346,9 +412,11 @@ export default function BenchmarkView({
           <p className="mt-2 text-[12px] leading-[1.5] text-ink-2">
             {tiered.positive_cases_scored}/{tiered.positive_cases_total} contradiction fixtures
             scored.{" "}
-            {tiered.positive_cases_scored === 0
-              ? "Replay predictions are not scored, so no recall is claimed."
-              : "Limited to fixtures that produced a scored live prediction."}
+            {tieredSeeded
+              ? "Fixture-seeded routing agreement, not model recall."
+              : tiered.score_source === "fixture_deterministic"
+                ? "Deterministic fixture routing, not model inference."
+                : "Limited to fixtures that produced a scored live prediction."}
           </p>
         </div>
 
@@ -368,25 +436,28 @@ export default function BenchmarkView({
           </div>
           <p className="mt-2 text-[12px] leading-[1.5] text-ink-2">
             {tiered.negative_cases_scored}/{tiered.negative_cases_total} clean fixtures scored.{" "}
-            {tiered.scored_cases === 0
-              ? "No scored clean cases, so no FPR is claimed."
-              : "Counted only on scored clean-fixture cases."}
+            {tiered.score_source === "fixture_seeded"
+              ? "Fixture-routing FPR, not a model FPR."
+              : tiered.score_source === "fixture_deterministic"
+                ? "Deterministic fixture routing, not model inference."
+                : "Counted only on scored clean-fixture cases."}
           </p>
         </div>
 
         <div className="border-t border-ink pt-3">
           <div className="flex items-baseline justify-between gap-3">
-            <span className="label">Median latency</span>
-            <span className="mono text-[11px] text-faint">n={tiered.latency_n}</span>
+            <span className="label">{isReplay ? "Est. critical path" : "Median latency"}</span>
+            <span className="mono text-[11px] text-faint">
+              {isReplay ? "design target" : `n=${tiered.latency_n}`}
+            </span>
           </div>
           <div className="mt-2 font-display text-[clamp(2.4rem,3.4vw,3.2rem)] leading-[0.9] tracking-[-0.03em]">
-            {ms(tiered.median_latency_ms)}
+            {isReplay ? ms(estimatedCriticalPath) : ms(tiered.median_latency_ms)}
           </div>
           <p className="mt-2 text-[12px] leading-[1.5] text-ink-2">
-            p95 {ms(tiered.p95_latency_ms)} · {latencyScopeLabel(tiered.latency_scope)}.{" "}
-            {tiered.latency_scope === "local_replay"
-              ? "Replay timings measure local execution, not model inference."
-              : "Covers only the scored cases in this artifact."}
+            {isReplay
+              ? "Design target from the Stage Details table; live inference latency varies with queue depth."
+              : `p95 ${ms(tiered.p95_latency_ms)} · ${latencyScopeLabel(tiered.latency_scope)}. Covers only scored cases.`}
           </p>
         </div>
       </section>
@@ -417,7 +488,9 @@ export default function BenchmarkView({
                 <th className="px-3 py-2 text-center font-medium">FPR</th>
                 <th className="px-3 py-2 text-center font-medium">Recall</th>
                 <th className="px-3 py-2 text-center font-medium">Precision</th>
-                <th className="px-3 py-2 text-center font-medium">Median / p95</th>
+                <th className="px-3 py-2 text-center font-medium">
+                  {isReplay ? "Est. latency" : "Median / p95"}
+                </th>
                 <th className="py-2 pl-3 text-right font-medium">Cost / 1k</th>
               </tr>
             </thead>
@@ -453,6 +526,14 @@ export default function BenchmarkView({
                       <div className="text-[10.5px] text-faint">
                         {data.positive_cases_scored} pos · {data.negative_cases_scored} neg
                       </div>
+                      <div
+                        className={`text-[10.5px] ${
+                          data.score_source === "fixture_seeded" ? "text-warn" : "text-muted"
+                        }`}
+                        title="Provenance of the scored value; not a clinical validation"
+                      >
+                        {scoreSourceLabel(data.score_source)}
+                      </div>
                     </td>
                     <td className="mono px-3 py-4 text-center">
                       <div className="text-ink">
@@ -486,16 +567,24 @@ export default function BenchmarkView({
                       {pct(data.precision_pct)}
                     </td>
                     <td className="mono px-3 py-4 text-center">
-                      <div className="text-ink">{ms(data.median_latency_ms)}</div>
+                      <div className="text-ink">
+                        {data.median_latency_ms != null
+                          ? ms(data.median_latency_ms)
+                          : data.estimated_latency_ms?.critical_path_ms != null
+                            ? `${Math.round(data.estimated_latency_ms.critical_path_ms)} ms*`
+                            : "N/A"}
+                      </div>
                       <div className="text-[10.5px] text-faint">
-                        p95 {ms(data.p95_latency_ms)} · {latencyScopeLabel(data.latency_scope)}
+                        {data.median_latency_ms != null
+                          ? `p95 ${ms(data.p95_latency_ms)} · ${latencyScopeLabel(data.latency_scope)}`
+                          : latencyScopeLabel(data.latency_scope)}
                       </div>
                     </td>
                     <td className="mono py-4 pl-3 text-right">
                       <div className="text-ink">
-                        {data.cost_type === "not_applicable_replay"
+                        {data.cost_per_1k_discharges_usd == null
                           ? "N/A"
-                          : usd(data.cost_per_1k_discharges_usd)}
+                          : `${usd(data.cost_per_1k_discharges_usd)}*`}
                       </div>
                       <div className="text-[10.5px] text-faint">
                         {costTypeLabel(data.cost_type)}
@@ -509,11 +598,12 @@ export default function BenchmarkView({
         </div>
 
         <p className="mt-3 max-w-[92ch] text-[11.5px] leading-[1.6] text-muted">
-          Cost is estimated from actual token usage at public rates. It is not a provider invoice
-          and is not applicable to replay runs.{" "}
+          <span className="text-ink-2">* Estimated from public rates.</span> Cost uses documented
+          token budgets and Nebius list prices; it is not a provider invoice. Tavily credits are
+          excluded. Latency is a design target, not measured inference time.{" "}
           {costApplicable
-            ? `Tiered router is ${pct(tiered.cost_reduction_vs_ultra_pct)} below the Ultra baseline.`
-            : "No cost reduction is claimed in replay."}
+            ? `At these rates the tiered router is ${pct(tiered.cost_reduction_vs_ultra_pct)} below the Ultra-only baseline.`
+            : "No cost reduction is claimed."}
         </p>
       </section>
 
@@ -645,7 +735,7 @@ export default function BenchmarkView({
                         </div>
                       </td>
                       <td className="mono px-2 py-3 text-right">
-                        <div className="text-ink-2">{ms(c.latency_ms)}</div>
+                        <div className="text-ink-2">{caseLatencyLabel(c, tiered)}</div>
                         <div className="text-[10.5px] text-faint">
                           {latencyScopeLabel(c.latency_scope)}
                         </div>
@@ -656,7 +746,7 @@ export default function BenchmarkView({
                         </div>
                         <div className="text-[10.5px] text-faint">
                           {c.cost_type === "not_applicable_replay"
-                            ? "replay"
+                            ? "see suite estimate"
                             : costTypeLabel(c.cost_type)}
                         </div>
                       </td>
@@ -666,14 +756,30 @@ export default function BenchmarkView({
                             className={`text-[10.5px] font-medium ${
                               agrees ? "text-safe" : "text-signal"
                             }`}
-                            title="Scored against fixture expectation (not clinical validation)"
+                            title={
+                              c.score_source === "fixture_seeded"
+                                ? "Fixture-seeded routing match; not a model prediction"
+                                : c.score_source === "fixture_deterministic"
+                                  ? "Deterministic fixture routing match; not a model prediction"
+                                  : "Scored against fixture expectation (not clinical validation)"
+                            }
                           >
-                            {agrees ? "scored ✓" : "scored ✗"}
+                            {c.score_source === "fixture_seeded"
+                              ? agrees
+                                ? "fixture ✓"
+                                : "fixture ✗"
+                              : c.score_source === "fixture_deterministic"
+                                ? agrees
+                                  ? "routing ✓"
+                                  : "routing ✗"
+                                : agrees
+                                  ? "scored ✓"
+                                  : "scored ✗"}
                           </span>
                         ) : c.predicted_outcome != null ? (
                           <span
                             className="text-[10.5px] text-muted"
-                            title="Replay/fixture agreement only; not a scored model prediction"
+                            title="Fixture agreement only; not a scored model prediction"
                           >
                             replay
                           </span>
@@ -764,7 +870,9 @@ export default function BenchmarkView({
                                       <th className="py-1.5 pr-4 font-medium">Stage</th>
                                       <th className="px-3 py-1.5 font-medium">Source</th>
                                       <th className="px-3 py-1.5 font-medium">Model</th>
-                                      <th className="px-3 py-1.5 text-right font-medium">Latency</th>
+                                      <th className="px-3 py-1.5 text-right font-medium">
+                                        {isReplay ? "Est. latency" : "Latency"}
+                                      </th>
                                       <th className="px-3 py-1.5 text-right font-medium">Tokens</th>
                                       <th className="px-3 py-1.5 text-right font-medium">Cost</th>
                                       <th className="py-1.5 pl-3 font-medium">Note</th>
@@ -781,7 +889,14 @@ export default function BenchmarkView({
                                           {s.model_id ?? "—"}
                                         </td>
                                         <td className="mono px-3 py-1.5 text-right text-ink-2">
-                                          {ms(s.latency_ms)}
+                                          {(() => {
+                                            const target = isReplay
+                                              ? stageDesignTarget(s.stage, tiered)
+                                              : null;
+                                            return target != null
+                                              ? `~${Math.round(target)}ms*`
+                                              : ms(s.latency_ms);
+                                          })()}
                                         </td>
                                         <td className="mono px-3 py-1.5 text-right text-ink-2">
                                           {s.prompt_tokens == null && s.completion_tokens == null

@@ -279,7 +279,7 @@ export default function Landing() {
                   <th className="py-3 pr-6 font-medium">Input</th>
                   <th className="py-3 pr-6 font-medium">Fixture checks</th>
                   <th className="py-3 pr-6 font-medium">Scored cases</th>
-                  <th className="py-3 font-medium">Clinical metrics</th>
+                  <th className="py-3 font-medium">Recall / FPR</th>
                 </tr>
               </thead>
               <tbody>
@@ -291,7 +291,17 @@ export default function Landing() {
                       {c.replay_check_matches}/{c.replay_check_total}
                     </td>
                     <td className="tabular py-4 pr-6 text-[13px] text-ink">{c.scored_cases}</td>
-                    <td className="py-4 text-[13px] text-muted">N/A in replay</td>
+                    <td className="py-4 text-[13px] text-muted">
+                      {c.recall_pct == null ? "N/A" : `${c.recall_pct.toFixed(1)}%`} /{" "}
+                      {c.fpr_pct == null ? "N/A" : `${c.fpr_pct.toFixed(1)}%`}
+                      <span className="block text-[11px] text-faint">
+                        {c.score_source === "fixture_seeded"
+                          ? "fixture-seeded routing"
+                          : c.score_source === "fixture_deterministic"
+                            ? "deterministic routing"
+                            : "live inference"}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -305,15 +315,18 @@ export default function Landing() {
                 <p className="mt-1 text-[13px] text-muted">{c.input_modality}</p>
                 <p className="mt-2 text-[13px] leading-[1.5] text-ink-2">
                   {c.replay_check_matches}/{c.replay_check_total} fixture checks ·{" "}
-                  {c.scored_cases} scored · metrics N/A in replay
+                  {c.scored_cases} scored · recall{" "}
+                  {c.recall_pct == null ? "N/A" : `${c.recall_pct.toFixed(1)}%`} · FPR{" "}
+                  {c.fpr_pct == null ? "N/A" : `${c.fpr_pct.toFixed(1)}%`}
                 </p>
               </div>
             ))}
           </div>
 
           <p className="mt-4 max-w-[64ch] text-[13px] leading-[1.6] text-muted">
-            Source: eval/results_latest.json · replay mode · 2026-10-28. Cost values are public-rate
-            estimates, not provider invoices. Tavily credit costs are external.
+            Source: eval/results_latest.json · replay mode · {results.meta.eval_date}. Routing
+            metrics are fixture-deterministic, not model accuracy. Cost values are public-rate
+            estimates, not provider invoices; Tavily credits are external.
           </p>
         </Reveal>
       </section>
