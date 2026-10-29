@@ -21,6 +21,7 @@ import type {
   Phase,
   Prescription,
 } from "@/lib/types";
+import SignReceiptDialog from "./SignReceiptDialog";
 
 function DischargeEditor({
   encounter,
@@ -44,6 +45,7 @@ function DischargeEditor({
   onEditInstructions: (text: string) => void;
 }) {
   const [editingInstructions, setEditingInstructions] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
   const packet: DischargePacket = encounter.draft_discharge_packet;
   const isRunning = phase === "running";
   const isIntercept = phase === "intercept" && verdicts.length > 0;
@@ -154,13 +156,12 @@ function DischargeEditor({
 
           <div className="relative shrink-0">
             <button
+              id="sign-discharge-btn"
               data-testid="sign-discharge-btn"
               disabled={isBlocked || isRunning}
               onClick={() => {
                 if (!isBlocked && !isRunning) {
-                  alert(
-                    "Discharge authorized: patient packet signed and transmitted to the EHR."
-                  );
+                  setReceiptOpen(true);
                 }
               }}
               title={
@@ -408,6 +409,21 @@ function DischargeEditor({
           )}
         </div>
       </div>
+
+      <SignReceiptDialog
+        open={receiptOpen}
+        onClose={() => setReceiptOpen(false)}
+        encounterId={encounter.encounter_id}
+        diagnosis={diagnosis}
+        elapsedMs={lastResult?.elapsed ?? null}
+        costLabel={
+          lastResult
+            ? lastResult.mode === "REPLAYED"
+              ? "replay"
+              : costLabel(lastResult.cost)
+            : "—"
+        }
+      />
     </section>
   );
 }
