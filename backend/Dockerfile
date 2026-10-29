@@ -12,9 +12,11 @@ COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
 COPY backend/ /app/backend/
+COPY eval/ /app/eval/
 
 # Never run as root (docker-expert security floor)
-RUN useradd --create-home appuser
+RUN useradd --create-home appuser \
+    && chmod -R a+rX /app/backend /app/eval
 USER appuser
 
 EXPOSE 8000
