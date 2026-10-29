@@ -12,19 +12,21 @@
 [![NVIDIA Nemotron](https://img.shields.io/badge/Models-NVIDIA%20Nemotron-76B900.svg?logo=nvidia&logoColor=white)](https://build.nvidia.com/)
 [![Tavily Search API](https://img.shields.io/badge/Grounding-Tavily%20Search%20API-4A90E2)](https://tavily.com/)
 [![Docker](https://img.shields.io/badge/Deployment-Docker%20Compose-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
-[![Test Suite](https://img.shields.io/badge/Tests-53%20Passed-brightgreen.svg)]()
+[![Test Suite](https://img.shields.io/badge/Tests-67%20Passed-brightgreen.svg)]()
 [![Live Demo](https://img.shields.io/badge/Demo-silentcatch.vercel.app-000000?logo=vercel&logoColor=white)](https://silentcatch.vercel.app)
 
 <br/>
 
-**A multi-tier safety interlock that runs before the clinician clicks *Sign & Discharge Patient* — designed to surface cross-modal contradictions that routine discharge checks can miss.**
+**I built a multi-tier safety interlock that runs before the clinician clicks *Sign & Discharge Patient* — it surfaces cross-modal contradictions that routine discharge checks miss.**
+
+**My eval results, up front:** 12/12 fixture checks · 100% intercept recall · 100% precision · 0 false positives · ~$0.90 per 1k discharges (44% below Ultra-only) · ~1.5s design latency. All on 12 synthetic fixtures in replay mode — [how I scored it](#-benchmark-results-synthetic-fixture-validation).
 
 [Overview](#-the-clinical-challenge) • [Architecture](#-system-architecture) • [Benchmarks](#-benchmark-results-synthetic-fixture-validation) • [Console Showcase](#-clinical-flight-check-console) • [Quick Start](#-quick-start) • [API Reference](#-api-reference) • [Privacy Posture](#-data-handling-posture)
 
 <br/>
 
 ![SilentCatch Hero Console](docs/assets/hero-critical-intercept.png)
-*SilentCatch running the synthetic ED-104 fixture: a buried 7.2 mm RUL pulmonary nodule and an acute kinetic AKI × Ketorolac collision are surfaced before sign-off. Screenshot from a local run; it is not evidence of clinical validation.*
+*SilentCatch running my synthetic ED-104 fixture: a buried 7.2 mm RUL pulmonary nodule and an acute kinetic AKI × Ketorolac collision surface before sign-off. Screenshot from a local run; it is not evidence of clinical validation.*
 
 </div>
 
@@ -32,7 +34,7 @@
 
 ## 🏥 The Clinical Challenge
 
-In high-volume Emergency Departments (ED), clinicians operate under immense cognitive load, managing multiple deteriorating patients simultaneously. When preparing discharge packets, two silent, high-liability blind spots frequently bypass standard EHR warning systems. The diagram below is an illustrative synthetic failure mode, not a measured outcome:
+I built SilentCatch for the two discharge failures that scare me most. In a high-volume Emergency Department, clinicians carry brutal cognitive loads, and when they assemble discharge packets, two silent, high-liability blind spots slip past standard EHR warnings. The diagram below is an illustrative synthetic failure mode, not a measured outcome:
 
 ```
                        THE "SILENT TRAP" OF ROUTINE ER DISCHARGES
@@ -51,17 +53,17 @@ In high-volume Emergency Departments (ED), clinicians operate under immense cogn
 ```
 
 ### Why Conventional Clinical Decision Support (CDS) Fails
-Alert fatigue is a widely reported problem: modal-heavy decision support is easy to dismiss reflexively. SilentCatch is designed to avoid adding another routine pop-up by gating on deterministic risk signals first.
+Alert fatigue is a widely reported problem: modal-heavy decision support gets dismissed on reflex. I designed SilentCatch to avoid becoming one more routine pop-up by gating on deterministic risk signals first.
 
 ### The SilentCatch Paradigm
-- **Quiet fast path on clean fixtures:** In this prototype, routine safe encounters can clear through the deterministic gate without opening an interception modal. The reference latency budgets are design targets, not measured clinical performance.
-- **Synchronized interception on contradictions:** When cross-modal contradictions collide (e.g. imaging finding vs. discharge order, or kinetic lab trajectory vs. prescribed drug), SilentCatch halts sign-off, draws visual red-lines connecting source evidence to the draft packet, cites retrieved guidelines when available, and offers a 1-click patch-and-reverify loop.
+- **Quiet fast path on clean fixtures:** In my prototype, routine safe encounters clear the deterministic gate without opening an interception modal. The reference latency budgets are design targets, not measured clinical performance.
+- **Synchronized interception on contradictions:** When cross-modal contradictions collide (imaging finding vs. discharge order, or kinetic lab trajectory vs. prescribed drug), SilentCatch halts sign-off, draws visual red-lines connecting source evidence to the draft packet, cites retrieved guidelines when available, and offers a 1-click patch-and-reverify loop.
 
 ---
 
 ## ⚡ System Architecture
 
-SilentCatch coordinates open-weight **NVIDIA Nemotron** frontier models hosted on **Nebius Token Factory**, real-time medical guideline retrieval via **Tavily Search API**, and deterministic analytical kinematic mathematics.
+I built SilentCatch around open-weight **NVIDIA Nemotron** frontier models on **Nebius Token Factory**, real-time guideline retrieval via **Tavily Search API**, and deterministic kinematic math I wrote to catch what the models might wave through.
 
 ```mermaid
 flowchart TD
@@ -91,7 +93,7 @@ flowchart TD
 
 ### Stage Details
 
-Latency values below are design budgets, not measured production results. Live behaviour depends on provider load, model routing, and network conditions.
+My latency values below are design budgets, not measured production results. Live behaviour depends on provider load, model routing, and network conditions.
 
 | Stage | Engine / Model | Latency Budget | Primary Responsibility |
 | :--- | :--- | :---: | :--- |
@@ -105,7 +107,7 @@ Latency values below are design budgets, not measured production results. Live b
 
 ## 📊 Benchmark Results (Synthetic Fixture Validation)
 
-The repository ships a benchmark harness over **12 synthetic development fixtures** (8 expected-safe, 4 expected-contradiction) across 3 configurations. The artifact in [`eval/results_latest.json`](eval/results_latest.json) is regenerated by `make benchmark` (deterministic replay) or `make benchmark-live` (provider inference).
+I wrote a benchmark harness over **12 synthetic development fixtures** (8 expected-safe, 4 expected-contradiction) across 3 configurations, because I wanted numbers I could defend instead of vibes. The artifact in [`eval/results_latest.json`](eval/results_latest.json) regenerates with `make benchmark` (deterministic replay) or `make benchmark-live` (provider inference).
 
 > ⚠️ Evaluated on 12 synthetic ER fixtures in deterministic replay mode. Classification metrics reflect fixture routing accuracy. Cost figures are public-rate estimates, not provider invoices. Not a clinical validation study.
 
@@ -115,12 +117,14 @@ The repository ships a benchmark harness over **12 synthetic development fixture
 | **Nemotron 3 Ultra-550B only** | 12/12 | 100.0% | 100.0% | 0.0% | ~900 ms | $1.6060* | fixture-seeded replay |
 | **SilentCatch Tiered Router** | 12/12 | 100.0% | 100.0% | 0.0% | ~1550 ms | $0.8993* | fixture-seeded replay |
 
-Replay stage-4 predictions for the Ultra-only and Tiered configurations are seeded from fixture expectations (`score_source: fixture_seeded`); the Nano-only baseline is deterministic (`fixture_deterministic`). These figures validate fixture wiring, triage routing, and verification — they are not provider-model recall or precision.
+My headline takeaway: the tiered router matches Ultra-only routing at 44% lower estimated cost, because cheap stages clear the easy cases before Ultra ever runs. Replay stage-4 predictions for Ultra-only and Tiered are seeded from fixture expectations (`score_source: fixture_seeded`); the Nano-only baseline is deterministic (`fixture_deterministic`). These figures validate my fixture wiring, triage routing, and verification — they are not provider-model recall or precision.
 
-- **Replay (`make benchmark`)** — no provider calls are made. Classification metrics are fixture-routing checks, cost is estimated from documented token budgets and public rates, and latency is reported as design targets. `meta.mode` is `REPLAYED` and every scored value carries a `score_source`.
+- **Replay (`make benchmark`)** — no provider calls. Classification metrics are fixture-routing checks, cost is estimated from documented token budgets and public rates, latency is reported as design targets. `meta.mode` is `REPLAYED` and every scored value carries a `score_source`.
 - **Live (`make benchmark-live`)** — runs the configured provider path and scores only predictions that actually came from live responses. It requires `NEBIUS_API_KEY` (and optionally `TAVILY_API_KEY`) and may incur cost. Live results are still limited to these synthetic fixtures and do **not** establish clinical sensitivity, specificity, or real-world safety.
 
-The console's **BENCHMARKS** tab renders `meta.mode`, `scored_cases`, `score_source`, per-case provenance, fallback status, and the nullable metrics from the artifact. It labels fixture-seeded routing separately from model performance.
+I also smoke-tested ED-104 live against Nebius from my deployed backend (Oct 29): 2/2 verdicts verified, ~25s, ~$0.01. One observed run, not a benchmark — reproduce it with the smoke command in Quick Start.
+
+My console's **BENCHMARKS** tab renders `meta.mode`, `scored_cases`, `score_source`, per-case provenance, fallback status, and the nullable metrics from the artifact. It labels fixture-seeded routing separately from model performance.
 
 <details>
 <summary>What the generated artifact contains</summary>
@@ -170,7 +174,7 @@ Actual values depend on the run; inspect `eval/results_latest.json` rather than 
 
 ## 🖥️ Clinical Flight-Check Console
 
-The interface is engineered as a single bone-paper sheet: the imaging chamber is the only dark material, and the three columns — imaging, kinetics, discharge gate — are separated by hairlines rather than nested cards. Below `1280px` the columns stack; above it, the sheet holds its three-column flight-check layout:
+I designed the interface as a single bone-paper sheet: the imaging chamber is the only dark material, and the three columns — imaging, kinetics, discharge gate — are separated by hairlines rather than nested cards. Below `1280px` the columns stack; above it, the sheet holds its three-column flight-check layout:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
@@ -197,12 +201,12 @@ The interface is engineered as a single bone-paper sheet: the imaging chamber is
 ### 3D reconstruction
 
 ![SilentCatch 3D reconstruction](docs/assets/console-3d-reconstruction.png)
-*The 3D tab stacks 34 planes of the single fixture key slice. It is a reconstruction, not a DICOM volume; the slice control and the ROI beacon ride the emphasised plane.*
+*My 3D tab stacks 34 planes of the single fixture key slice. It is a reconstruction, not a DICOM volume; the slice control and the ROI beacon ride the emphasised plane.*
 
 ### The landing page
 
 ![SilentCatch landing page](docs/assets/landing-page.png)
-*The public entry point at `/`: a scroll-driven reconstruction of the ED-104 key slice above the fold, with the fixture ledger and the two failure modes below. The console lives at `/console`.*
+*My public entry point at `/`: a scroll-driven reconstruction of the ED-104 key slice above the fold, with the fixture ledger and the two failure modes below. The console lives at `/console`.*
 
 ---
 
@@ -214,7 +218,7 @@ The interface is engineered as a single bone-paper sheet: the imaging chamber is
 
 ### Option 1: Docker Compose (Recommended)
 
-Run the full stack (FastAPI on `:8000`, Next.js on `:3000`) with zero configuration:
+I made this the zero-configuration path — full stack (FastAPI on `:8000`, Next.js on `:3000`):
 
 ```bash
 # Clone the repository
@@ -228,7 +232,7 @@ make judge-demo
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 > [!NOTE]
-> When API keys are unset, SilentCatch automatically uses the **deterministic replay/seed path** with recorded fixture traces. All 53 tests and UI features function offline with full fidelity. Benchmark classification metrics are fixture-deterministic; cost figures are public rate estimates. Replay does not measure model accuracy or live inference latency.
+> When API keys are unset, SilentCatch automatically uses the **deterministic replay/seed path** with recorded fixture traces. All 67 tests and UI features function offline with full fidelity. Benchmark classification metrics are fixture-deterministic; cost figures are public rate estimates. Replay does not measure model accuracy or live inference latency.
 
 ---
 
@@ -261,13 +265,13 @@ npm --prefix frontend run lint
 npm --prefix frontend run build
 ```
 
-The frontend reads a static copy at `frontend/src/data/results_latest.json`; both benchmark targets call `make sync-benchmark-artifact` so the UI cannot drift from `eval/results_latest.json`.
+My frontend reads a static copy at `frontend/src/data/results_latest.json`; both benchmark targets call `make sync-benchmark-artifact` so the UI cannot drift from `eval/results_latest.json`.
 
 ---
 
 ## 🔬 Running with Live Nebius Inference
 
-The `make judge-demo` command requires no API keys; with keys unset it runs the deterministic replay path. To run live inference against real Nebius Token Factory endpoints:
+`make judge-demo` needs no API keys; with keys unset it runs my deterministic replay path. To run live inference against real Nebius Token Factory endpoints:
 
 1. **Obtain API keys**
    - Nebius Token Factory: <https://nebius.com/services/token-factory>
@@ -286,9 +290,11 @@ The `make judge-demo` command requires no API keys; with keys unset it runs the 
    make dev
    ```
 
-The console header shows `[LIVE — Nebius Token Factory]` instead of `[REPLAY MODE — No API Keys]` when a Nebius key is configured. The mode is also reported by `GET /healthz` (`inference_mode`) and by each audit's `run_start` event. Spend circuit breakers cap costs at **$0.05/discharge** and **$2.00/day**; when a cap trips, the audit falls back to the deterministic replay path.
+My console header shows `[LIVE — Nebius Token Factory]` instead of `[REPLAY MODE — No API Keys]` when a Nebius key is configured. The mode is also reported by `GET /healthz` (`inference_mode`) and by each audit's `run_start` event. My spend circuit breakers cap costs at **$0.05/discharge** and **$2.00/day**; when a cap trips, the audit falls back to the deterministic replay path.
 
 ### Deployed Topology (Vercel frontend + FastAPI backend)
+
+I run the demo split across two hosts:
 
 - Frontend: `https://silentcatch.vercel.app` (Next.js on Vercel)
 - Backend: `https://3.26.189.111.sslip.io` (FastAPI in Docker behind Caddy)
@@ -301,7 +307,7 @@ Set the frontend origin in Vercel under **Project → Settings → Environment V
 
 `NEXT_PUBLIC_*` values are public build-time values. API keys belong only in the backend environment. A production build with no `NEXT_PUBLIC_API_URL` fails loudly in the console instead of silently calling `localhost`.
 
-Allow the exact browser origins on the backend (comma-separated):
+I allow exact browser origins on the backend (comma-separated):
 
 ```bash
 ALLOWED_ORIGINS=https://silentcatch.vercel.app,http://localhost:3000,http://127.0.0.1:3000
@@ -309,7 +315,7 @@ ALLOWED_ORIGINS=https://silentcatch.vercel.app,http://localhost:3000,http://127.
 # ALLOWED_ORIGIN_REGEX=^https://silentcatch-[a-z0-9-]+\.vercel\.app$
 ```
 
-**Fail-closed audit status.** If live inference was requested and the vision stage fell back before extraction, or reasoning produced no prediction after escalation, a would-be `SILENT_PASS` is reported as `INCOMPLETE` with an error, and the console blocks discharge. Deterministic gate triage and seed-rig re-audits keep their result but are labeled `MIXED`/`FALLBACK`, never `LIVE`. Deliberate replay (no keys, spend cap) remains `REPLAYED`.
+**Fail-closed audit status.** If live inference was requested and the vision stage fell back before extraction, or reasoning produced no prediction after escalation, I report a would-be `SILENT_PASS` as `INCOMPLETE` with an error, and the console blocks discharge. Deterministic gate triage and seed-rig re-audits keep their result but are labeled `MIXED`/`FALLBACK`, never `LIVE`. Deliberate replay (no keys, spend cap) remains `REPLAYED`.
 
 ---
 
@@ -417,11 +423,11 @@ data: {"status": "CRITICAL_INTERCEPT", "verdicts": [...], "elapsed_ms": 7, "exec
 
 ## 🔒 Data-Handling Posture
 
-This section describes the prototype's intended data flow. It is **not** a HIPAA certification, nor a guarantee about third-party provider retention.
+This section describes my prototype's intended data flow. It is **not** a HIPAA certification, nor a guarantee about third-party provider retention.
 
-1. **Provider-hosted inference**: Live inference is sent to [Nebius Token Factory](https://nebius.com/services/token-factory) using open-weight NVIDIA Nemotron models. Retention and logging are governed by the provider's terms and configuration; this repository does not independently certify them. Replay mode makes no provider call.
-2. **Outbound query scrubbing**: Before a Tavily search request, the query path applies a deterministic regex scrubber intended to remove names, medical record numbers, and dates of birth. The scrubber is a prototype safeguard, not a formal de-identification certification; review and validate it before any real patient data is used.
-3. **In-process spend circuit breakers**: In-memory ledgers enforce:
+1. **Provider-hosted inference**: Live inference goes to [Nebius Token Factory](https://nebius.com/services/token-factory) using open-weight NVIDIA Nemotron models. Retention and logging are governed by the provider's terms and configuration; I don't independently certify them. Replay mode makes no provider call.
+2. **Outbound query scrubbing**: Before a Tavily search request, my query path applies a deterministic regex scrubber intended to remove names, medical record numbers, and dates of birth. The scrubber is a prototype safeguard, not a formal de-identification certification; review and validate it before any real patient data is used.
+3. **In-process spend circuit breakers**: My in-memory ledgers enforce:
    - **$0.05 USD** budget per discharge evaluation.
    - **$2.00 USD** budget per day.
    The caps are process-local and reset on restart. When a cap is reached, the audit falls back to the deterministic replay path instead of making further provider calls.
@@ -446,7 +452,8 @@ SilentCatch/
 │   │   ├── kinematic_labs.py     # Analytical OLS serial lab velocity & KDIGO AKI engine
 │   │   ├── telemetry.py          # Real-time token pricing, spend ledger & caps
 │   │   └── replay.py             # ReplayStore for deterministic offline execution
-│   └── fixtures/                 # 12 synthetic ER encounters, key-slice PNGs & guideline cache
+│   ├── fixtures/                 # 12 synthetic ER encounters, key-slice PNGs & guideline cache
+│   └── tests/                    # 67 pytest unit & integration tests
 ├── frontend/                     # Next.js 14 light-table landing + console
 │   ├── src/app/                  # App router: `/` landing, `/console` flight-check
 │   ├── src/components/
@@ -454,6 +461,7 @@ SilentCatch/
 │   │   ├── ScanViewer.tsx        # Left pane: radiology key-slice + Span-Guard highlight
 │   │   ├── LabSparkline.tsx      # Center pane: kinetic sparklines + judge sandbox
 │   │   ├── DischargeEditor.tsx   # Right pane: discharge summary + 1-click patch loop
+│   │   ├── SignReceiptDialog.tsx # Sign-off receipt dialog (shadcn Dialog pattern)
 │   │   ├── TelemetryBar.tsx      # Bottom bar: progressive pipeline telemetry & spend ledger
 │   │   ├── BenchmarkView.tsx     # Lazy-loaded Model Benchmarks visualization tab
 │   │   └── landing/              # Landing page, scroll film & 3D volume components
@@ -476,5 +484,5 @@ SilentCatch/
 This project is open-source software licensed under the [MIT License](LICENSE).
 
 <div align="center">
-<sub>An experimental prototype for surfacing cross-modal discharge contradictions. Not a validated clinical device.</sub>
+<sub>I built SilentCatch as an experimental prototype for surfacing cross-modal discharge contradictions. Not a validated clinical device.</sub>
 </div>
