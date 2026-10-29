@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import time
 
+from backend.config import GATE_TIMEOUT_S
 from backend.engine.llm_client import LlmUnverifiableError, parse_llm_json
 from backend.engine.span_guard import assert_absent
 from backend.engine.vision_extractor import LlmTransport
@@ -84,7 +85,7 @@ def decide(
     *,
     transport: LlmTransport | None = None,
     model_id: str = "",
-    timeout_s: float = 2.0,
+    timeout_s: float = GATE_TIMEOUT_S,
 ) -> tuple[GateDecision, StageTrace]:
     """Run the gate. `transport=None` -> pure deterministic triage (replay)."""
     started = time.perf_counter()

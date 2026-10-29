@@ -4,7 +4,7 @@ Contract:
 - Outbound queries are PHI-scrubbed (names/MRN/DOB regex — NFR §7).
 - Params per verified API contract: search_depth="advanced", max_results=3,
   include_domains restricted to medical authorities, include_raw_content=false.
-- Hard timeout (config.TAVILY_TIMEOUT_S = 3.5s): timeout/API error degrades to
+- Hard timeout (config.TAVILY_TIMEOUT_S = 10.0s): timeout/API error degrades to
   the local verified snapshot `fixtures/guideline_cache.json` — demo never
   hangs; badge records `tavily_live` vs `cache_snapshot`.
 - Queries: Nano live (FR-3.1) with a transport; deterministic precision
@@ -24,7 +24,7 @@ from typing import Callable
 import httpx
 from pydantic import BaseModel
 
-from backend.config import TAVILY_API_KEY, TAVILY_TIMEOUT_S
+from backend.config import GUIDELINE_QUERY_TIMEOUT_S, TAVILY_API_KEY, TAVILY_TIMEOUT_S
 from backend.engine.llm_client import LlmUnverifiableError, parse_llm_json
 from backend.engine.vision_extractor import LlmTransport
 from backend.schemas import FindingKind, StageTrace
@@ -102,7 +102,7 @@ def generate_queries(
     *,
     transport: LlmTransport | None = None,
     model_id: str = "",
-    timeout_s: float = 2.0,
+    timeout_s: float = GUIDELINE_QUERY_TIMEOUT_S,
 ) -> tuple[list[str], StageTrace]:
     """Stage-3a: Nano query generation (FR-3.1), template fallback."""
     started = time.perf_counter()

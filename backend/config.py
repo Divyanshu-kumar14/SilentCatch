@@ -33,10 +33,16 @@ TAVILY_API_KEY: Final[str | None] = os.getenv("TAVILY_API_KEY") or None
 MAX_COST_PER_DISCHARGE_USD: Final[float] = 0.05
 MAX_DAILY_SPEND_USD: Final[float] = 2.00
 
-# PRD §6 FR-2.2: live Tier-4 calls capped at 6s before failover (Fallback B).
-REASONING_TIMEOUT_S: Final[float] = 6.0
+# PRD §6 FR-2.2: live Tier-4 calls capped at 20s before failover (Fallback B).
+REASONING_TIMEOUT_S: Final[float] = float(os.getenv("REASONING_TIMEOUT_S", "20.0"))
 # PRD §6 FR-3.1: Tavily soft timeout before guideline-cache fallback.
-TAVILY_TIMEOUT_S: Final[float] = 3.5
+TAVILY_TIMEOUT_S: Final[float] = float(os.getenv("TAVILY_TIMEOUT_S", "10.0"))
+# Stage 2 gate (Nano): wait-for-live ceiling — measured fallback at 2.0s.
+GATE_TIMEOUT_S: Final[float] = float(os.getenv("GATE_TIMEOUT_S", "8.0"))
+# Stage 3a query-gen (Nano): wait-for-live ceiling — measured fallback at 2.0s.
+GUIDELINE_QUERY_TIMEOUT_S: Final[float] = float(
+    os.getenv("GUIDELINE_QUERY_TIMEOUT_S", "8.0")
+)
 
 # PRD §10 Fallback A: vision payload budget.
 VISION_IMAGE_MAX_EDGE_PX: Final[int] = 768
