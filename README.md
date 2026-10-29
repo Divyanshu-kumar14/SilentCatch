@@ -113,6 +113,28 @@ The returned paragraphs are embedded verbatim into Ultra's reasoning context as 
 
 One caveat: my scrubber is a prototype safeguard, not a certified de-identification pipeline. No real patient data has touched this system — only the 12 synthetic fixtures.
 
+### ☁️ Nebius Serverless Deployment Design
+
+My deployment splits the way Serverless AI splits: synchronous serving and scheduled batch, from one container image.
+
+Real-time is the pre-discharge interlock — the clinician's sign-off call hits FastAPI, streams the four stages over SSE, and blocks or clears in one request. That is the Serverless Endpoint role, and the root `Dockerfile` already builds it (uvicorn on 8000, non-root).
+
+Batch is the overnight retrospective: every discharge the hospital signed off that day gets re-audited through the full tiered router, and the scored JSON lands as an artifact for review. That is the scheduled Serverless Job role — same image, different command:
+
+```
+                        ONE IMAGE, TWO ROLES
+   ┌─────────────────────────────────────────────────────────┐
+   │ silentcatch:latest (backend + eval + jobs)              │
+   └──────┬──────────────────────────────────┬───────────────┘
+          │ Endpoint (sync)                  │ Job (scheduled nightly)
+          ▼                                  ▼
+   uvicorn backend.main:app           jobs/retrospective.sh --live
+   POST /api/audit-stream             tiered re-audit -> JSON artifact
+   blocks sign-off in one request     sharded by --case across N jobs
+```
+
+Two caveats. The harness audits sequentially within a job, so parallelism comes from sharding cases across scheduled jobs (one VM per job). My live demo still runs on Vercel plus a plain VM; the mapping above is the deployment design, validated by running the exact job command locally.
+
 ---
 
 ## 📊 Benchmark Results (Synthetic Fixture Validation)
@@ -480,6 +502,8 @@ SilentCatch/
 ├── eval/
 │   ├── benchmark.py              # Reproducible 12-case × 3-config evaluation harness
 │   └── results_latest.json       # Fixture-routing scores, public-rate cost estimates, design targets
+├── jobs/
+│   └── retrospective.sh          # Nightly retrospective entrypoint (Serverless Job command)
 ├── docs/assets/                  # Console screenshot artifacts
 ├── Dockerfile                    # Container definition
 ├── docker-compose.yml            # Multi-service local & cloud compose file
