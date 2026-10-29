@@ -103,6 +103,16 @@ My latency values below are design budgets, not measured production results. Liv
 | **Stage 4: Reasoning** | `Nemotron-3-Ultra-550B` | ~600 ms | Synthesizes structured clinical patches. Proposes candidates with verbatim source quotes. |
 | **Verification Gate** | Deterministic Python Rig | < 1 ms | Verifies quotes exist in the chart, computes UI character offsets, and blocks unverified proposals from surfacing. |
 
+### 🔍 Why SilentCatch is the Best Use of Tavily ($3,000 Award)
+
+Tavily sits at Stage 3 of my pipeline: the evidence layer that decides what Ultra is allowed to reason from.
+
+The flow: Nano drafts 1–2 precision queries naming the governing body (Fleischner, KDIGO, FDA), with patient identifiers forbidden in the prompt itself. Every query then passes a regex PHI scrubber covering names, MRNs, and dates of birth — once on generation, again on the outbound call. The Tavily request uses advanced depth, max 3 results, raw content off, and `include_domains` locked to eight medical authorities, so results come from places like pubs.rsna.org and kdigo.org instead of the open web. A 10s timeout degrades to a verified local snapshot captured Oct 2026, and the badge always says which path ran.
+
+The returned paragraphs are embedded verbatim into Ultra's reasoning context as `guideline_evidence`, the verdict carries the kind-matched guideline URL, and the interception card links it as a live-vs-snapshot badge. The model never argues from memory when it can argue from a cited paragraph.
+
+One caveat: my scrubber is a prototype safeguard, not a certified de-identification pipeline. No real patient data has touched this system — only the 12 synthetic fixtures.
+
 ---
 
 ## 📊 Benchmark Results (Synthetic Fixture Validation)
@@ -486,3 +496,25 @@ This project is open-source software licensed under the [MIT License](LICENSE).
 <div align="center">
 <sub>I built SilentCatch as an experimental prototype for surfacing cross-modal discharge contradictions. Not a validated clinical device.</sub>
 </div>
+
+---
+
+## 🛠️ Nebius & NVIDIA Developer Feedback
+
+I built SilentCatch on Nebius Token Factory with NVIDIA Nemotron models (Nano 30B gate, Super 120B failsafe, Ultra 550B reasoning, Super-VL 120B vision), plus one live smoke run of ED-104 against Nebius on Oct 29 (2/2 verdicts verified, ~25s, ~$0.01). Everything below comes from that work.
+
+### Onboarding
+
+Onboarding took one API key and one base URL. The OpenAI-compatible endpoint meant my whole client was `OpenAI(api_key, base_url)` plus `chat.completions.create`, with my own retry ladder on top (`max_retries=0`). The one snag: model ID casing drifted from the documented names, so startup resolves exact IDs from `GET /v1/models` with substring matchers and falls back to hardcoded defaults. That resolution code exists only because the IDs moved.
+
+### What worked well
+
+The tiered model family fits a safety gate. Nano 30B with thinking disabled serves the triage gate inside its 8s ceiling, so clean discharges clear before Ultra ever runs; my public-rate estimates put the tiered path 44% below Ultra-only per 1k discharges. The `enable_thinking` toggle via `extra_body` worked as documented. Usage tokens came back on every response, which my spend ledger needs to enforce the $0.05/discharge and $2.00/day caps. Without usage in the response, the circuit-breaker design would not work.
+
+### What needs improvement
+
+Three things, in order of pain. First, constrained decoding. I found no JSON-schema response option, so strict `FindingSpec` output required a client-side parser (markdown-fence stripping plus one repair retry carrying the validation error). A `response_format` with schema would delete that whole module. Second, Ultra 550B latency. The ED-104 smoke run took ~25s end to end, against my 20s reasoning timeout. That fits a pre-signoff gate with a progress indicator, but it rules out anything inline; time-to-first-token is the number I would want improved and documented. Third, congestion visibility. I built a Super-120B failsafe tier for when Ultra is busy, but I had no queue-depth or load signal to route on, so failover is purely timeout-driven and blind.
+
+### Would I build with them again
+
+Yes. The OpenAI-compatible surface plus the Nano-to-Ultra cost ladder is the shape a staged interlock wants: cheap stages clear the easy cases, and the expensive model only sees the hard ones. I would budget the same way next time, with deterministic guards first, Ultra last, and timeouts plus a failsafe tier assumed from day one.
