@@ -34,6 +34,7 @@ function provenanceLabel(source: string | undefined): string | null {
   if (source === "live" || source === "failsafe_live" || source === "tavily_live") {
     return null; // genuinely live; no badge needed
   }
+  if (source === "live_override") return "OVERRIDE";
   if (source === "live_empty" || source === "live_rejected") return "REJECTED";
   if (source === "failure_no_prediction") return "FAILED";
   if (source === "cache_hit") return "CACHE";
@@ -46,7 +47,7 @@ function provenanceLabel(source: string | undefined): string | null {
 
 function provenanceTone(label: string): string {
   if (label === "FAILED" || label === "REJECTED") return "text-signal";
-  if (label === "FALLBACK") return "text-warn";
+  if (label === "FALLBACK" || label === "OVERRIDE") return "text-warn";
   return "text-faint";
 }
 
@@ -91,7 +92,12 @@ function TelemetryBar({
         tokens += prompt + completion;
       }
       cost += t.est_cost_usd ?? 0;
-      if (t.source === "live" || t.source === "failsafe_live" || t.source === "tavily_live") {
+      if (
+        t.source === "live" ||
+        t.source === "live_override" ||
+        t.source === "failsafe_live" ||
+        t.source === "tavily_live"
+      ) {
         providerEvidence = true;
       }
     }

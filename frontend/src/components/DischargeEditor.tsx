@@ -47,6 +47,9 @@ function DischargeEditor({
   const packet: DischargePacket = encounter.draft_discharge_packet;
   const isRunning = phase === "running";
   const isIntercept = phase === "intercept" && verdicts.length > 0;
+  const isError = phase === "error";
+  // Fail closed: an incomplete/errored audit must not expose a signable packet.
+  const isBlocked = isIntercept || isError;
   const isSafe = phase === "safe";
   const isPass = phase === "pass";
 
@@ -61,11 +64,13 @@ function DischargeEditor({
     ? "Running flight-check"
     : isIntercept
       ? "Discharge blocked"
-      : isSafe
-        ? "Verified safe"
-        : isPass
-          ? "Silent pass"
-          : "Awaiting sign-off";
+      : isError
+        ? "Audit incomplete"
+        : isSafe
+          ? "Verified safe"
+          : isPass
+            ? "Silent pass"
+            : "Awaiting sign-off";
 
   const statusDetail = isRunning
     ? runMode === "LIVE"
@@ -73,11 +78,13 @@ function DischargeEditor({
       : "Streaming deterministic replay. No provider calls are made."
     : isIntercept
       ? `${verdicts.length} contradiction${verdicts.length > 1 ? "s" : ""} found between the chart and the draft packet.`
-      : isSafe
-        ? "The patched packet re-audited clean. The loop is closed."
-        : isPass
-          ? "No unaddressed findings or kinetic collisions in this run."
-          : "No audit has completed for this encounter.";
+      : isError
+        ? "Required live evidence is missing. Discharge stays blocked until a complete audit runs."
+        : isSafe
+          ? "The patched packet re-audited clean. The loop is closed."
+          : isPass
+            ? "No unaddressed findings or kinetic collisions in this run."
+            : "No audit has completed for this encounter.";
 
   return (
     <section className="flex h-full min-h-0 flex-col" aria-label="Discharge packet">
@@ -117,7 +124,7 @@ function DischargeEditor({
                   className="h-1.5 w-1.5 rounded-full bg-ink live-dot"
                   aria-hidden
                 />
-              ) : isIntercept ? (
+              ) : isBlocked ? (
                 <ShieldAlert className="h-4 w-4 shrink-0" />
               ) : isSafe || isPass ? (
                 <ShieldCheck className="h-4 w-4 shrink-0 text-safe" />
@@ -148,9 +155,9 @@ function DischargeEditor({
           <div className="relative shrink-0">
             <button
               data-testid="sign-discharge-btn"
-              disabled={isIntercept || isRunning}
+              disabled={isBlocked || isRunning}
               onClick={() => {
-                if (!isIntercept && !isRunning) {
+                if (!isBlocked && !isRunning) {
                   alert(
                     "Discharge authorized: patient packet signed and transmitted to the EHR."
                   );
@@ -159,15 +166,17 @@ function DischargeEditor({
               title={
                 isIntercept
                   ? "Resolve every contradiction before signing"
-                  : "Sign and transmit the packet"
+                  : isError
+                    ? "Audit incomplete — discharge blocked until required evidence is available"
+                    : "Sign and transmit the packet"
               }
               className={`flex h-8 items-center gap-1.5 px-3 text-[12px] font-medium transition-colors ${
-                isIntercept || isRunning
+                isBlocked || isRunning
                   ? "cursor-not-allowed border border-sheet/25 text-sheet/55"
                   : "bg-ink text-sheet hover:bg-ink-2"
               }`}
             >
-              {isIntercept ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+              {isBlocked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
               Sign &amp; discharge
             </button>
           </div>

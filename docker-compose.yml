@@ -17,10 +17,13 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        # NEXT_PUBLIC_* is inlined at build time, so it must be a build arg.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     depends_on:
       - backend
     ports:
       - "3000:3000"
     environment:
-      # Browser-side base URL for SSE/audit calls (consumed in Phase 3)
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+      # Runtime copy for server-side code; the browser bundle uses the build arg.
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}

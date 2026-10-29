@@ -35,20 +35,32 @@ from backend.schemas import Encounter
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Resolve exact Token Factory model IDs once at boot (PRD §9 R-3)."""
+    """Kick off model-ID resolution without blocking startup (PRD §9 R-3).
+
+    The provider round-trip is bounded, but a slow/unreachable API must never
+    delay or crash boot: `config.resolved()` serves PRD defaults until the
+    background resolution lands.
+    """
+    import threading
+
     import httpx
 
-    with httpx.Client() as client:
-        config.resolved_model_ids = config.resolve_model_ids(client)
+    def resolve() -> None:
+        with httpx.Client() as client:
+            config.resolved_model_ids = config.resolve_model_ids(client)
+
+    threading.Thread(target=resolve, name="model-id-resolution", daemon=True).start()
     yield
 
 
 app = FastAPI(title="SilentCatch", version="0.2.0", lifespan=lifespan)
 
-# Frontend (dev :3000, prod preview/vercel) needs cross-origin SSE + docs.
+# Frontend (dev :3000, prod vercel) needs cross-origin SSE + docs.
+# Explicit allowlist, not a blanket *.vercel.app regex.
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"^(https?://(localhost|127\.0\.0\.1)(:\d+)?|https://.*\.vercel\.app)$",
+    allow_origins=config.allowed_origins(),
+    allow_origin_regex=config.allowed_origin_regex(),
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -138,11 +150,12 @@ async def get_benchmark() -> dict:
             eval_mode = "unavailable"
         # Copy so each response carries eval_mode without mutating the cache.
         return {**_benchmark_cache, "eval_mode": eval_mode}
-    except FileNotFoundError:
+    except (OSError, json.JSONDecodeError):
+        # Missing/unreadable/corrupt artifact must degrade, never 500 the console.
         return {
             "status": "pending",
             "eval_mode": "unavailable",
-            "message": "Run make benchmark to generate results.",
+            "message": "Benchmark artifact unavailable. Run make benchmark to generate results.",
         }
 
 

@@ -143,7 +143,7 @@ export interface Guideline {
 
 export interface AuditResult {
   encounter_id: string;
-  status: string; // SILENT_PASS | CRITICAL_INTERCEPT | ERROR
+  status: string; // SILENT_PASS | CRITICAL_INTERCEPT | INCOMPLETE | ERROR
   verdicts: InterceptionVerdict[];
   traces: StageTrace[];
   total_cost_usd: number;

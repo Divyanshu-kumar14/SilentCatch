@@ -11,4 +11,5 @@ __pycache__
 specs
 frontend/node_modules
 frontend/.next
-eval
+# eval/ is required by the root Dockerfile (backend /api/benchmark reads
+# eval/results_latest.json) — do not exclude it.

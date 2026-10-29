@@ -275,6 +275,12 @@ export default function Console() {
             } else if (r.status === "SILENT_PASS") {
               setPhase(appliedRef.current.size > 0 ? "safe" : "pass");
               playCockpitSound("safe", soundRef.current);
+            } else if (r.status === "INCOMPLETE") {
+              setErr(
+                r.error ??
+                  "Audit incomplete — discharge blocked. Required live evidence is missing."
+              );
+              setPhase("error");
             } else {
               setErr(r.status);
               setPhase("error");

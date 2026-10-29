@@ -8,6 +8,9 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY frontend/ .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Public origin is baked into the client bundle at build time.
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 FROM node:26-alpine AS runner
