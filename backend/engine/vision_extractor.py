@@ -220,7 +220,9 @@ def extract_findings(
                 note=f"vl_fallback: {type(exc).__name__}",
             )
 
-    if image_png is not None and vision_cache is not None:
+    if image_png is not None and vision_cache is not None and result.source == "vl_live":
+        # D-1 cache only genuine live extractions: caching a fallback/seed result
+        # would later surface as `cache_hit` and hide that live evidence was lost.
         vision_cache[image_sha256(image_png)] = result
 
     trace = StageTrace(

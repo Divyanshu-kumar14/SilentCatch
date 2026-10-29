@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-import { API_BASE } from "@/lib/api";
+import { assetUrl } from "@/lib/api";
 import type { Encounter } from "@/lib/types";
 
 interface ThreeDProps {
@@ -212,7 +212,7 @@ export default function ThreeDVolumeViewer({ encounter, roi }: ThreeDProps) {
     // ── texture ─────────────────────────────────────────────────────
     let disposed = false;
     let texture: THREE.Texture | null = null;
-    const imageUrl = `${API_BASE}${encounter.radiology_study.slice_image_url}`;
+    const imageUrl = assetUrl(encounter.radiology_study.slice_image_url ?? "");
     new THREE.TextureLoader().load(
       imageUrl,
       (tex) => {

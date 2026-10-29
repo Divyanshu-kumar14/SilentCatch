@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
-import { API_BASE } from "@/lib/api";
+import { assetUrl } from "@/lib/api";
 import { resolveSpan } from "@/lib/clinical";
 import type { Encounter, InterceptionVerdict, ScanFinding } from "@/lib/types";
 import ThreeDVolumeViewer from "@/components/ThreeDVolumeViewer";
@@ -251,7 +251,7 @@ function ScanViewer({
                 </span>
 
                 <Image
-                  src={`${API_BASE}${encounter.radiology_study.slice_image_url}`}
+                  src={assetUrl(encounter.radiology_study.slice_image_url ?? "")}
                   alt={`Radiology key slice for ${encounter.encounter_id}`}
                   width={256}
                   height={256}

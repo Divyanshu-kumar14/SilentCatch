@@ -115,3 +115,26 @@ def spend_caps() -> dict[str, float]:
         "per_discharge_usd": MAX_COST_PER_DISCHARGE_USD,
         "daily_usd": MAX_DAILY_SPEND_USD,
     }
+
+
+# Deployment CORS: exact origins, never a blanket `https://*.vercel.app` regex
+# (that would trust every Vercel tenant). Preview deployments must be added
+# explicitly through ALLOWED_ORIGINS or the opt-in ALLOWED_ORIGIN_REGEX.
+DEFAULT_ALLOWED_ORIGINS: Final[tuple[str, ...]] = (
+    "https://silentcatch.vercel.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+)
+
+
+def allowed_origins() -> list[str]:
+    """Browser origins allowed to call the API (comma-separated env override)."""
+    raw = os.getenv("ALLOWED_ORIGINS", "")
+    configured = [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
+    return configured or list(DEFAULT_ALLOWED_ORIGINS)
+
+
+def allowed_origin_regex() -> str | None:
+    """Optional regex for approved preview deployments; unset by default."""
+    raw = os.getenv("ALLOWED_ORIGIN_REGEX", "").strip()
+    return raw or None

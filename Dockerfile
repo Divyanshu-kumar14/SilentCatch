@@ -14,8 +14,10 @@ RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 COPY backend/ /app/backend/
 COPY eval/ /app/eval/
 
-# Non-root security
-RUN useradd --create-home appuser
+# Non-root security. a+rX: build context may carry restrictive modes (e.g. a
+# 600 results_latest.json) that appuser must still be able to read.
+RUN useradd --create-home appuser \
+    && chmod -R a+rX /app/backend /app/eval
 USER appuser
 
 EXPOSE 8000

@@ -196,7 +196,7 @@ class GateDecision(BaseModel):
 
 class AuditResult(BaseModel):
     encounter_id: str
-    status: str  # SILENT_PASS | CRITICAL_INTERCEPT | ERROR
+    status: str  # SILENT_PASS | CRITICAL_INTERCEPT | INCOMPLETE | ERROR
     verdicts: list[InterceptionVerdict] = Field(default_factory=list)
     traces: list[StageTrace] = Field(default_factory=list)
     total_cost_usd: float = 0.0
@@ -205,6 +205,8 @@ class AuditResult(BaseModel):
     execution_mode: str = ""  # LIVE | MIXED | REPLAYED | FAILED | ERROR
     stage_sources: dict[str, str] = Field(default_factory=dict)
     fallback_used: bool = False
+    # Human-readable failure/incomplete reason (never a secret).
+    error: str | None = None
 
 
 # ---------------------------------------------------------------- eval metadata

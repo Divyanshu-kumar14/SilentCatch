@@ -13,7 +13,7 @@
 [![Tavily Search API](https://img.shields.io/badge/Grounding-Tavily%20Search%20API-4A90E2)](https://tavily.com/)
 [![Docker](https://img.shields.io/badge/Deployment-Docker%20Compose-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
 [![Test Suite](https://img.shields.io/badge/Tests-53%20Passed-brightgreen.svg)]()
-[![Live Demo](https://img.shields.io/badge/Demo-Live%20on%20Cloudflare-00C7B7?logo=cloudflare&logoColor=white)](https://colors-variables-atmosphere-enlargement.trycloudflare.com)
+[![Live Demo](https://img.shields.io/badge/Demo-silentcatch.vercel.app-000000?logo=vercel&logoColor=white)](https://silentcatch.vercel.app)
 
 <br/>
 
@@ -287,6 +287,29 @@ The `make judge-demo` command requires no API keys; with keys unset it runs the 
    ```
 
 The console header shows `[LIVE — Nebius Token Factory]` instead of `[REPLAY MODE — No API Keys]` when a Nebius key is configured. The mode is also reported by `GET /healthz` (`inference_mode`) and by each audit's `run_start` event. Spend circuit breakers cap costs at **$0.05/discharge** and **$2.00/day**; when a cap trips, the audit falls back to the deterministic replay path.
+
+### Deployed Topology (Vercel frontend + FastAPI backend)
+
+- Frontend: `https://silentcatch.vercel.app` (Next.js on Vercel)
+- Backend: `https://3.26.189.111.sslip.io` (FastAPI in Docker behind Caddy)
+
+Set the frontend origin in Vercel under **Project → Settings → Environment Variables**:
+
+| Variable | Environments | Value |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_URL` | Production, Preview | `https://3.26.189.111.sslip.io` |
+
+`NEXT_PUBLIC_*` values are public build-time values. API keys belong only in the backend environment. A production build with no `NEXT_PUBLIC_API_URL` fails loudly in the console instead of silently calling `localhost`.
+
+Allow the exact browser origins on the backend (comma-separated):
+
+```bash
+ALLOWED_ORIGINS=https://silentcatch.vercel.app,http://localhost:3000,http://127.0.0.1:3000
+# Optional, approved preview deployments only — never a blanket *.vercel.app
+# ALLOWED_ORIGIN_REGEX=^https://silentcatch-[a-z0-9-]+\.vercel\.app$
+```
+
+**Fail-closed audit status.** If live inference was requested and the vision stage fell back before extraction, or reasoning produced no prediction after escalation, a would-be `SILENT_PASS` is reported as `INCOMPLETE` with an error, and the console blocks discharge. Deterministic gate triage and seed-rig re-audits keep their result but are labeled `MIXED`/`FALLBACK`, never `LIVE`. Deliberate replay (no keys, spend cap) remains `REPLAYED`.
 
 ---
 

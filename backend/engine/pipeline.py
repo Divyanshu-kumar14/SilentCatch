@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 StageRole = str  # vision | gate | reasoning | failsafe
 
-_LIVE_SOURCES = frozenset({"live", "failsafe_live", "tavily_live"})
+_LIVE_SOURCES = frozenset({"live", "live_override", "failsafe_live", "tavily_live"})
 _LOCAL_SOURCES = frozenset(
     {
         "replay_seed",
@@ -57,6 +57,48 @@ _LOCAL_SOURCES = frozenset(
     }
 )
 _FAILURE_SOURCES = frozenset({"failure_no_prediction"})
+
+# Fail-closed clearance rule: a live-intended SILENT_PASS is only a discharge
+# clearance when the audit either verified live evidence or ran the
+# deterministic seed rig against known candidates. These sources mean the
+# evidence itself is missing, so the result must surface as INCOMPLETE instead
+# of green. `deterministic_fallback` (gate) and `seed_fallback` (reasoning) are
+# intentionally absent: both ran the deterministic guards on complete upstream
+# evidence, and their provenance is reported as MIXED/FALLBACK, never LIVE.
+_DEGRADED_CLEARANCE_SOURCES = frozenset(
+    {
+        "fallback",                # vision provider call failed
+        "text_only_seed",          # live intended but the image was unusable
+        "failure_no_prediction",   # reasoning produced no prediction
+    }
+)
+
+
+def clearance_blocker(
+    sources: dict[str, str],
+    required_stages: list[str],
+    *,
+    intended_live: bool,
+    transport_unavailable_is_failure: bool,
+) -> str | None:
+    """Why a SILENT_PASS must be reported INCOMPLETE (fail-closed), or None.
+
+    Deliberate replay (no key, spend cap, injected test transport) stays
+    REPLAYED and keeps its deterministic result; this guard only fires when live
+    inference was requested and the default transport could not be built.
+    """
+    if not intended_live:
+        return None
+    if transport_unavailable_is_failure:
+        return "live inference was requested but no provider transport was available"
+    degraded = [
+        f"{stage}={sources.get(stage)}"
+        for stage in required_stages
+        if sources.get(stage) in _DEGRADED_CLEARANCE_SOURCES
+    ]
+    if not degraded:
+        return None
+    return "required live evidence missing (" + ", ".join(degraded) + ")"
 
 
 def stage_source_key(trace: StageTrace) -> str:
@@ -94,13 +136,15 @@ def audit_execution_summary(
         for source in observed
     ) or any(source in {"cache_hit", "cache_snapshot"} for source in observed)
 
-    if failure and live_count == 0:
+    if failure:
+        # A required stage produced no prediction: never call the run LIVE/MIXED.
         mode = "FAILED"
     elif live_count == len(observed) and not fallback:
         mode = "LIVE"
     elif live_count > 0:
         mode = "MIXED"
     else:
+        # No live call succeeded (cache/deterministic/seed paths only).
         mode = "REPLAYED"
     return mode, sources, fallback
 
@@ -238,6 +282,22 @@ def run_audit(  # noqa: C901 — a guarded linear stream read top to bottom
         result.execution_mode = mode
         result.stage_sources = sources
         result.fallback_used = fallback
+        if result.status == "SILENT_PASS":
+            blocker = clearance_blocker(
+                sources,
+                required,
+                intended_live=intended_live,
+                transport_unavailable_is_failure=(
+                    intended_live and transport_factory is None and not live_llm
+                ),
+            )
+            if blocker:
+                # Never let a failed/degraded live audit become a green clearance.
+                result.status = "INCOMPLETE"
+                result.error = (
+                    f"Audit incomplete — discharge blocked: {blocker}. "
+                    "Re-run when the provider is reachable."
+                )
         emit({"event": "verdict", "data": result.model_dump()})
         emit({"event": "done", "data": result.model_dump()})
         return result
@@ -428,12 +488,12 @@ def finish_or_error(
         execution_mode="ERROR",
         stage_sources=sources,
         fallback_used=fallback,
+        error=f"{type(exc).__name__}: {exc}",
     )
     payload = result.model_dump()
-    payload["error"] = f"{type(exc).__name__}: {exc}"
     emit({"event": "verdict", "data": payload})
     emit({"event": "done", "data": payload})
-    # AuditResult carries status ERROR; the 'error' key rides the SSE payload only.
+    # `error` is part of AuditResult so every consumer sees the same failure.
     return result
 
 
