@@ -119,6 +119,47 @@ def test_malformed_output_repairs_once() -> None:
     assert trace.replayed is False
 
 
+def test_string_follow_up_order_repairs_with_schema() -> None:
+    """Observed VPS failure: add_follow_up_order emitted as a prose string
+    must converge via the one-shot schema-carrying repair (FR-4.1)."""
+    assert "NEVER emit objects as strings" in contradiction_ultra.ULTRA_SYSTEM_PROMPT
+    good_spec = {
+        "kind": "INCIDENTAL_FINDING_DROP",
+        "severity": "CRITICAL",
+        "explanation": "7.2 mm RUL nodule with no follow-up order",
+        "source_quote": "Incidental 7.2 mm spiculated solid noncalcified nodule in the right upper lobe",
+        "source": "radiology_report",
+        "guideline_url": None,
+        "discharge_patch": {
+            "remove_drug_name": None,
+            "add_prescription": None,
+            "add_follow_up_order": {
+                "specialty": "Radiology",
+                "timeframe": "6 months",
+                "reason": "nodule follow-up",
+                "cpt_code": "71250",
+            },
+            "note": "add nodule surveillance order",
+        },
+    }
+    bad_spec = {
+        **good_spec,
+        "discharge_patch": {
+            **good_spec["discharge_patch"],
+            "add_follow_up_order": "Chest CT in 6 months for nodule follow-up",
+        },
+    }
+    transport, calls = _batch_transport(
+        [json.dumps({"candidates": [bad_spec]}), json.dumps({"candidates": [good_spec]})]
+    )
+    verdicts, trace = contradiction_ultra.synthesize_verdicts(
+        **_inputs(), transport=transport, model_id="ultra", failsafe_model_id="super"
+    )
+    assert len(calls) == 2, "string-typed order must converge on the repair retry"
+    assert len(verdicts) == 1
+    assert trace.replayed is False
+
+
 def test_fallback_ladder_ultra_to_super_to_seed() -> None:
     def dead_transport(model_id, messages, *, timeout_s, extra_body=None):
         raise TimeoutError(f"{model_id} congested")

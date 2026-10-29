@@ -51,6 +51,38 @@ class CandidateBatch(BaseModel):
     candidates: list[FindingSpec]
 
 
+FINDING_SPEC_SCHEMA = (
+    " EXACT NESTED SHAPES (every key required unless marked ?): "
+    'FollowUpOrder={"specialty":str,"timeframe":str,"reason":str,"cpt_code":str}; '
+    'Prescription={"drug_name":str,"dose":str,"days":int,"class":str (literal key "class")}; '
+    'DischargePatch={"remove_drug_name"?:str|null,"add_prescription"?:Prescription|null,'
+    '"add_follow_up_order"?:FollowUpOrder|null,"note":str REQUIRED}; '
+    'FindingSpec={"kind","severity","explanation","source_quote",'
+    '"source" ("radiology_report"|"lab_note"),"guideline_url"?:str|null,'
+    '"discharge_patch":DischargePatch}; top level {"candidates":[FindingSpec]}. '
+    "NEVER emit objects as strings — add_follow_up_order and add_prescription "
+    "are OBJECTS or null, never prose. NEVER guess keys (no drug/description/order). "
+    'COMPLETE VALID EXAMPLE: {"candidates":[{"kind":"INCIDENTAL_FINDING_DROP",'
+    '"severity":"CRITICAL","explanation":"7.2 mm RUL nodule with no follow-up order",'
+    '"source_quote":"Incidental 7.2 mm spiculated solid noncalcified nodule '
+    'in the right upper lobe","source":"radiology_report","guideline_url":null,'
+    '"discharge_patch":{"remove_drug_name":null,"add_prescription":null,'
+    '"add_follow_up_order":{"specialty":"Radiology","timeframe":"6 months",'
+    '"reason":"nodule follow-up","cpt_code":"71250"},'
+    '"note":"add nodule surveillance order"}}]} '
+    "Propose a candidate for EVERY contradiction present — imaging findings AND "
+    "medication collisions; never stop after the first. SECOND EXAMPLE (drug): "
+    '{"kind":"KINETIC_MED_COLLISION","severity":"CRITICAL",'
+    '"explanation":"NSAID vs AKI velocity",'
+    '"source_quote":"creatinine rising 0.62 → 0.88 → 1.16 mg/dL over 36 hours",'
+    '"source":"lab_note","guideline_url":null,'
+    '"discharge_patch":{"remove_drug_name":"Ketorolac tromethamine (Toradol)",'
+    '"add_prescription":{"drug_name":"Acetaminophen with codeine substitution note",'
+    '"dose":"650 mg PO q6h PRN (renal-safe)","days":5,"class":"ANALGESIC"},'
+    '"add_follow_up_order":null,"note":"swap to renal-safe analgesia"}}'
+)
+
+
 ULTRA_SYSTEM_PROMPT = (
     "You are a cross-modal clinical contradiction synthesizer. Given radiology "
     "findings, kinematic lab slopes, live guideline evidence and the draft "
@@ -61,7 +93,10 @@ ULTRA_SYSTEM_PROMPT = (
     'source ("radiology_report"|"lab_note"), guideline_url|null, discharge_patch '
     "{remove_drug_name|null, add_prescription|null, add_follow_up_order|null, note}. "
     "NEVER fabricate quotes, measurements, or CPT codes — a deterministic guard "
-    "will reject unprovable candidates, so prefer exactness over volume."
+    "will reject unprovable candidates, so prefer exactness over volume. "
+    "Copy source_quote character-for-character from RADIOLOGY REPORT or LAB NOTE "
+    "in the context and set source to match; use DRAFT PACKET drug/order names exactly."
+    + FINDING_SPEC_SCHEMA
 )
 
 
@@ -70,13 +105,27 @@ def _context_messages(
     slopes: list[KinematicSlope],
     flags: list[str],
     bundle: GuidelineResult,
+    radiology_report: str,
+    lab_note: str | None,
+    packet: DischargePacket,
 ) -> list[dict]:
     context = {
         "scan_findings": [f.model_dump() for f in findings],
         "kinematic_slopes": [s.model_dump() for s in slopes],
         "kinematic_flags": flags,
         "guideline_evidence": [g.model_dump() for g in bundle.guidelines[:4]],
-        "discharge_packet_summary_refs": "packet JSON supplied at runtime",
+        # Quotable sources: the rig demands verbatim quotes, so the model must
+        # see the exact texts (previously withheld — unquotable by construction).
+        "radiology_report": radiology_report,
+        "lab_note": lab_note or "",
+        "draft_packet_prescriptions": [
+            {"drug_name": rx.drug_name, "dose": rx.dose}
+            for rx in packet.prescriptions
+        ],
+        "draft_packet_orders": [
+            {"specialty": o.specialty, "cpt_code": o.cpt_code}
+            for o in packet.follow_up_orders
+        ],
     }
     return [{"role": "system", "content": ULTRA_SYSTEM_PROMPT},
             {"role": "user", "content": "CLINICAL CONTEXT:\n" + json.dumps(context, indent=2, default=str)}]
@@ -161,7 +210,10 @@ def synthesize_verdicts(
     rescued = False
 
     if transport is not None:
-        messages = _context_messages(findings, slopes, flags, bundle)
+        messages = _context_messages(
+            findings, slopes, flags, bundle,
+            radiology_report, lab_note, packet,
+        )
         attempts: list[tuple[str, str]] = (
             [(model_id, "reasoning"), (failsafe_model_id, "failsafe_super")]
             if failsafe_model_id
@@ -185,6 +237,7 @@ def synthesize_verdicts(
                             retry_messages[-1]["content"]
                             + "\n\nYour previous reply failed schema validation "
                             f"({error}). Return ONLY corrected strict JSON."
+                            + FINDING_SPEC_SCHEMA
                         ),
                     }
                     raw2, usage2 = transport(_model, retry_messages, timeout_s=timeout_s)
