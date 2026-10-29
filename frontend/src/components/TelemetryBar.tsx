@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import { shortModel } from "@/lib/clinical";
 import type { Phase, RunStartEvent, StageTrace } from "@/lib/types";
@@ -35,7 +35,8 @@ function provenanceLabel(source: string | undefined): string | null {
     return null; // genuinely live; no badge needed
   }
   if (source === "live_override") return "OVERRIDE";
-  if (source === "live_empty" || source === "live_rejected") return "REJECTED";
+  if (source === "live_empty") return "CLEAR"; // valid empty proposal: model read clean, not a rejection
+  if (source === "live_rejected") return "REJECTED";
   if (source === "failure_no_prediction") return "FAILED";
   if (source === "cache_hit") return "CACHE";
   if (source.includes("fallback")) return "FALLBACK";
@@ -65,6 +66,20 @@ function TelemetryBar({
   const isRunning = phase === "running";
   const overallMode = runStart?.mode ?? null;
   const isReplay = overallMode === "REPLAYED";
+
+  // Live inference (Ultra 550B) can take 15-20s per stage; a ticking elapsed
+  // readout proves the stream is alive instead of looking frozen.
+  const [elapsedS, setElapsedS] = useState(0);
+  useEffect(() => {
+    if (!isRunning) return;
+    const t0 = Date.now();
+    setElapsedS(0);
+    const id = setInterval(() => setElapsedS(Math.floor((Date.now() - t0) / 1000)), 500);
+    return () => clearInterval(id);
+  }, [isRunning]);
+  const activeLabel = activeStage
+    ? (STAGE_CONFIG.find((c) => c.id === activeStage)?.label ?? activeStage).toLowerCase()
+    : null;
   const estimatedLatency = isReplay
     ? STAGE_CONFIG.reduce(
         (sum, cfg) =>
@@ -191,6 +206,11 @@ function TelemetryBar({
           <span className="flex items-center gap-1.5 font-medium text-ink">
             <span className="h-1 w-1 rounded-full bg-signal live-dot" aria-hidden />
             streaming
+            {activeLabel && (
+              <span className="mono font-normal text-muted">
+                · {activeLabel} {elapsedS}s
+              </span>
+            )}
           </span>
         )}
 

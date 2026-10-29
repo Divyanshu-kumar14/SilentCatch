@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node test-phase3.cjs"
+    "test": "tsc --noEmit",
+    "test:e2e": "node test-phase3.cjs"
   },
   "dependencies": {
     "@types/three": "^0.186.0",

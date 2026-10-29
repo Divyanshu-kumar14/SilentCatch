@@ -23,6 +23,15 @@ import type {
 } from "@/lib/types";
 import SignReceiptDialog from "./SignReceiptDialog";
 
+/** Bare host for the guideline badge (pubs.rsna.org, not the full URL). */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
 function DischargeEditor({
   encounter,
   phase,
@@ -202,6 +211,11 @@ function DischargeEditor({
                 const isDrug = v.kind === "KINETIC_MED_COLLISION";
                 const pKey = patchKey(v);
                 const isApplied = applied.has(pKey);
+                const guide = guides[i];
+                const guideHost = guide ? hostOf(guide.url) : "";
+                const guideDetail = guide
+                  ? [guide.title, guideHost].filter(Boolean).join(" · ")
+                  : "";
 
                 return (
                   <article
@@ -248,19 +262,27 @@ function DischargeEditor({
                     </dl>
 
                     <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-signal/20 pt-2.5">
-                      {guides.length > 0 && guides[i] ? (
+                      {guide ? (
                         <a
-                          href={guides[i].url}
+                          href={guide.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex min-w-0 items-center gap-1 text-[11px] text-muted underline underline-offset-2 transition-colors hover:text-ink"
+                          title={`${guide.title} — ${guide.url}`}
+                          className="flex min-w-0 items-center gap-1.5 border border-edge-2 bg-sheet px-2 py-1 text-[11px] transition-colors hover:border-ink/40"
                         >
-                          <ExternalLink className="h-3 w-3 shrink-0" />
-                          <span className="truncate">
-                            {guides[i].source === "tavily_live"
+                          <ExternalLink className="h-3 w-3 shrink-0 text-muted" />
+                          <span
+                            className={`shrink-0 font-medium uppercase tracking-[0.06em] ${
+                              guide.source === "tavily_live" ? "text-ink" : "text-muted"
+                            }`}
+                          >
+                            {guide.source === "tavily_live"
                               ? "Tavily live result"
                               : "Cached guideline snapshot"}
                           </span>
+                          {guideDetail && (
+                            <span className="truncate text-muted">{guideDetail}</span>
+                          )}
                         </a>
                       ) : (
                         <span className="text-[11px] text-faint">No guideline source attached</span>

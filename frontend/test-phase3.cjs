@@ -1,4 +1,14 @@
-const { chromium } = require("playwright");
+let chromium;
+try {
+  ({ chromium } = require("playwright"));
+} catch {
+  console.error(
+    "Playwright is not installed. Run:\n" +
+      "  npm i -D playwright && npx playwright install chromium\n" +
+      "then start both servers (backend :8000, `npm run dev`) and retry `npm run test:e2e`."
+  );
+  process.exit(2);
+}
 const assert = require("assert").strict;
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000/console";

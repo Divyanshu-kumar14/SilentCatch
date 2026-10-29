@@ -23,7 +23,8 @@ npx tsc --noEmit   # type-check
 npm run build      # standalone production build
 ```
 
-`npm test` runs my Playwright console suite (`test-phase3.cjs`, needs both servers up).
+`npm test` type-checks (`tsc --noEmit`, green on a clean clone).
+`npm run test:e2e` runs my Playwright console suite (`test-phase3.cjs`, needs `playwright` + both servers up).
 
 ## Layout
 
